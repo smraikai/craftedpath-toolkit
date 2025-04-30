@@ -101,7 +101,7 @@ class CPT_Settings_Manager
             'CraftedPath Toolkit',
             'CraftedPath',
             'manage_options',
-            'craftedpath-toolkit',
+            'craftedpath-toolkit',          // Main slug
             array($this, 'render_settings_page'), // Callback for main page (Features)
             'dashicons-admin-tools',
             100
@@ -139,45 +139,32 @@ class CPT_Settings_Manager
                 array(CPT_AI_Sitemap_Generator::instance(), 'render_menu_page')
             );
 
-            // Add API Settings Submenu (Currently points to Sitemap Generator settings)
-            // TODO: Revisit if AI Sitemap Generator specific API settings are needed here or in general settings
+            // Add API Settings Submenu
             add_submenu_page(
                 'craftedpath-toolkit',          // Parent slug
-                'AI API Settings',              // Page title (Clarified)
-                'AI API Settings',              // Menu title (Clarified)
+                'API Settings',               // Page title (Renamed)
+                'API Settings',               // Menu title (Renamed)
                 'manage_options',
-                'cpt-aismg-settings',           // Submenu slug 
+                'cpt-aismg-settings',           // Submenu slug (kept the same for settings continuity)
                 array(CPT_AI_Sitemap_Generator::instance(), 'render_settings_page') // Callback in Sitemap class
             );
         }
-
-        // Add General Toolkit Settings Submenu (OpenAI API Key, etc.)
-        add_submenu_page(
-            'craftedpath-toolkit',                  // Parent slug
-            __('Toolkit Settings', 'craftedpath-toolkit'), // Page title
-            __('Settings', 'craftedpath-toolkit'),        // Menu title
-            'manage_options',                         // Capability required
-            'cptk_settings_page',                     // Menu slug (from settings-page.php)
-            'cptk_render_settings_page',              // Callback function (from settings-page.php)
-            90                                        // Position (optional, place it after others)
-        );
     }
 
     /**
-     * Register plugin settings (Features only for now)
+     * Register plugin settings
      */
     public function register_settings()
     {
         register_setting(
-            'craftedpath_toolkit_settings', // Option group for features
-            self::OPTION_NAME,             // Option name for features
+            'craftedpath_toolkit_settings',
+            self::OPTION_NAME,
             array(
                 'type' => 'array',
                 'sanitize_callback' => array($this, 'sanitize_settings'),
                 'default' => array('features' => array()),
             )
         );
-        // Note: General settings (API keys etc.) are registered in settings-page.php
     }
 
     /**
@@ -185,29 +172,19 @@ class CPT_Settings_Manager
      */
     public function enqueue_admin_scripts($hook)
     {
-        // Determine the current screen's base and ID
-        $current_screen = get_current_screen();
-        if (!$current_screen) {
-            return;
-        }
-        $screen_id = $current_screen->id;
-
-        // Define hooks for all toolkit pages based on screen ID patterns
-        $toolkit_page_ids = [
+        // Hooks for all toolkit pages
+        $toolkit_hooks = [
             'toplevel_page_craftedpath-toolkit',       // Main Features page
+            'craftedpath_page_cpt-aismg-settings',  // API Settings submenu
             'craftedpath_page_cpt-aismg-sitemap',   // Sitemap Generator submenu
-            'craftedpath_page_cpt-aismg-menu',       // Menu Generator submenu
-            'craftedpath_page_cpt-aismg-settings',  // AI API Settings submenu
-            'craftedpath_page_cptk_settings_page'   // General Settings submenu
+            'craftedpath_page_cpt-aismg-menu'       // Menu Generator submenu
         ];
 
-        // Check if the current screen ID matches any toolkit page
-        if (!in_array($screen_id, $toolkit_page_ids)) {
-            // error_log("CPT Styles/Scripts not loaded for screen: " . $screen_id);
-            return; // Exit if not a toolkit page
+        if (!in_array($hook, $toolkit_hooks)) {
+            return;
         }
 
-        // Enqueue common styles and scripts on all toolkit pages
+        // Enqueue main styles and scripts on all toolkit pages
         wp_enqueue_style(
             'craftedpath-toolkit-admin',
             CPT_PLUGIN_URL . 'includes/admin/css/settings.css',
@@ -223,71 +200,8 @@ class CPT_Settings_Manager
         );
     }
 
-    // --- Reusable Rendering Components --- 
-
     /**
-     * Renders the standard header card.
-     * Made public to be callable from settings-page.php
-     */
-    public function render_header_card()
-    {
-        ?>
-        <!-- Header Card -->
-        <div class="craftedpath-header-card">
-            <div class="craftedpath-header-content">
-                <div class="craftedpath-logo">
-                    <img src="https://craftedpath.co/wp-content/uploads/2025/02/logo.webp" alt="CraftedPath Logo">
-                </div>
-                <div class="craftedpath-version">v<?php echo esc_html(CPT_VERSION); ?></div>
-            </div>
-        </div>
-        <?php
-    }
-
-    /**
-     * Renders a standard card component.
-     * Made public to be callable from settings-page.php
-     *
-     * @param string $title The card title.
-     * @param string $icon Dashicon class for the title icon (e.g., 'dashicons-admin-plugins').
-     * @param callable $content_callback A function/method that echoes the card body content.
-     * @param string $footer_content Optional HTML string for the card footer.
-     */
-    public function render_card($title, $icon, $content_callback, $footer_content = '')
-    {
-        ?>
-        <div class="craftedpath-card">
-            <div class="craftedpath-card-header">
-                <h2>
-                    <span class="dashicons <?php echo esc_attr($icon); ?>"></span>
-                    <?php echo esc_html($title); ?>
-                </h2>
-                <?php
-                // Potential placeholder for description - can be added as a parameter if needed 
-                // echo '<p>Description goes here...</p>'; 
-                ?>
-            </div>
-            <div class="craftedpath-card-body">
-                <?php
-                // Call the provided function/method to render the body content
-                if (is_callable($content_callback)) {
-                    call_user_func($content_callback);
-                }
-                ?>
-            </div>
-            <?php if (!empty($footer_content)): ?>
-                <div class="craftedpath-card-footer">
-                    <?php echo $footer_content; // Already prepared HTML, no need for esc_html ?>
-                </div>
-            <?php endif; ?>
-        </div>
-        <?php
-    }
-
-    // --- Page Rendering Methods --- 
-
-    /**
-     * Render the main settings page (Features)
+     * Render the settings page
      */
     public function render_settings_page()
     {
@@ -295,12 +209,12 @@ class CPT_Settings_Manager
             return;
         }
 
-        // Check if settings were saved (specifically for feature toggles)
-        if (isset($_GET['settings-updated']) && $_GET['settings-updated'] === 'true' && isset($_GET['page']) && $_GET['page'] === 'craftedpath-toolkit') {
+        // Check if settings were saved
+        if (isset($_GET['settings-updated']) && $_GET['settings-updated'] === 'true') {
             add_settings_error(
                 'craftedpath_toolkit_messages',
-                'craftedpath_toolkit_message_features', // Unique ID for feature save message
-                __('Feature settings saved.', 'craftedpath-toolkit'),
+                'craftedpath_toolkit_message',
+                __('Settings Saved', 'craftedpath-toolkit'),
                 'updated'
             );
         }
@@ -309,56 +223,57 @@ class CPT_Settings_Manager
         settings_errors('craftedpath_toolkit_messages');
         ?>
         <div class="wrap craftedpath-settings">
-            <?php $this->render_header_card(); // Use the reusable header ?>
+            <!-- Header Card -->
+            <div class="craftedpath-header-card">
+                <div class="craftedpath-header-content">
+                    <div class="craftedpath-logo">
+                        <img src="https://craftedpath.co/wp-content/uploads/2025/02/logo.webp">
+                    </div>
+                    <div class="craftedpath-version">v<?php echo CPT_VERSION; ?></div>
+                </div>
+            </div>
 
             <!-- Content Area -->
             <div class="craftedpath-content">
-                <?php $this->render_features_section(); // Render the features section (now uses render_card) ?>
+                <?php $this->render_features_section(); ?>
             </div>
         </div>
         <?php
     }
 
     /**
-     * Render the features section content using the reusable card component.
+     * Render the features section content
      */
     private function render_features_section()
     {
-        // Prepare footer content (Submit button)
-        ob_start();
-        submit_button('Save Changes', 'primary', 'submit-features', false); // Unique name for the button
-        $footer_html = ob_get_clean();
-
-        // Render the card
-        echo '<form action="' . esc_url(admin_url('options.php')) . '" method="post">';
-        settings_fields('craftedpath_toolkit_settings'); // Match the group used in register_settings for features
-        $this->render_card(
-            __('Available Features', 'craftedpath-toolkit'),
-            'dashicons-admin-plugins',
-            array($this, 'render_features_table'), // Callback to render the table
-            $footer_html // Pass the submit button HTML
-        );
-        echo '</form>';
-    }
-
-    /**
-     * Renders the table content for the features card.
-     * This is used as the callback for render_card.
-     */
-    private function render_features_table()
-    {
-        // Description moved to the card title area or could be a separate element if needed
-        // echo '<p>' . esc_html__('Enable or disable CraftedPath Toolkit features below.', 'craftedpath-toolkit') . '</p>';
         ?>
-        <table class="form-table" role="presentation">
-            <tbody>
-                <?php
-                foreach ($this->features as $feature_id => $feature) {
-                    $this->render_feature_row($feature_id, $feature);
-                }
-                ?>
-            </tbody>
-        </table>
+        <form action="<?php echo esc_url(admin_url('options.php')); ?>" method="post">
+            <?php settings_fields('craftedpath_toolkit_settings'); ?>
+
+            <div class="craftedpath-card">
+                <div class="craftedpath-card-header">
+                    <h2>
+                        <span class="dashicons dashicons-admin-plugins"></span>
+                        Available Features
+                    </h2>
+                    <p>Enable or disable CraftedPath Toolkit features below.</p>
+                </div>
+                <div class="craftedpath-card-body">
+                    <table class="form-table" role="presentation">
+                        <tbody>
+                            <?php
+                            foreach ($this->features as $feature_id => $feature) {
+                                $this->render_feature_row($feature_id, $feature);
+                            }
+                            ?>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="craftedpath-card-footer">
+                    <?php submit_button('Save Changes', 'primary', 'submit', false); ?>
+                </div>
+            </div>
+        </form>
         <?php
     }
 
@@ -375,8 +290,8 @@ class CPT_Settings_Manager
         }
 
         $enabled = isset($options['features'][$feature_id])
-            ? (bool) $options['features'][$feature_id] // Cast to bool
-            : (bool) $feature['default']; // Cast to bool
+            ? $options['features'][$feature_id]
+            : $feature['default'];
         ?>
         <tr>
             <th scope="row">
@@ -402,8 +317,7 @@ class CPT_Settings_Manager
     }
 
     /**
-     * Render individual feature toggle field (Likely redundant now with render_feature_row)
-     * Consider removing if not used elsewhere.
+     * Render individual feature toggle field
      */
     public function render_feature_field($args)
     {
@@ -417,11 +331,11 @@ class CPT_Settings_Manager
         }
 
         $enabled = isset($options['features'][$feature_id])
-            ? (bool) $options['features'][$feature_id] // Cast to bool
-            : (bool) $feature['default']; // Cast to bool
+            ? $options['features'][$feature_id]
+            : $feature['default'];
 
-        // Debug the current state - Removed for cleaner code, add back if needed
-        // error_log("Feature {$feature_id} enabled state: " . ($enabled ? 'true' : 'false'));
+        // Debug the current state
+        error_log("Feature {$feature_id} enabled state: " . ($enabled ? 'true' : 'false'));
         ?>
         <label>
             <input type="checkbox"
@@ -433,40 +347,37 @@ class CPT_Settings_Manager
     }
 
     /**
-     * Sanitize settings before saving (Only features handled here)
+     * Sanitize settings before saving
      */
     public function sanitize_settings($input)
     {
         $sanitized = array();
         $sanitized['features'] = array();
 
-        // Debug the input - Removed for cleaner code, add back if needed
-        // error_log('Input received for feature settings: ' . print_r($input, true));
+        // Debug the input
+        error_log('Input received: ' . print_r($input, true));
 
         // Process all registered features
         foreach ($this->features as $feature_id => $feature) {
-            // Checkbox value is '1' if checked, not present otherwise.
+            // Check if the feature was submitted in the form
             $is_enabled = isset($input['features'][$feature_id]) && $input['features'][$feature_id] === '1';
             $sanitized['features'][$feature_id] = $is_enabled;
 
-            // Debug each feature's state - Removed for cleaner code
-            // error_log("Sanitizing feature {$feature_id}: " . ($is_enabled ? 'enabled' : 'disabled'));
+            // Debug each feature's state
+            error_log("Processing feature {$feature_id}: " . ($is_enabled ? 'enabled' : 'disabled'));
         }
 
-        // Debug the final sanitized settings - Removed for cleaner code
-        // error_log('Final sanitized feature settings: ' . print_r($sanitized, true));
+        // Debug the final sanitized settings
+        error_log('Final sanitized settings: ' . print_r($sanitized, true));
 
-        // Set the redirect URL *only* if this specific form was submitted
-        // Check if the submit button for features was pressed
-        if (isset($_POST['submit-features'])) {
-            $this->redirect_to = add_query_arg(
-                array(
-                    'page' => 'craftedpath-toolkit', // Redirect back to features page
-                    'settings-updated' => 'true'
-                ),
-                admin_url('admin.php')
-            );
-        }
+        // Set the redirect URL
+        $this->redirect_to = add_query_arg(
+            array(
+                'page' => 'craftedpath-toolkit',
+                'settings-updated' => 'true'
+            ),
+            admin_url('admin.php')
+        );
 
         return $sanitized;
     }
@@ -481,14 +392,9 @@ class CPT_Settings_Manager
         }
 
         $options = get_option(self::OPTION_NAME, array());
-        // Ensure features key exists
-        if (!isset($options['features'])) {
-            $options['features'] = array();
-        }
-        // Check the specific feature, fallback to default
         return isset($options['features'][$feature_id])
-            ? (bool) $options['features'][$feature_id] // Cast to bool
-            : (bool) $this->features[$feature_id]['default']; // Cast to bool
+            ? $options['features'][$feature_id]
+            : $this->features[$feature_id]['default'];
     }
 
     /**
@@ -496,7 +402,6 @@ class CPT_Settings_Manager
      */
     public function maybe_redirect_after_save()
     {
-        // Check if the redirect_to property was set during sanitization
         if (!is_null($this->redirect_to)) {
             wp_safe_redirect($this->redirect_to);
             exit;

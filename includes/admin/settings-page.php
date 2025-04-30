@@ -1,0 +1,213 @@
+<?php
+/**
+ * Handles the plugin general settings page (OpenAI, etc.).
+ */
+
+if (!defined('ABSPATH')) {
+    exit; // Exit if accessed directly.
+}
+
+/**
+ * Renders the main content for the General Settings page using shared components.
+ */
+function cptk_render_settings_page()
+{
+    if (!class_exists('CPT_Settings_Manager')) {
+        echo '<div class="error"><p>' . esc_html__('CPT_Settings_Manager class not found. Cannot render settings page.', 'craftedpath-toolkit') . '</p></div>';
+        return;
+    }
+    $settings_manager = CPT_Settings_Manager::instance();
+
+    // Check if settings were saved
+    if (isset($_GET['settings-updated']) && $_GET['settings-updated'] === 'true' && isset($_GET['page']) && $_GET['page'] === 'cptk_settings_page') {
+        add_settings_error(
+            'cptk_settings_messages', // Unique message ID for this page
+            'cptk_settings_message_saved',
+            __('Settings Saved', 'craftedpath-toolkit'),
+            'updated'
+        );
+    }
+
+    ?>
+    <div class="wrap craftedpath-settings">
+        <?php $settings_manager->render_header_card(); // Use shared header ?>
+
+        <!-- Content Area -->
+        <div class="craftedpath-content">
+            <?php
+            // Prepare footer content (Submit button)
+            ob_start();
+            // Use the correct option group ('cptk_settings') for the form 
+            // and a unique name for the submit button
+            submit_button(__('Save General Settings', 'craftedpath-toolkit'), 'primary', 'submit_general_settings', false);
+            $footer_html = ob_get_clean();
+
+            // Render the card using the shared component
+            echo '<form action="options.php" method="post">';
+            settings_fields('cptk_settings'); // Must match the group registered in cptk_register_settings
+            $settings_manager->render_card(
+                __('General Settings', 'craftedpath-toolkit'),
+                'dashicons-admin-generic',
+                'cptk_render_settings_form_content', // Callback function below for card body
+                $footer_html // Pass the submit button HTML
+            );
+            echo '</form>';
+            ?>
+        </div>
+    </div>
+    <?php
+}
+
+/**
+ * Renders the actual form content (sections and fields) for the settings card.
+ * This is used as the callback for $settings_manager->render_card().
+ */
+function cptk_render_settings_form_content()
+{
+    // Show validation errors/update messages within the card body
+    settings_errors('cptk_settings_messages');
+
+    // Output settings sections and fields for the 'cptk_settings_page' slug
+    // This function prints the sections and fields added via add_settings_section and add_settings_field
+    do_settings_sections('cptk_settings_page');
+}
+
+
+// --- Settings Registration (Remains the same) --- 
+
+// Function to register settings
+function cptk_register_settings()
+{
+    // Register the main settings group for *this* page
+    register_setting(
+        'cptk_settings',                // Option group name (used in settings_fields)
+        'cptk_options',                 // Option name in wp_options table
+        'cptk_sanitize_options'         // Sanitization callback
+    );
+
+    // Add settings section for OpenAI
+    add_settings_section(
+        'cptk_openai_section',
+        __('OpenAI Configuration', 'craftedpath-toolkit'),
+        'cptk_openai_section_callback',
+        'cptk_settings_page'            // Page slug where this section appears
+    );
+
+    // Add API Key field
+    add_settings_field(
+        'cptk_openai_api_key',          // Field ID
+        __('OpenAI API Key', 'craftedpath-toolkit'), // Label
+        'cptk_openai_api_key_render',   // Render callback
+        'cptk_settings_page',           // Page slug
+        'cptk_openai_section'           // Section ID
+    );
+
+    // Add Model Selection field
+    add_settings_field(
+        'cptk_openai_model',            // Field ID
+        __('OpenAI Model', 'craftedpath-toolkit'),  // Label
+        'cptk_openai_model_render',     // Render callback
+        'cptk_settings_page',           // Page slug
+        'cptk_openai_section'           // Section ID
+    );
+}
+add_action('admin_init', 'cptk_register_settings');
+
+// Section callback (can be empty or add descriptive text)
+function cptk_openai_section_callback()
+{
+    echo '<p>' . esc_html__('Configure your OpenAI API Key and select the default model for AI features.', 'craftedpath-toolkit') . '</p>';
+}
+
+// Render API Key field
+function cptk_openai_api_key_render()
+{
+    $options = get_option('cptk_options');
+    $api_key = isset($options['openai_api_key']) ? $options['openai_api_key'] : '';
+    ?>
+    <input type='password' name='cptk_options[openai_api_key]' value='<?php echo esc_attr($api_key); ?>'
+        class='regular-text' placeholder='sk-...'>
+    <p class="description"><?php esc_html_e('Enter your OpenAI API key.', 'craftedpath-toolkit'); ?></p>
+    <?php
+}
+
+// Render Model Selection field
+function cptk_openai_model_render()
+{
+    $options = get_option('cptk_options');
+    $selected_model = isset($options['openai_model']) ? $options['openai_model'] : 'gpt-4'; // Default model
+    // Consider fetching models dynamically or having a filter
+    $models = apply_filters('cptk_openai_models', [
+        'gpt-4o' => 'GPT-4o',
+        'gpt-4-turbo' => 'GPT-4 Turbo',
+        'gpt-4' => 'GPT-4',
+        'gpt-3.5-turbo' => 'GPT-3.5 Turbo',
+    ]);
+    ?>
+    <select name='cptk_options[openai_model]' id='cptk_openai_model'>
+        <?php foreach ($models as $value => $label): ?>
+            <option value="<?php echo esc_attr($value); ?>" <?php selected($selected_model, $value); ?>>
+                <?php echo esc_html($label); ?>
+            </option>
+        <?php endforeach; ?>
+    </select>
+    <p class="description">
+        <?php esc_html_e('Select the default OpenAI model to use for generative features.', 'craftedpath-toolkit'); ?>
+    </p>
+    <?php
+}
+
+// Sanitize options before saving
+function cptk_sanitize_options($input)
+{
+    // error_log('Sanitizing CPTK Options: ' . print_r($input, true)); // Debugging
+    $sanitized_input = [];
+    $options = get_option('cptk_options'); // Get existing options for comparison if needed
+
+    // Sanitize API Key
+    if (isset($input['openai_api_key'])) {
+        // Basic sanitization. More validation (like format check) could be added.
+        $sanitized_input['openai_api_key'] = sanitize_text_field(trim($input['openai_api_key']));
+    }
+
+    // Sanitize Model Selection
+    if (isset($input['openai_model'])) {
+        $allowed_models = apply_filters('cptk_openai_models', [
+            'gpt-4o' => 'GPT-4o',
+            'gpt-4-turbo' => 'GPT-4 Turbo',
+            'gpt-4' => 'GPT-4',
+            'gpt-3.5-turbo' => 'GPT-3.5 Turbo',
+        ]);
+        $submitted_model = sanitize_text_field($input['openai_model']);
+        // Ensure the submitted model is in our allowed list
+        if (array_key_exists($submitted_model, $allowed_models)) {
+            $sanitized_input['openai_model'] = $submitted_model;
+        } else {
+            // If invalid model submitted, maybe fall back to default or existing value?
+            // For now, let's fall back to the existing value if set, otherwise default.
+            $sanitized_input['openai_model'] = isset($options['openai_model']) ? $options['openai_model'] : 'gpt-4';
+            add_settings_error(
+                'cptk_settings_messages',
+                'cptk_invalid_model',
+                __('Invalid model selected. Setting was not updated.', 'craftedpath-toolkit'),
+                'error'
+            );
+        }
+    }
+
+    // Add redirect specifically for this settings page save action
+    // We check if the specific submit button for this form was pressed
+    if (isset($_POST['submit_general_settings'])) {
+        add_filter('wp_redirect', function ($location) {
+            return add_query_arg(
+                array(
+                    'page' => 'cptk_settings_page', // Redirect back to this settings page
+                    'settings-updated' => 'true'
+                ),
+                admin_url('admin.php') // Ensure it's an admin URL
+            );
+        }, 10, 1);
+    }
+
+    return $sanitized_input;
+}
