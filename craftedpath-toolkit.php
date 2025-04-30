@@ -45,6 +45,8 @@ final class CraftedPath_Toolkit
     private function includes()
     {
         require_once CPT_PLUGIN_DIR . 'includes/features/bem-generator/class-bem-generator.php';
+        // Only include the AI sitemap generator file if the feature might be enabled
+        require_once CPT_PLUGIN_DIR . 'includes/features/ai-sitemap-generator/class-ai-sitemap-generator.php';
         require_once CPT_PLUGIN_DIR . 'includes/admin/class-settings-manager.php';
     }
 
@@ -64,9 +66,17 @@ final class CraftedPath_Toolkit
     {
         // Use the singleton instance
         $settings_manager = CPT_Settings_Manager::instance();
+
         if ($settings_manager->is_feature_enabled('bem_generator')) {
-        new CPT_Bem_Generator();
-    }
+            new CPT_Bem_Generator();
+        }
+
+        if ($settings_manager->is_feature_enabled('ai_sitemap_generator')) {
+            // Make sure the class exists before instantiating
+            if (class_exists('CPT_AI_Sitemap_Generator')) {
+                new CPT_AI_Sitemap_Generator();
+            }
+        }
     }
 }
 

@@ -81,6 +81,12 @@ class CPT_Settings_Manager
                 'class' => 'CPT_Bem_Generator',
                 'default' => true
             ),
+            'ai_sitemap_generator' => array(
+                'name' => 'AI Sitemap Generator',
+                'description' => 'Generates a sitemap and menu using AI',
+                'class' => 'CPT_AI_Sitemap_Generator', // Assuming this will be the main class name
+                'default' => false // Disabled by default
+            ),
             // Add more features here as they are developed
         );
     }
