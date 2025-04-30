@@ -65,16 +65,6 @@
                 return true;
             });
 
-            // Add hover effects to cards
-            $('.craftedpath-card').hover(
-                function () {
-                    $(this).addClass('card-hover');
-                },
-                function () {
-                    $(this).removeClass('card-hover');
-                }
-            );
-
             // Handle notices
             const $notices = $('.notice');
             if ($notices.length) {

@@ -132,10 +132,7 @@
     margin-bottom: 30px;
     overflow: hidden;
     transition: var(--transition);
-}
-
-.craftedpath-card:hover {
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    border-bottom: 1px solid var(--gray-200);
 }
 
 .craftedpath-card-header {
@@ -378,11 +375,6 @@ input:checked+.craftedpath-toggle-slider:before {
     100% {
         transform: scale(1);
     }
-}
-
-/* Card hover effect */
-.craftedpath-card.card-hover {
-    transform: translateY(-2px);
 }
 
 /* Notice dismiss button */

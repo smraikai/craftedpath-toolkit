@@ -1,0 +1,29 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Cursor AI Rules – WordPress Plugin Development
+
+## General Guidelines
+- Follow [WordPress coding standards](https://developer.wordpress.org/coding-standards/wordpress-coding-standards/).
+- Use PHP 8.1+ and ensure compatibility with the latest WP version.
+- Always escape, sanitize, and validate inputs/outputs.
+
+## Plugin Structure
+- Include:
+  - `plugin-name.php`
+  - `readme.txt`
+  - `/includes/`
+  - `/assets/`
+  - `/languages/`
+- Use autoloading via `PSR-4` or `spl_autoload_register()` in `/includes`.
+
+## Security
+- Escape outputs with `esc_html()`, `esc_attr()`, etc.
+- Sanitize inputs with `sanitize_text_field()`, `sanitize_email()`, etc.
+- Use nonces: `wp_nonce_field()` + `check_admin_referer()` for forms/actions.
+
+## Hooks
+- Use `add_action()` / `add_filter()` instead of core overrides.
+- Prefix all hook names and function names with your plugin slug.
