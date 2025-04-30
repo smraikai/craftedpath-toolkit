@@ -2,31 +2,53 @@
     'use strict';
 
     $(document).ready(function () {
-        // console.log('[SettingsJS] Document Ready');
+        console.log('Settings.js loaded - document ready');
 
-        // Check for the hidden toast trigger notice using its likely ID
-        // The ID is typically 'setting-error-{code}' based on add_settings_error code.
+        // Look for toast trigger in multiple ways
+        // 1. Check for the standard error ID
         const triggerId = '#setting-error-cpt_features_saved';
         const $toastTrigger = $(triggerId);
 
-        // console.log(`[SettingsJS] Searching for trigger element: ${triggerId}`);
-        // console.log(`[SettingsJS] Found ${$toastTrigger.length} trigger element(s).`);
+        // 2. Also check for our container class
+        const $toastContainer = $('.cpt-toast-trigger-area');
+
+        console.log('Toast trigger lookup results:');
+        console.log('- By ID:', $toastTrigger.length);
+        console.log('- By class:', $toastContainer.length);
+
+        // Dump the DOM IDs in the body for debugging
+        console.log('All notices on page:');
+        $('.notice').each(function () {
+            console.log('Notice found:', this.id, $(this).attr('class'));
+        });
 
         if ($toastTrigger.length > 0) {
-            // console.log('[SettingsJS] Trigger element FOUND. Type:', typeof window.showCPTToast);
-            // Check if the showCPTToast function exists before calling it
-            if (typeof window.showCPTToast === 'function') {
-                // console.log('[SettingsJS] Calling showCPTToast now...');
-                window.showCPTToast('Settings saved successfully.', 'success');
-                // console.log('[SettingsJS] showCPTToast call completed.');
-            } else {
-                // console.error('[SettingsJS] Error: showCPTToast function NOT found!');
+            console.log('Toast trigger element found by ID');
+            showToastFromElement($toastTrigger);
+        } else if ($toastContainer.length > 0) {
+            console.log('Toast trigger element found by container');
+            const $notice = $toastContainer.find('.notice');
+            if ($notice.length > 0) {
+                showToastFromElement($notice);
             }
-            // Remove the trigger element so it doesn't fire again on refresh
-            // console.log('[SettingsJS] Removing trigger element:', triggerId);
-            $toastTrigger.remove();
         } else {
-            // console.log('[SettingsJS] Trigger element NOT found.');
+            console.log('No toast trigger elements found');
+        }
+
+        // Function to show toast from an element
+        function showToastFromElement($element) {
+            // Get the message from the element (for future use)
+            const message = $element.find('p').text() || 'Settings saved successfully.';
+
+            if (typeof window.showCPTToast === 'function') {
+                console.log('Calling showCPTToast with message:', message);
+                window.showCPTToast(message, 'success');
+            } else {
+                console.error('showCPTToast function not found!');
+            }
+
+            // Remove the trigger element
+            $element.remove();
         }
 
         /* // Old URL parameter check (keep commented out for now)

@@ -230,17 +230,8 @@ class CPT_Settings_Manager
      */
     public function render_header_card()
     {
-        ?>
-        <!-- Header Card -->
-        <div class="craftedpath-header-card">
-            <div class="craftedpath-header-content">
-                <div class="craftedpath-logo">
-                    <img src="https://craftedpath.co/wp-content/uploads/2025/02/logo.webp" alt="CraftedPath Logo">
-                </div>
-                <div class="craftedpath-version">v<?php echo esc_html(CPT_VERSION); ?></div>
-            </div>
-        </div>
-        <?php
+        // Use the standalone component function
+        cptk_render_header_card();
     }
 
     /**
@@ -254,33 +245,8 @@ class CPT_Settings_Manager
      */
     public function render_card($title, $icon, $content_callback, $footer_content = '')
     {
-        ?>
-        <div class="craftedpath-card">
-            <div class="craftedpath-card-header">
-                <h2>
-                    <span class="dashicons <?php echo esc_attr($icon); ?>"></span>
-                    <?php echo esc_html($title); ?>
-                </h2>
-                <?php
-                // Potential placeholder for description - can be added as a parameter if needed 
-                // echo '<p>Description goes here...</p>'; 
-                ?>
-            </div>
-            <div class="craftedpath-card-body">
-                <?php
-                // Call the provided function/method to render the body content
-                if (is_callable($content_callback)) {
-                    call_user_func($content_callback);
-                }
-                ?>
-            </div>
-            <?php if (!empty($footer_content)): ?>
-                <div class="craftedpath-card-footer">
-                    <?php echo $footer_content; // Already prepared HTML, no need for esc_html ?>
-                </div>
-            <?php endif; ?>
-        </div>
-        <?php
+        // Use the standalone component function
+        cptk_render_card($title, $icon, $content_callback, $footer_content);
     }
 
     // --- Page Rendering Methods --- 
@@ -294,20 +260,14 @@ class CPT_Settings_Manager
             return;
         }
 
-        // Show error/update messages
+        // Create toast trigger if settings were just saved (check both POST and GET)
         if (isset($_POST['submit-features'])) {
-            add_settings_error(
-                'cpt_toast_trigger', // Unique setting slug for our trigger
-                'cpt_features_saved', // Unique error code
-                'trigger_toast', // Message (won't be displayed, just needs content)
-                'cpt-toast-notice' // Custom CSS class type
-            );
+            // Form was just submitted
+            cptk_create_toast_trigger('Settings saved successfully.', 'success');
+        } else if (isset($_GET['settings-updated']) && $_GET['settings-updated'] === 'true') {
+            // Redirected back after settings save
+            cptk_create_toast_trigger('Settings saved successfully.', 'success');
         }
-
-        // Show only our custom toast trigger notice (hidden)
-        echo '<div class="cpt-toast-trigger-area" style="display: none;">';
-        settings_errors('cpt_toast_trigger');
-        echo '</div>';
         ?>
         <div class="wrap craftedpath-settings">
             <?php $this->render_header_card(); // Use the reusable header ?>
@@ -330,15 +290,30 @@ class CPT_Settings_Manager
         submit_button('Save Changes', 'primary', 'submit-features', false); // Unique name for the button
         $footer_html = ob_get_clean();
 
-        // Render the card
+        // Render the card - directly call render_features_table method here for now
         echo '<form action="' . esc_url(admin_url('options.php')) . '" method="post">';
         settings_fields('craftedpath_toolkit_settings'); // Match the group used in register_settings for features
-        $this->render_card(
-            __('Available Features', 'craftedpath-toolkit'),
-            'dashicons-admin-plugins',
-            array($this, 'render_features_table'), // Callback to render the table
-            $footer_html // Pass the submit button HTML
-        );
+
+        // Start the card markup manually 
+        ?>
+        <div class="craftedpath-card">
+            <div class="craftedpath-card-header">
+                <h2>
+                    <span class="dashicons dashicons-admin-plugins"></span>
+                    <?php echo esc_html(__('Available Features', 'craftedpath-toolkit')); ?>
+                </h2>
+            </div>
+            <div class="craftedpath-card-body">
+                <?php $this->render_features_table(); ?>
+            </div>
+            <?php if (!empty($footer_html)): ?>
+                <div class="craftedpath-card-footer">
+                    <?php echo $footer_html; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+        <?php
+
         echo '</form>';
     }
 
@@ -456,17 +431,6 @@ class CPT_Settings_Manager
 
         // Debug the final sanitized settings - Removed for cleaner code
         // error_log('Final sanitized feature settings: ' . print_r($sanitized, true));
-
-        // Add a custom notice specifically for the toast trigger 
-        // if the features form was submitted.
-        if (isset($_POST['submit-features'])) {
-            add_settings_error(
-                'cpt_toast_trigger', // Unique setting slug for our trigger
-                'cpt_features_saved', // Unique error code
-                'trigger_toast', // Message (won't be displayed, just needs content)
-                'cpt-toast-notice' // Custom CSS class type
-            );
-        }
 
         return $sanitized;
     }

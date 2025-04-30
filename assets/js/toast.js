@@ -1,4 +1,6 @@
 jQuery(document).ready(function ($) {
+    console.log('Toast.js initialized'); // Debug log
+
     // Function to create the toast container if it doesn't exist
     function getOrCreateToastContainer() {
         let container = $('#cpt-toast-container');
@@ -13,6 +15,7 @@ jQuery(document).ready(function ($) {
     // type can be 'success', 'error', 'warning', 'info' (or default)
     // duration is in milliseconds (0 means it won't auto-hide)
     window.showCPTToast = function (message, type = 'info', duration = 5000) {
+        console.log('showCPTToast called:', message, type); // Debug log
         const container = getOrCreateToastContainer();
 
         const toastId = 'cpt-toast-' + Date.now(); // Unique ID for the toast

@@ -20,17 +20,13 @@ function cptk_render_settings_page()
 
     // Check if settings were saved
     if (isset($_GET['settings-updated']) && $_GET['settings-updated'] === 'true' && isset($_GET['page']) && $_GET['page'] === 'cptk_settings_page') {
-        add_settings_error(
-            'cptk_settings_messages', // Unique message ID for this page
-            'cptk_settings_message_saved',
-            __('Settings Saved', 'craftedpath-toolkit'),
-            'updated'
-        );
+        // Create a toast notification for settings saved
+        cptk_create_toast_trigger('General settings saved successfully.', 'success');
     }
 
     ?>
     <div class="wrap craftedpath-settings">
-        <?php $settings_manager->render_header_card(); // Use shared header ?>
+        <?php cptk_render_header_card(); // Use standalone function instead of calling via instance ?>
 
         <!-- Content Area -->
         <div class="craftedpath-content">
@@ -42,10 +38,10 @@ function cptk_render_settings_page()
             submit_button(__('Save General Settings', 'craftedpath-toolkit'), 'primary', 'submit_general_settings', false);
             $footer_html = ob_get_clean();
 
-            // Render the card using the shared component
+            // Render the card using the standalone component
             echo '<form action="options.php" method="post">';
             settings_fields('cptk_settings'); // Must match the group registered in cptk_register_settings
-            $settings_manager->render_card(
+            cptk_render_card(
                 __('General Settings', 'craftedpath-toolkit'),
                 'dashicons-admin-generic',
                 'cptk_render_settings_form_content', // Callback function below for card body
