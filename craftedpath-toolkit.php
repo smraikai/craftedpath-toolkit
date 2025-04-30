@@ -55,6 +55,30 @@ final class CraftedPath_Toolkit
     {
         add_action('plugins_loaded', array($this, 'init_settings'));
         add_action('plugins_loaded', array($this, 'load_features'));
+        add_action('admin_enqueue_scripts', array($this, 'enqueue_assets'));
+    }
+
+    /**
+     * Enqueue scripts and styles for the plugin.
+     */
+    public function enqueue_assets()
+    {
+        // Enqueue Toast CSS
+        wp_enqueue_style(
+            'cpt-toast-style',
+            CPT_PLUGIN_URL . 'assets/css/toast.css',
+            array(),
+            CPT_VERSION
+        );
+
+        // Enqueue Toast JS
+        wp_enqueue_script(
+            'cpt-toast-script',
+            CPT_PLUGIN_URL . 'assets/js/toast.js',
+            array('jquery'), // Assuming dependency on jQuery for simplicity, can be changed later
+            CPT_VERSION,
+            true // Load in footer
+        );
     }
 
     public function init_settings()

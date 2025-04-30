@@ -63,7 +63,6 @@ class CPT_Settings_Manager
         add_action('admin_menu', array($this, 'add_settings_page'));
         add_action('admin_init', array($this, 'register_settings'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
-        add_action('admin_init', array($this, 'maybe_redirect_after_save'));
 
         // Register default features
         $this->register_features();
@@ -217,7 +216,7 @@ class CPT_Settings_Manager
         wp_enqueue_script(
             'craftedpath-toolkit-admin-js',
             CPT_PLUGIN_URL . 'includes/admin/js/settings.js',
-            array('jquery'),
+            array('jquery', 'cpt-toast-script'),
             CPT_VERSION,
             true
         );
@@ -295,18 +294,20 @@ class CPT_Settings_Manager
             return;
         }
 
-        // Check if settings were saved (specifically for feature toggles)
-        if (isset($_GET['settings-updated']) && $_GET['settings-updated'] === 'true' && isset($_GET['page']) && $_GET['page'] === 'craftedpath-toolkit') {
+        // Show error/update messages
+        if (isset($_POST['submit-features'])) {
             add_settings_error(
-                'craftedpath_toolkit_messages',
-                'craftedpath_toolkit_message_features', // Unique ID for feature save message
-                __('Feature settings saved.', 'craftedpath-toolkit'),
-                'updated'
+                'cpt_toast_trigger', // Unique setting slug for our trigger
+                'cpt_features_saved', // Unique error code
+                'trigger_toast', // Message (won't be displayed, just needs content)
+                'cpt-toast-notice' // Custom CSS class type
             );
         }
 
-        // Show error/update messages
-        settings_errors('craftedpath_toolkit_messages');
+        // Show only our custom toast trigger notice (hidden)
+        echo '<div class="cpt-toast-trigger-area" style="display: none;">';
+        settings_errors('cpt_toast_trigger');
+        echo '</div>';
         ?>
         <div class="wrap craftedpath-settings">
             <?php $this->render_header_card(); // Use the reusable header ?>
@@ -456,15 +457,14 @@ class CPT_Settings_Manager
         // Debug the final sanitized settings - Removed for cleaner code
         // error_log('Final sanitized feature settings: ' . print_r($sanitized, true));
 
-        // Set the redirect URL *only* if this specific form was submitted
-        // Check if the submit button for features was pressed
+        // Add a custom notice specifically for the toast trigger 
+        // if the features form was submitted.
         if (isset($_POST['submit-features'])) {
-            $this->redirect_to = add_query_arg(
-                array(
-                    'page' => 'craftedpath-toolkit', // Redirect back to features page
-                    'settings-updated' => 'true'
-                ),
-                admin_url('admin.php')
+            add_settings_error(
+                'cpt_toast_trigger', // Unique setting slug for our trigger
+                'cpt_features_saved', // Unique error code
+                'trigger_toast', // Message (won't be displayed, just needs content)
+                'cpt-toast-notice' // Custom CSS class type
             );
         }
 
@@ -489,17 +489,5 @@ class CPT_Settings_Manager
         return isset($options['features'][$feature_id])
             ? (bool) $options['features'][$feature_id] // Cast to bool
             : (bool) $this->features[$feature_id]['default']; // Cast to bool
-    }
-
-    /**
-     * Handle redirection after saving settings
-     */
-    public function maybe_redirect_after_save()
-    {
-        // Check if the redirect_to property was set during sanitization
-        if (!is_null($this->redirect_to)) {
-            wp_safe_redirect($this->redirect_to);
-            exit;
-        }
     }
 }

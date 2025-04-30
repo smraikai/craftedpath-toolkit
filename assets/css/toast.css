@@ -1,0 +1,77 @@
+/* Toast Container */
+.cpt-toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+    /* Spacing between toasts */
+}
+
+/* Individual Toast */
+.cpt-toast {
+    background-color: #fff;
+    /* Match WP admin background */
+    color: #1d2327;
+    /* Match WP admin text */
+    padding: 15px 20px;
+    border-radius: 4px;
+    border-left: 4px solid #007cba;
+    /* WP blue as default */
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    opacity: 0;
+    transform: translateX(100%);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    min-width: 250px;
+    max-width: 400px;
+}
+
+.cpt-toast.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.cpt-toast .cpt-toast-message {
+    flex-grow: 1;
+}
+
+.cpt-toast .cpt-toast-close {
+    background: none;
+    border: none;
+    color: #72777c;
+    /* WP admin gray */
+    cursor: pointer;
+    font-size: 16px;
+    padding: 0 5px;
+}
+
+.cpt-toast .cpt-toast-close:hover {
+    color: #1d2327;
+}
+
+/* Toast Types (using WP admin colors) */
+.cpt-toast.success {
+    border-left-color: #00a32a;
+    /* WP green */
+}
+
+.cpt-toast.error {
+    border-left-color: #d63638;
+    /* WP red */
+}
+
+.cpt-toast.warning {
+    border-left-color: #dba617;
+    /* WP yellow */
+}
+
+.cpt-toast.info {
+    border-left-color: #007cba;
+    /* WP blue */
+}
