@@ -273,7 +273,7 @@ class CPT_AI_Sitemap_Generator
         $default_options = array(
             'model' => $settings['model'],
             'temperature' => 0.7,
-            'max_tokens' => 2000,
+            'max_tokens' => 2000, // Keep a reasonable default, can be overridden
         );
 
         $options = wp_parse_args($options, $default_options);
@@ -288,7 +288,45 @@ class CPT_AI_Sitemap_Generator
             'messages' => array(
                 array(
                     'role' => 'system',
-                    'content' => 'You are a helpful assistant specialized in website structure and information architecture.',
+                    'content' => 'Create a JSON sitemap structure for a website. 
+
+# Steps
+
+1. **Identify Main Categories**: Determine the primary sections or categories of the website based on its purpose and target audience.
+2. **Define Subcategories**: For each main category, list potential subcategories or pages that fall under them, considering the hierarchy of information.
+3. **Determine Additional Pages**: Identify any additional pages that do not fit into the main category structure but are essential, such as contact or about pages.
+4. **Establish Hierarchy**: Arrange the categories, subcategories, and pages to reflect their organizational hierarchy and user navigation flow.
+5. **Use Descriptive Labels**: Ensure that each category and page is labeled with a clear and descriptive name that communicates its purpose or content.
+6. **Review and Refine**: Check the sitemap for completeness and usability, making necessary adjustments to improve organization and clarity.
+
+# Output Format
+
+Provide the sitemap in a structured text format, using nested bullet points to indicate hierarchy and organization.
+
+# Examples
+
+**Example 1:**
+
+- Home
+  - About Us
+    - Company History
+    - Team
+    - Careers
+  - Services
+    - Consulting
+    - Implementation
+    - Support
+  - Products
+    - Product A
+    - Product B
+  - Blog
+    - Industry Insights
+    - News
+  - Contact Us
+    - Contact Form
+    - Location Map
+
+(The actual sitemap should be customized based on the specifics of the site being structured, with appropriate categories and pages.)',
                 ),
                 array(
                     'role' => 'user',
@@ -297,6 +335,7 @@ class CPT_AI_Sitemap_Generator
             ),
             'temperature' => $options['temperature'],
             'max_tokens' => $options['max_tokens'],
+            'response_format' => ['type' => 'json_object'], // Enforce JSON object output
         );
 
         $response = wp_remote_post(
@@ -310,35 +349,49 @@ class CPT_AI_Sitemap_Generator
         );
 
         if (is_wp_error($response)) {
+            error_log('[CPT OpenAI] HTTP Error: ' . $response->get_error_message());
             return $response;
         }
 
         $response_code = wp_remote_retrieve_response_code($response);
+        $response_body = wp_remote_retrieve_body($response);
+
         if ($response_code !== 200) {
             $error_message = wp_remote_retrieve_response_message($response);
-            $body = wp_remote_retrieve_body($response);
-            $body_data = json_decode($body, true);
+            $body_data = json_decode($response_body, true);
 
             if (isset($body_data['error']['message'])) {
                 $error_message = $body_data['error']['message'];
             }
-
+            error_log(sprintf('[CPT OpenAI] API Error (%d): %s', $response_code, $error_message));
+            error_log('[CPT OpenAI] API Error Body: ' . $response_body);
             return new WP_Error(
                 'openai_api_error',
                 sprintf(__('OpenAI API Error (%d): %s', 'craftedpath-toolkit'), $response_code, $error_message)
             );
         }
 
-        $body = wp_remote_retrieve_body($response);
-        $data = json_decode($body, true);
+        $data = json_decode($response_body, true);
 
-        if (empty($data['choices'][0]['message']['content'])) {
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            error_log('[CPT OpenAI] Failed to decode API JSON response. Error: ' . json_last_error_msg());
+            error_log('[CPT OpenAI] Raw Body: ' . $response_body);
             return new WP_Error(
-                'openai_api_error',
-                __('OpenAI API returned an empty response.', 'craftedpath-toolkit')
+                'openai_response_decode_error',
+                __('Failed to decode the response from OpenAI API.', 'craftedpath-toolkit')
             );
         }
 
+        if (empty($data['choices'][0]['message']['content'])) {
+            error_log('[CPT OpenAI] API returned empty content in choices.');
+            error_log('[CPT OpenAI] Full Response Data: ' . print_r($data, true));
+            return new WP_Error(
+                'openai_empty_content',
+                __('OpenAI API returned an empty content response.', 'craftedpath-toolkit')
+            );
+        }
+
+        // The content itself should be a JSON string because we asked for json_object
         return $data['choices'][0]['message']['content'];
     }
 
@@ -367,47 +420,40 @@ class CPT_AI_Sitemap_Generator
         $prompt = $this->build_sitemap_prompt($description, $depth, $existing_pages);
 
         // Call OpenAI API
-        $response = $this->call_openai_api($prompt, array(
+        $response_content = $this->call_openai_api($prompt, array(
             'temperature' => 0.7,
             'max_tokens' => 4000,
         ));
 
-        if (is_wp_error($response)) {
-            wp_send_json_error($response->get_error_message());
+        if (is_wp_error($response_content)) {
+            // Error already logged in call_openai_api
+            wp_send_json_error($response_content->get_error_message());
         }
 
-        // Try to parse the response as JSON
-        $cleaned_response = $this->clean_json_response($response);
-        $sitemap_data = json_decode($cleaned_response, true);
+        // Log the JSON string received from the API content field
+        error_log('[CPT AI Sitemap] Received JSON Content String: ' . print_r($response_content, true));
 
-        if (json_last_error() !== JSON_ERROR_NONE || !is_array($sitemap_data)) {
-            wp_send_json_error(__('Failed to parse AI response. Please try again.', 'craftedpath-toolkit'));
+        // Decode the JSON string from the content
+        $decoded_data = json_decode($response_content, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE || !is_array($decoded_data)) {
+            error_log('[CPT AI Sitemap] JSON Decode Error after API call: ' . json_last_error_msg()); // Log JSON error
+            error_log('[CPT AI Sitemap] Content String that failed decode: ' . $response_content);
+            wp_send_json_error(__('Failed to parse AI JSON response content. Please try again.', 'craftedpath-toolkit'));
         }
 
-        // Send back the sitemap data
+        // --- Expect the array under the 'sitemap' key --- 
+        if (!isset($decoded_data['sitemap']) || !is_array($decoded_data['sitemap'])) {
+            error_log('[CPT AI Sitemap] Missing or invalid \'sitemap\' key in decoded JSON object.'); // Corrected quoting
+            error_log('[CPT AI Sitemap] Decoded Data: ' . print_r($decoded_data, true));
+            wp_send_json_error(__('AI response does not contain the expected sitemap structure. Please check the prompt or try again.', 'craftedpath-toolkit'));
+        }
+
+        $sitemap_data = $decoded_data['sitemap'];
+        // --- End sitemap key check ---
+
+        // Send back the sitemap data array
         wp_send_json_success($sitemap_data);
-    }
-
-    /**
-     * Clean JSON response from OpenAI (remove markdown code blocks etc)
-     */
-    private function clean_json_response($response)
-    {
-        // Remove markdown code blocks if present
-        $response = preg_replace('/```(?:json)?\s*([\s\S]*?)\s*```/m', '$1', $response);
-
-        // Remove any non-JSON text before or after
-        if (($start = strpos($response, '{')) !== false) {
-            $response = substr($response, $start);
-
-            // Find the last closing brace
-            $lastBrace = strrpos($response, '}');
-            if ($lastBrace !== false) {
-                $response = substr($response, 0, $lastBrace + 1);
-            }
-        }
-
-        return $response;
     }
 
     /**
@@ -428,37 +474,39 @@ class CPT_AI_Sitemap_Generator
             $prompt .= "\n";
         }
 
-        $prompt .= "Please respond with a JSON structure representing the sitemap. Each page should include:
-1. title - The page title
-2. path - The URL path (e.g., '/about-us')
-3. description - Short description of the page content
-4. children - Array of subpages (if any)
+        $prompt .= "Please respond ONLY with a valid JSON object containing a single key named \"sitemap\". The value of \"sitemap\" must be an array of page objects. Each page object should include:
+1. title - The page title (string)
+2. path - The URL path (string, e.g., '/about-us')
+3. description - Short description of the page content (string)
+4. children - An array of child page objects (following the same structure), or an empty array if no children.
 
-The structure should be an array of top-level pages, each with potential children. For example:
+Example JSON object format:
 
-[
-  {
-    \"title\": \"Home\",
-    \"path\": \"/\",
-    \"description\": \"Main landing page\",
-    \"children\": []
-  },
-  {
-    \"title\": \"About Us\",
-    \"path\": \"/about\",
-    \"description\": \"Company information\",
-    \"children\": [
-      {
-        \"title\": \"Our Team\",
-        \"path\": \"/about/team\",
-        \"description\": \"Team members\",
-        \"children\": []
-      }
-    ]
-  }
-]
+{
+  \"sitemap\": [
+    {
+      \"title\": \"Home\",
+      \"path\": \"/\",
+      \"description\": \"Main landing page\",
+      \"children\": []
+    },
+    {
+      \"title\": \"About Us\",
+      \"path\": \"/about\",
+      \"description\": \"Company information\",
+      \"children\": [
+        {
+          \"title\": \"Our Team\",
+          \"path\": \"/about/team\",
+          \"description\": \"Team members\",
+          \"children\": []
+        }
+      ]
+    }
+  ]
+}
 
-Please include standard/common pages for this type of website, but also suggest innovative or unique pages that would benefit the target audience described.";
+Include standard/common pages for this type of website, but also suggest innovative or unique pages that would benefit the target audience described. Ensure the output is strictly a valid JSON object starting with { and ending with }.";
 
         return $prompt;
     }
@@ -490,24 +538,41 @@ Please include standard/common pages for this type of website, but also suggest 
         $prompt = $this->build_menu_prompt($menu_type, $sitemap_data);
 
         // Call OpenAI API
-        $response = $this->call_openai_api($prompt, array(
+        $response_content = $this->call_openai_api($prompt, array(
             'temperature' => 0.7,
             'max_tokens' => 2000,
         ));
 
-        if (is_wp_error($response)) {
-            wp_send_json_error($response->get_error_message());
+        if (is_wp_error($response_content)) {
+            // Error logged in call_openai_api
+            wp_send_json_error($response_content->get_error_message());
         }
 
-        // Try to parse the response as JSON
-        $cleaned_response = $this->clean_json_response($response);
-        $menu_data = json_decode($cleaned_response, true);
+        // Log the JSON string received from the API content field
+        error_log('[CPT AI Menu] Received JSON Content String: ' . print_r($response_content, true));
 
-        if (json_last_error() !== JSON_ERROR_NONE || !is_array($menu_data)) {
-            wp_send_json_error(__('Failed to parse AI response. Please try again.', 'craftedpath-toolkit'));
+        // Initialize variable before decoding
+        $decoded_data = null;
+        // Decode the JSON string from the content
+        $decoded_data = json_decode($response_content, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE || !is_array($decoded_data)) {
+            error_log('[CPT AI Menu] JSON Decode Error after API call: ' . json_last_error_msg()); // Log JSON error
+            error_log('[CPT AI Menu] Content String that failed decode: ' . $response_content);
+            wp_send_json_error(__('Failed to parse AI JSON response content. Please try again.', 'craftedpath-toolkit'));
         }
 
-        // Send back the menu data
+        // --- Expect the array under the 'menu' key --- 
+        if (!isset($decoded_data['menu']) || !is_array($decoded_data['menu'])) {
+            error_log('[CPT AI Menu] Missing or invalid \'menu\' key in decoded JSON object.'); // Corrected quoting
+            error_log('[CPT AI Menu] Decoded Data: ' . print_r($decoded_data, true));
+            wp_send_json_error(__('AI response does not contain the expected menu structure. Please check the prompt or try again.', 'craftedpath-toolkit'));
+        }
+
+        $menu_data = $decoded_data['menu'];
+        // --- End menu key check ---
+
+        // Send back the menu data array
         wp_send_json_success($menu_data);
     }
 
@@ -538,30 +603,34 @@ Please include standard/common pages for this type of website, but also suggest 
             $prompt .= $menu_specifics[$menu_type] . "\n\n";
         }
 
-        $prompt .= "Please respond with a JSON structure representing the menu. Each menu item should include:
-1. title - The menu item text
-2. path - The URL path to link to
-3. children - Array of submenu items (if any)
+        $prompt .= "Please respond ONLY with a valid JSON object containing a single key named \"menu\". The value of \"menu\" must be an array of menu item objects. Each menu item object should include:
+1. title - The menu item text (string)
+2. path - The URL path to link to (string)
+3. children - An array of submenu item objects (following the same structure), or an empty array if no children.
 
-For example:
-[
-  {
-    \"title\": \"Home\",
-    \"path\": \"/\",
-    \"children\": []
-  },
-  {
-    \"title\": \"About\",
-    \"path\": \"/about\",
-    \"children\": [
-      {
-        \"title\": \"Team\",
-        \"path\": \"/about/team\",
-        \"children\": []
-      }
-    ]
-  }
-]";
+Example JSON object format:
+{
+  \"menu\": [
+    {
+      \"title\": \"Home\",
+      \"path\": \"/\",
+      \"children\": []
+    },
+    {
+      \"title\": \"About\",
+      \"path\": \"/about\",
+      \"children\": [
+        {
+          \"title\": \"Team\",
+          \"path\": \"/about/team\",
+          \"children\": []
+        }
+      ]
+    }
+  ]
+}
+
+Ensure the output is strictly a valid JSON object starting with { and ending with }.";
 
         return $prompt;
     }

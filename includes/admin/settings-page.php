@@ -131,13 +131,14 @@ function cptk_openai_api_key_render()
 function cptk_openai_model_render()
 {
     $options = get_option('cptk_options');
-    $selected_model = isset($options['openai_model']) ? $options['openai_model'] : 'gpt-4'; // Default model
-    // Consider fetching models dynamically or having a filter
+    // Default model is gpt-4o
+    $selected_model = isset($options['openai_model']) ? $options['openai_model'] : 'gpt-4o';
+    // Update the list of models to only include the specified ones
     $models = apply_filters('cptk_openai_models', [
         'gpt-4o' => 'GPT-4o',
-        'gpt-4-turbo' => 'GPT-4 Turbo',
-        'gpt-4' => 'GPT-4',
-        'gpt-3.5-turbo' => 'GPT-3.5 Turbo',
+        'gpt-4o-mini' => 'GPT-4o Mini', // Mapping for o4-mini
+        'gpt-4.1' => 'GPT-4.1 (Unknown/Placeholder)', // Mapping for gpt-4.1
+        'gpt-3.5-turbo' => 'GPT-3.5 Turbo' // Mapping for o3
     ]);
     ?>
     <select name='cptk_options[openai_model]' id='cptk_openai_model'>
@@ -168,20 +169,22 @@ function cptk_sanitize_options($input)
 
     // Sanitize Model Selection
     if (isset($input['openai_model'])) {
+        // Update the list of allowed models to only include the specified ones
         $allowed_models = apply_filters('cptk_openai_models', [
             'gpt-4o' => 'GPT-4o',
-            'gpt-4-turbo' => 'GPT-4 Turbo',
-            'gpt-4' => 'GPT-4',
-            'gpt-3.5-turbo' => 'GPT-3.5 Turbo',
+            'gpt-4o-mini' => 'GPT-4o Mini',
+            'gpt-4.1' => 'GPT-4.1 (Unknown/Placeholder)',
+            'gpt-3.5-turbo' => 'GPT-3.5 Turbo'
         ]);
         $submitted_model = sanitize_text_field($input['openai_model']);
         // Ensure the submitted model is in our allowed list
         if (array_key_exists($submitted_model, $allowed_models)) {
             $sanitized_input['openai_model'] = $submitted_model;
         } else {
-            // If invalid model submitted, maybe fall back to default or existing value?
-            // For now, let's fall back to the existing value if set, otherwise default.
-            $sanitized_input['openai_model'] = isset($options['openai_model']) ? $options['openai_model'] : 'gpt-4';
+            // If invalid model submitted, fall back to default (gpt-4o)
+            $sanitized_input['openai_model'] = isset($options['openai_model']) && array_key_exists($options['openai_model'], $allowed_models)
+                ? $options['openai_model']
+                : 'gpt-4o'; // Fallback to default gpt-4o
             add_settings_error(
                 'cptk_settings_messages',
                 'cptk_invalid_model',
