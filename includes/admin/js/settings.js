@@ -156,6 +156,85 @@
 
         // Initialize
         initSettingsPage();
+
+        // --- Accordion Logic --- 
+        const initAccordion = function () {
+            const $accordion = $('.cpt-features-accordion');
+            if (!$accordion.length) {
+                // console.log('No accordion found.');
+                return;
+            }
+
+            // console.log('Initializing accordion...');
+
+            $accordion.on('click', '.cpt-feature-accordion-trigger', function (e) {
+                e.preventDefault(); // Prevent default button behavior
+                const $header = $(this).parent(); // Get the h3 element
+                const $section = $header.closest('.cpt-feature-accordion-section');
+                const $content = $section.find('.cpt-feature-accordion-content');
+                const isOpen = $section.hasClass('is-open');
+
+                // console.log(`Accordion header clicked: ${$header.attr('id')}, Currently open: ${isOpen}`);
+
+                // Close all other sections (optional, for single-open accordion)
+                // $accordion.find('.cpt-feature-accordion-section.is-open').not($section).each(function() {
+                //     $(this).removeClass('is-open');
+                //     $(this).find('.cpt-feature-accordion-content').slideUp(200);
+                //     $(this).find('.cpt-feature-accordion-header').attr('aria-expanded', 'false');
+                //     $(this).find('.cpt-feature-accordion-content').prop('hidden', true);
+                // });
+
+                // Toggle the clicked section
+                if (isOpen) {
+                    $content.slideUp(200, function () {
+                        $section.removeClass('is-open');
+                        $header.attr('aria-expanded', 'false');
+                        $content.prop('hidden', true);
+                    });
+                } else {
+                    $section.addClass('is-open');
+                    $header.attr('aria-expanded', 'true');
+                    $content.prop('hidden', false);
+                    $content.slideDown(200);
+                }
+            });
+        };
+
+        // Initialize Accordion
+        initAccordion();
+
+        // --- Expand/Collapse All Logic ---
+        const $accordionContainer = $('.cpt-features-accordion');
+
+        $('.cpt-expand-all').on('click', function () {
+            // console.log('Expand All clicked');
+            $accordionContainer.find('.cpt-feature-accordion-section:not(.is-open)').each(function () {
+                const $section = $(this);
+                const $header = $section.find('.cpt-feature-accordion-header');
+                const $content = $section.find('.cpt-feature-accordion-content');
+
+                $section.addClass('is-open');
+                $header.attr('aria-expanded', 'true');
+                $content.prop('hidden', false);
+                $content.slideDown(200);
+            });
+        });
+
+        $('.cpt-collapse-all').on('click', function () {
+            // console.log('Collapse All clicked');
+            $accordionContainer.find('.cpt-feature-accordion-section.is-open').each(function () {
+                const $section = $(this);
+                const $header = $section.find('.cpt-feature-accordion-header');
+                const $content = $section.find('.cpt-feature-accordion-content');
+
+                $content.slideUp(200, function () {
+                    $section.removeClass('is-open');
+                    $header.attr('aria-expanded', 'false');
+                    $content.prop('hidden', true);
+                });
+            });
+        });
+
     });
 
 })(jQuery); 

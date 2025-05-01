@@ -132,7 +132,7 @@
     margin-bottom: 30px;
     overflow: hidden;
     transition: var(--transition);
-    border-bottom: 1px solid var(--gray-200);
+    border: 1px solid var(--gray-200);
 }
 
 .craftedpath-card-header {
@@ -420,4 +420,151 @@ input:checked+.craftedpath-toggle-slider:before {
     .craftedpath-description {
         font-size: 14px;
     }
+}
+
+/* ===== Feature Accordion Styles ===== */
+.cpt-features-accordion {
+    overflow: hidden;
+}
+
+.cpt-feature-accordion-section {
+    margin-bottom: 5px;
+}
+
+.cpt-feature-accordion-header {
+    margin: 0;
+}
+
+.cpt-feature-accordion-trigger {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 10px 0;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    transition: color 0.2s ease;
+}
+
+/* Style for the title span */
+.cpt-feature-accordion-title {
+    text-transform: uppercase;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--gray-500, #6b7280);
+    display: inline-flex;
+    align-items: center;
+    flex-grow: 1;
+    transition: color 0.2s ease;
+}
+
+/* The horizontal line */
+.cpt-feature-accordion-title::after {
+    content: '';
+    display: block;
+    height: 1px;
+    background-color: var(--gray-200, #e5e7eb);
+    margin-left: 15px;
+    flex-grow: 1;
+}
+
+.cpt-feature-accordion-trigger:hover .cpt-feature-accordion-title,
+.cpt-feature-accordion-trigger:focus .cpt-feature-accordion-title {
+    color: var(--primary, #f55f4b);
+}
+
+.cpt-feature-accordion-trigger:hover .cpt-feature-accordion-title::after,
+.cpt-feature-accordion-trigger:focus .cpt-feature-accordion-title::after {
+    background-color: var(--primary-hover, #e14b37);
+}
+
+.cpt-feature-accordion-trigger:focus {
+    outline: none;
+}
+
+.cpt-feature-accordion-icon {
+    width: 20px;
+    height: 20px;
+    transition: transform 0.3s ease, color 0.2s ease;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    color: var(--gray-400, #9ca3af);
+    font-size: 20px;
+    line-height: 1;
+    display: inline-block;
+    flex-shrink: 0;
+    margin-left: 15px;
+}
+
+.cpt-feature-accordion-trigger:hover .cpt-feature-accordion-icon,
+.cpt-feature-accordion-trigger:focus .cpt-feature-accordion-icon {
+    color: var(--primary, #f55f4b);
+}
+
+/* Ensure Iconoir font is applied */
+/* .cpt-feature-accordion-icon::before { */
+/*    font-family: 'Iconoir' !important; */
+/* } */
+
+.is-open .cpt-feature-accordion-icon {
+    transform: rotate(180deg);
+}
+
+.cpt-feature-accordion-content {
+    padding: 10px 0 20px 15px;
+    background-color: transparent;
+}
+
+/* Hide content by default - JS will toggle */
+.cpt-feature-accordion-section:not(.is-open) .cpt-feature-accordion-content {
+    display: none;
+}
+
+/* Adjust table style within accordion */
+.cpt-feature-accordion-content .form-table {
+    margin-top: 0;
+}
+
+.cpt-feature-accordion-content .form-table tr:last-child {
+    border-bottom: none;
+}
+
+/* Add styles for accordion controls container */
+.cpt-accordion-controls {
+    display: flex;
+    gap: 10px;
+}
+
+/* Style the expand/collapse buttons */
+.cpt-accordion-controls .button {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 4px;
+    font-size: 13px;
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: var(--gray-500, #6b7280);
+    text-decoration: none;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.cpt-accordion-controls .button:hover,
+.cpt-accordion-controls .button:focus {
+    color: var(--primary, #f55f4b);
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none;
+}
+
+.cpt-accordion-controls .button [class^="iconoir-"] {
+    font-size: 18px;
+    line-height: 1;
 }

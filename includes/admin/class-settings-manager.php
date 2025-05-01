@@ -74,29 +74,36 @@ class CPT_Settings_Manager
     private function register_features()
     {
         $this->features = array(
+            // Section: Developer Tools
             'bem_generator' => array(
                 'name' => 'BEM Class Generator',
                 'description' => 'Generates BEM classes in the Bricks editor',
                 'class' => 'CPT_Bem_Generator',
-                'default' => true
+                'default' => true,
+                'section' => 'Developer Tools'
             ),
+            // Section: AI Tools
             'ai_page_generator' => array(
                 'name' => 'AI Page Structure Generator',
                 'description' => 'Generates a hierarchical page structure (sitemap) using AI.',
                 'class' => 'CPT_AI_Page_Generator',
-                'default' => true // Enable by default?
+                'default' => true,
+                'section' => 'AI Tools'
             ),
             'ai_menu_generator' => array(
                 'name' => 'AI Menu Generator',
                 'description' => 'Generates a navigation menu structure using AI, optionally based on page structure.',
                 'class' => 'CPT_AI_Menu_Generator',
-                'default' => true // Enable by default?
+                'default' => true,
+                'section' => 'AI Tools'
             ),
+            // Section: UI Enhancements
             'admin_refresh_ui' => array(
                 'name' => 'Admin Refresh UI',
                 'description' => 'Applies experimental styling refresh to the WP Admin area.',
                 'class' => 'CPT_Admin_Refresh_UI',
-                'default' => false // Disabled by default as it's experimental
+                'default' => false,
+                'section' => 'UI Enhancements'
             ),
             // Add more features here as they are developed
         );
@@ -288,14 +295,14 @@ class CPT_Settings_Manager
     {
         // Prepare footer content (Submit button)
         ob_start();
-        submit_button('Save Changes', 'primary', 'submit-features', false); // Unique name for the button
+        submit_button(__('Save Changes', 'craftedpath-toolkit'), 'primary', 'submit-features', false); // Unique name for the button
         $footer_html = ob_get_clean();
 
         // Render the card - directly call render_features_table method here for now
         echo '<form action="' . esc_url(admin_url('options.php')) . '" method="post">';
         settings_fields('craftedpath_toolkit_settings'); // Match the group used in register_settings for features
 
-        // Start the card markup manually 
+        // Start the card markup manually
         ?>
         <div class="craftedpath-card">
             <div class="craftedpath-card-header">
@@ -303,6 +310,14 @@ class CPT_Settings_Manager
                     <span class="dashicons dashicons-admin-plugins"></span>
                     <?php echo esc_html(__('Available Features', 'craftedpath-toolkit')); ?>
                 </h2>
+                <div class="cpt-accordion-controls">
+                    <button type="button" class="button button-secondary button-small cpt-expand-all">
+                        <span class="iconoir-expand"></span> <?php esc_html_e('Expand All', 'craftedpath-toolkit'); ?>
+                    </button>
+                    <button type="button" class="button button-secondary button-small cpt-collapse-all">
+                        <span class="iconoir-collapse"></span> <?php esc_html_e('Collapse All', 'craftedpath-toolkit'); ?>
+                    </button>
+                </div>
             </div>
             <div class="craftedpath-card-body">
                 <?php $this->render_features_table(); ?>
@@ -324,18 +339,94 @@ class CPT_Settings_Manager
      */
     private function render_features_table()
     {
-        // Description moved to the card title area or could be a separate element if needed
-        // echo '<p>' . esc_html__('Enable or disable CraftedPath Toolkit features below.', 'craftedpath-toolkit') . '</p>';
+        // Group features by section
+        $grouped_features = array();
+        foreach ($this->features as $feature_id => $feature) {
+            $section = isset($feature['section']) ? $feature['section'] : __('Other', 'craftedpath-toolkit');
+            $grouped_features[$section][$feature_id] = $feature;
+        }
+
+        // Define section order
+        $section_order = [
+            __('Developer Tools', 'craftedpath-toolkit'),
+            __('AI Tools', 'craftedpath-toolkit'),
+            __('UI Enhancements', 'craftedpath-toolkit'),
+            __('Other', 'craftedpath-toolkit')
+        ];
+
         ?>
-        <table class="form-table" role="presentation">
-            <tbody>
-                <?php
-                foreach ($this->features as $feature_id => $feature) {
-                    $this->render_feature_row($feature_id, $feature);
+        <div class="cpt-features-accordion">
+            <?php
+            // $first_section = true; // Removed, all open by default now
+            foreach ($section_order as $section_name) {
+                if (!isset($grouped_features[$section_name])) {
+                    continue; // Skip sections with no features
                 }
+
+                // Sanitize section name for use in IDs/attributes if needed
+                $section_slug = sanitize_title($section_name);
+                $is_open = true; // Open ALL sections by default
                 ?>
-            </tbody>
-        </table>
+                <div class="cpt-feature-accordion-section <?php echo $is_open ? 'is-open' : ''; ?>">
+                    <h3 class="cpt-feature-accordion-header" id="accordion-header-<?php echo esc_attr($section_slug); ?>"
+                        aria-expanded="<?php echo $is_open ? 'true' : 'false'; ?>"
+                        aria-controls="accordion-content-<?php echo esc_attr($section_slug); ?>">
+                        <button type="button" class="cpt-feature-accordion-trigger">
+                            <span class="cpt-feature-accordion-title"><?php echo esc_html($section_name); ?></span>
+                            <span class="cpt-feature-accordion-icon iconoir-nav-arrow-down"></span> <!-- Use Iconoir class -->
+                        </button>
+                    </h3>
+                    <div class="cpt-feature-accordion-content" role="region"
+                        aria-labelledby="accordion-header-<?php echo esc_attr($section_slug); ?>"
+                        id="accordion-content-<?php echo esc_attr($section_slug); ?>" <?php echo !$is_open ? 'hidden' : ''; ?>>
+                        <table class="form-table" role="presentation">
+                            <tbody>
+                                <?php
+                                foreach ($grouped_features[$section_name] as $feature_id => $feature) {
+                                    $this->render_feature_row($feature_id, $feature);
+                                }
+                                ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <?php
+                unset($grouped_features[$section_name]); // Remove processed section
+                // $first_section = false; // Removed
+            }
+
+            // Render any remaining sections (like 'Other') not in the defined order
+            foreach ($grouped_features as $section_name => $features_in_section) {
+                $section_slug = sanitize_title($section_name);
+                $is_open = true; // Open ALL sections by default
+                ?>
+                <div class="cpt-feature-accordion-section <?php echo $is_open ? 'is-open' : ''; ?>">
+                    <h3 class="cpt-feature-accordion-header" id="accordion-header-<?php echo esc_attr($section_slug); ?>"
+                        aria-expanded="<?php echo $is_open ? 'true' : 'false'; ?>"
+                        aria-controls="accordion-content-<?php echo esc_attr($section_slug); ?>">
+                        <button type="button" class="cpt-feature-accordion-trigger">
+                            <span class="cpt-feature-accordion-title"><?php echo esc_html($section_name); ?></span>
+                            <span class="cpt-feature-accordion-icon iconoir-nav-arrow-down"></span> <!-- Use Iconoir class -->
+                        </button>
+                    </h3>
+                    <div class="cpt-feature-accordion-content" role="region"
+                        aria-labelledby="accordion-header-<?php echo esc_attr($section_slug); ?>"
+                        id="accordion-content-<?php echo esc_attr($section_slug); ?>" <?php echo !$is_open ? 'hidden' : ''; ?>>
+                        <table class="form-table" role="presentation">
+                            <tbody>
+                                <?php
+                                foreach ($features_in_section as $feature_id => $feature) {
+                                    $this->render_feature_row($feature_id, $feature);
+                                }
+                                ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <?php
+            }
+            ?>
+        </div>
         <?php
     }
 
