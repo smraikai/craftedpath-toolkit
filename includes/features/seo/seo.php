@@ -376,8 +376,8 @@ function sanitize_settings($input)
             // Get SEO upload directory
             $seo_dir = get_seo_upload_dir();
 
-            // Generate a unique filename based on settings
-            $filename = 'social-share-base-' . md5(json_encode($output)) . '.jpg';
+            // Use fixed filename
+            $filename = 'social_share.jpg';
             $file_path = $seo_dir['path'] . '/' . $filename;
 
             // Create image using GD
