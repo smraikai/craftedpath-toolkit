@@ -157,14 +157,11 @@ function calculate_settings_hash($settings, $title = null)
     // Extract relevant settings for hash calculation
     $hash_data = [
         'style' => $options['social_image_style'] ?? 'style1',
-        'bg_color_input' => $options['social_image_bg_color'] ?? '#ffffff',
-        'custom_bg_color' => $options['social_image_custom_bg_color'] ?? '#f55f4b',
+        'bg_color' => $options['social_image_bg_color'] ?? '#ffffff',
         'bg_opacity' => isset($options['social_image_bg_opacity']) ? intval($options['social_image_bg_opacity']) : 100,
         'bg_image_id' => $options['social_image_bg_image_id'] ?? 0,
-        'text_color_input' => $options['social_image_text_color'] ?? 'white',
         'logo_id' => $options['social_share_logo_id'] ?? 0,
         'site_name' => !empty($options['site_name']) ? $options['site_name'] : $default_site_name,
-        'title' => $title // Include title if provided (for future per-post images)
     ];
     return md5(json_encode($hash_data));
 }
@@ -223,16 +220,10 @@ function generate_image($settings = [], $title = null, $type = 'base', $stored_h
     $default_site_name = get_bloginfo('name');
     $site_name = !empty($options['site_name']) ? $options['site_name'] : $default_site_name;
     $style = $options['social_image_style'] ?? 'style1';
-    $bg_color_input = $options['social_image_bg_color'] ?? '#ffffff';
-    $custom_bg_color = $options['social_image_custom_bg_color'] ?? '#f55f4b';
+    $bg_color = $options['social_image_bg_color'] ?? '#ffffff';
     $bg_opacity = isset($options['social_image_bg_opacity']) ? intval($options['social_image_bg_opacity']) : 100;
     $bg_image_id = $options['social_image_bg_image_id'] ?? 0;
-    $text_color_input = $options['social_image_text_color'] ?? 'white';
     $logo_id = $options['social_share_logo_id'] ?? 0;
-
-    // Determine actual background color
-    $bg_color = ($bg_color_input === 'custom') ? $custom_bg_color : get_color_value($bg_color_input);
-    $text_color = get_color_value($text_color_input);
 
     // Get font path
     $font_path = get_font_path();
@@ -280,17 +271,6 @@ function generate_image($settings = [], $title = null, $type = 'base', $stored_h
     }
     imagefill($image, 0, 0, $bg_alloc);
 
-    // Allocate text color
-    list($text_r, $text_g, $text_b) = sscanf($text_color, "#%02x%02x%02x");
-    $text_alloc = imagecolorallocate($image, $text_r, $text_g, $text_b);
-    if ($text_alloc === false) {
-        error_log('Social Image Generator: Failed to allocate text color: ' . $text_color);
-        imagedestroy($image);
-        if ($logo_img_resource)
-            imagedestroy($logo_img_resource);
-        return false;
-    }
-
     // --- Draw Background Image --- 
     if ($bg_image_url) {
         $bg_image_data = @file_get_contents($bg_image_url);
@@ -331,14 +311,22 @@ function generate_image($settings = [], $title = null, $type = 'base', $stored_h
     }
 
     // --- Apply Color Overlay --- 
-    if ($bg_opacity > 0 && $bg_opacity <= 100) {
+    if ($bg_opacity >= 0 && $bg_opacity < 100) { // Allow 0 opacity (no overlay), skip if 100 (fully transparent overlay)
+        // Use the already allocated background color components ($bg_r, $bg_g, $bg_b)
         $alpha = round(((100 - $bg_opacity) / 100) * 127); // Convert 0-100 opacity to 127-0 alpha
+        error_log('[SEO Image Gen] Applying overlay. Opacity: ' . $bg_opacity . ', Calculated Alpha: ' . $alpha . ', Color: ' . $bg_color);
         $overlay_alloc = imagecolorallocatealpha($image, $bg_r, $bg_g, $bg_b, $alpha);
         if ($overlay_alloc !== false) {
-            imagefilledrectangle($image, 0, 0, $width, $height, $overlay_alloc);
+            if (!imagefilledrectangle($image, 0, 0, $width, $height, $overlay_alloc)) {
+                error_log('[SEO Image Gen] Failed to draw filled rectangle for overlay.');
+            }
         } else {
-            error_log('Social Image Generator: Failed to allocate overlay color.');
+            error_log('[SEO Image Gen] Failed to allocate overlay color.');
         }
+    } elseif ($bg_opacity == 100) {
+        error_log('[SEO Image Gen] Skipping overlay: Opacity is 100.');
+    } else {
+        error_log('[SEO Image Gen] Skipping overlay: Opacity is invalid (< 0): ' . $bg_opacity);
     }
 
     // --- Draw Logo and Text (Based on Style) --- 
@@ -422,7 +410,7 @@ function generate_image($settings = [], $title = null, $type = 'base', $stored_h
                     $new_w = $logo_w * $ratio;
                     $new_h = $logo_h * $ratio;
                     $logo_x = ($width - $new_w) / 2;
-                    $logo_y = ($height - $new_h) / 2;
+                    $logo_y = ($height - $new_h) / 2 - 30; // Adjust vertical position
                     imagecopyresampled($image, $logo_img_resource, $logo_x, $logo_y, 0, 0, $new_w, $new_h, $logo_w, $logo_h);
 
                     // Add slight dark overlay to make text more readable potentially?
@@ -469,7 +457,7 @@ function generate_image($settings = [], $title = null, $type = 'base', $stored_h
 
     // Handle case where logo resource is not available or invalid
     if (!$logo_img_resource) {
-        error_log('Social Image Generator: Logo resource not available or invalid. Drawing text only for applicable styles.');
+        error_log('Social Image Generator: Logo resource not available (error logged previously). Drawing text only for applicable styles.');
         // Draw text only for style 2 if no logo
         if ($style === 'style2') {
             $display_text = $title ?: $site_name;
@@ -507,7 +495,7 @@ function generate_image($settings = [], $title = null, $type = 'base', $stored_h
                 }
             }
         }
-        // Logged error above, no need for duplicate log here.
+        // Logged specific error above.
     }
 
     // --- Save Image --- 

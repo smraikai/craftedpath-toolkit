@@ -204,24 +204,33 @@ function render_social_share_logo_field()
     $logo_id = isset($options['social_share_logo_id']) ? absint($options['social_share_logo_id']) : 0;
     $logo_url = $logo_id ? wp_get_attachment_image_url($logo_id, 'medium') : '';
     ?>
-    <div class="craftedpath-image-uploader social-logo-uploader">
+    <div class="craftedpath-image-uploader social-logo-uploader"
+        style="display: flex; flex-wrap: wrap; align-items: flex-start; gap: 15px;">
         <input type="hidden" name="craftedpath_seo_settings[social_share_logo_id]" value="<?php echo esc_attr($logo_id); ?>"
             class="image-id">
-        <button type="button"
-            class="button upload-button"><?php esc_html_e('Upload/Select Logo', 'craftedpath-toolkit'); ?></button>
-        <button type="button" class="button remove-button"
-            style="<?php echo $logo_id ? '' : 'display:none;'; ?>"><?php esc_html_e('Remove Logo', 'craftedpath-toolkit'); ?></button>
+
         <div class="image-preview"
-            style="margin-top: 10px; background: #f0f0f1; padding: 10px; min-height: 50px; max-width: 200px; display: inline-block; vertical-align: top;">
+            style="border: 1px solid #ccd0d4; padding: 5px; background: #f0f0f1; min-height: 100px; width: 150px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; text-align: center;">
             <?php if ($logo_url): ?>
-                <img src="<?php echo esc_url($logo_url); ?>" style="max-width: 100%; height: auto; display: block;" />
+                <img src="<?php echo esc_url($logo_url); ?>"
+                    style="max-width: 100%; max-height: 150px; height: auto; display: block;" />
             <?php else: ?>
-                <span class="description"><?php esc_html_e('No logo selected.', 'craftedpath-toolkit'); ?></span>
+                <span class="description"
+                    style="margin: 0;"><?php esc_html_e('No logo selected.', 'craftedpath-toolkit'); ?></span>
             <?php endif; ?>
         </div>
+
+        <div class="uploader-buttons" style="display: flex; flex-direction: column; gap: 5px;">
+            <button type="button" class="button upload-button">
+                <?php echo $logo_id ? esc_html__('Change Logo', 'craftedpath-toolkit') : esc_html__('Upload/Select Logo', 'craftedpath-toolkit'); ?>
+            </button>
+            <button type="button" class="button remove-button" style="<?php echo $logo_id ? '' : 'display:none;'; ?>">
+                <?php esc_html_e('Remove Logo', 'craftedpath-toolkit'); ?>
+            </button>
+        </div>
     </div>
-    <p class="description">
-        <?php esc_html_e('Upload or select the logo to use for social share images. If empty, the Site Logo from the Customizer will be used.', 'craftedpath-toolkit'); ?>
+    <p class="description" style="margin-top: 10px;">
+        <?php esc_html_e('Upload or select the logo to use for social share images. If empty, the Site Logo from the Customizer will be used (if available). Recommended size: At least 300x300 pixels.', 'craftedpath-toolkit'); ?>
     </p>
     <?php
 }
@@ -232,22 +241,27 @@ function render_social_share_logo_field()
 function render_social_share_settings()
 {
     $options = get_option('craftedpath_seo_settings', []);
-    $bg_color = isset($options['social_image_bg_color']) ? $options['social_image_bg_color'] : '#ffffff';
+    $custom_bg_color = $options['social_image_bg_color'] ?? '#ffffff';
     $bg_opacity = isset($options['social_image_bg_opacity']) ? $options['social_image_bg_opacity'] : '100';
     $bg_image_id = isset($options['social_image_bg_image_id']) ? $options['social_image_bg_image_id'] : 0;
-    $text_color = isset($options['social_image_text_color']) ? $options['social_image_text_color'] : 'white';
 
     // Get background image URL if exists
     $bg_image_url = $bg_image_id ? wp_get_attachment_image_url($bg_image_id, 'full') : '';
 
     // Generate a preview image URL using the current saved settings
-    $preview_url = \CraftedPath\Toolkit\SEO\SocialImage\generate_image($options, null, 'preview');
-    // Fallback if generation fails
+    $stored_hash = $options['social_share_base_image_hash'] ?? null;
+    $preview_result = \CraftedPath\Toolkit\SEO\SocialImage\generate_image($options, null, 'preview', $stored_hash);
+    $preview_url = is_string($preview_result) ? $preview_result : null;
+
+    // Fallback if generation fails or returns unexpected result
     if (!$preview_url) {
         $preview_url = plugin_dir_url(dirname(__FILE__, 3)) . 'assets/images/default-social-share.jpg';
     }
     ?>
     <div class="social-share-settings">
+        <?php // Add nonce field for AJAX preview updates ?>
+        <?php wp_nonce_field('update_social_image_preview', 'craftedpath_update_social_preview_nonce'); ?>
+
         <div class="auto-generate-preview" style="margin-bottom: 20px;">
             <h3><?php esc_html_e('Preview', 'craftedpath-toolkit'); ?></h3>
             <p class="description">
@@ -291,21 +305,9 @@ function render_social_share_settings()
             <tr>
                 <th scope="row"><?php esc_html_e('Background Color', 'craftedpath-toolkit'); ?></th>
                 <td>
-                    <select name="craftedpath_seo_settings[social_image_bg_color]" id="social-bg-color">
-                        <option value="#ffffff" <?php selected($bg_color, '#ffffff'); ?>>
-                            <?php esc_html_e('White', 'craftedpath-toolkit'); ?>
-                        </option>
-                        <option value="#000000" <?php selected($bg_color, '#000000'); ?>>
-                            <?php esc_html_e('Black', 'craftedpath-toolkit'); ?>
-                        </option>
-                        <option value="custom" <?php selected($bg_color, 'custom'); ?>>
-                            <?php esc_html_e('Custom', 'craftedpath-toolkit'); ?>
-                        </option>
-                    </select>
-                    <input type="text" name="craftedpath_seo_settings[social_image_custom_bg_color]"
-                        id="social-custom-bg-color"
-                        value="<?php echo esc_attr(isset($options['social_image_custom_bg_color']) ? $options['social_image_custom_bg_color'] : '#f55f4b'); ?>"
-                        class="color-picker" style="display: none;" />
+                    <input type="text" name="craftedpath_seo_settings[social_image_bg_color]" id="social-bg-color"
+                        value="<?php echo esc_attr($custom_bg_color); ?>" class="color-picker"
+                        data-default-color="#ffffff" />
                     <p class="description">
                         <?php esc_html_e('Select the background color overlay for your social share images.', 'craftedpath-toolkit'); ?>
                     </p>
@@ -319,22 +321,6 @@ function render_social_share_settings()
                     <span id="social-bg-opacity-value"><?php echo esc_html($bg_opacity); ?>%</span>
                     <p class="description">
                         <?php esc_html_e('Adjust the opacity of the background color overlay.', 'craftedpath-toolkit'); ?>
-                    </p>
-                </td>
-            </tr>
-            <tr>
-                <th scope="row"><?php esc_html_e('Text Color', 'craftedpath-toolkit'); ?></th>
-                <td>
-                    <select name="craftedpath_seo_settings[social_image_text_color]">
-                        <option value="white" <?php selected($text_color, 'white'); ?>>
-                            <?php esc_html_e('White', 'craftedpath-toolkit'); ?>
-                        </option>
-                        <option value="black" <?php selected($text_color, 'black'); ?>>
-                            <?php esc_html_e('Black', 'craftedpath-toolkit'); ?>
-                        </option>
-                    </select>
-                    <p class="description">
-                        <?php esc_html_e('Select the text color for your social share images.', 'craftedpath-toolkit'); ?>
                     </p>
                 </td>
             </tr>
@@ -403,14 +389,9 @@ function sanitize_settings($input)
     $allowed_styles = ['style1', 'style2', 'style3'];
     $output['social_image_style'] = isset($input['social_image_style']) && in_array($input['social_image_style'], $allowed_styles, true) ? $input['social_image_style'] : 'style1';
 
-    // Sanitize background color
+    // Sanitize background color (now directly from color picker)
     if (isset($input['social_image_bg_color'])) {
-        $output['social_image_bg_color'] = sanitize_text_field($input['social_image_bg_color']);
-    }
-
-    // Sanitize custom background color
-    if (isset($input['social_image_custom_bg_color'])) {
-        $output['social_image_custom_bg_color'] = sanitize_hex_color($input['social_image_custom_bg_color']);
+        $output['social_image_bg_color'] = sanitize_hex_color($input['social_image_bg_color']);
     }
 
     // Sanitize background opacity
@@ -424,19 +405,25 @@ function sanitize_settings($input)
         $output['social_image_bg_image_id'] = absint($input['social_image_bg_image_id']);
     }
 
-    // Sanitize text color
-    $allowed_colors = ['white', 'black'];
-    $output['social_image_text_color'] = isset($input['social_image_text_color']) && in_array($input['social_image_text_color'], $allowed_colors, true) ? $input['social_image_text_color'] : 'white';
+    // Generate and store the social share image URL and hash
+    $stored_hash = $output['social_share_base_image_hash'] ?? null;
+    $generation_result = \CraftedPath\Toolkit\SEO\SocialImage\generate_image($output, null, 'base', $stored_hash);
 
-    // Generate and store the social share image URL
-    $generated_image_url = \CraftedPath\Toolkit\SEO\SocialImage\generate_image($output, null, 'base');
-
-    if ($generated_image_url) {
-        $output['social_share_base_image'] = $generated_image_url;
-    } else {
-        // Handle generation failure - maybe log an error or remove the setting?
+    if (is_array($generation_result) && isset($generation_result['url']) && isset($generation_result['hash'])) {
+        $output['social_share_base_image'] = $generation_result['url'];
+        $output['social_share_base_image_hash'] = $generation_result['hash'];
+    } elseif ($generation_result === false) {
+        // Handle generation failure - log an error, maybe remove the setting?
         unset($output['social_share_base_image']);
-        error_log("CraftedPath SEO: Failed to generate base social share image.");
+        unset($output['social_share_base_image_hash']);
+        error_log("CraftedPath SEO: Failed to generate base social share image during settings save.");
+    } else {
+        // If it returned something else (e.g., just URL, meaning cache hit but structure mismatch? unlikely)
+        // Or if hash comparison failed internally but file exists?
+        // For safety, let's just remove the stored values if the result isn't the expected array.
+        unset($output['social_share_base_image']);
+        unset($output['social_share_base_image_hash']);
+        error_log("CraftedPath SEO: Unexpected result from generate_image during settings save.");
     }
 
     return $output;
@@ -664,10 +651,8 @@ function handle_social_image_preview()
     // Sanitize incoming post data
     $settings = [];
     $settings['social_image_style'] = isset($_POST['style']) ? sanitize_text_field($_POST['style']) : 'style1';
-    $settings['social_image_bg_color'] = isset($_POST['bg_color']) ? sanitize_text_field($_POST['bg_color']) : '#ffffff';
-    $settings['social_image_custom_bg_color'] = isset($_POST['custom_bg_color']) ? sanitize_hex_color($_POST['custom_bg_color']) : '#f55f4b';
+    $settings['social_image_bg_color'] = isset($_POST['bg_color']) ? sanitize_hex_color($_POST['bg_color']) : '#ffffff';
     $settings['social_image_bg_opacity'] = isset($_POST['bg_opacity']) ? absint($_POST['bg_opacity']) : 100;
-    $settings['social_image_text_color'] = isset($_POST['text_color']) ? sanitize_text_field($_POST['text_color']) : 'white';
     $settings['social_share_logo_id'] = isset($_POST['logo_id']) ? absint($_POST['logo_id']) : 0;
     $settings['social_image_bg_image_id'] = isset($_POST['bg_image_id']) ? absint($_POST['bg_image_id']) : 0;
     $settings['site_name'] = isset($_POST['site_name']) ? sanitize_text_field($_POST['site_name']) : get_bloginfo('name');
@@ -681,24 +666,6 @@ function handle_social_image_preview()
         $preview_url = plugin_dir_url(dirname(__FILE__, 3)) . 'assets/images/default-social-share.jpg';
         wp_send_json_error(['message' => 'Failed to generate preview.', 'fallback_url' => $preview_url]);
     }
-
-    /* // REMOVED - No longer need temporary options
-    // Update temporary settings for preview generation
-    $options = get_option('craftedpath_seo_preview_settings', []); // Get temporary if exists
-    if (!is_array($options))
-        $options = []; // Ensure it's an array
-    $options['social_image_style'] = $style;
-    $options['social_image_bg_color'] = $bg_color;
-    $options['social_image_text_color'] = $text_color;
-    $options['social_share_logo_id'] = $logo_id;
-    update_option('craftedpath_seo_preview_settings', $options, false);
-
-    // Generate new preview using temporary settings
-    $preview_url = generate_social_share_image_preview();
-
-    // Clean up temporary option
-    delete_option('craftedpath_seo_preview_settings');
-    */
 
     wp_send_json_success(['preview_url' => $preview_url]);
 }
@@ -723,19 +690,6 @@ function generate_social_share_image_preview()
     }
 
     return $preview_url;
-
-    /* // REMOVED - Old logic based on stored base image or default
-    // Get current settings
-    $options = get_option('craftedpath_seo_settings', []);
-
-    // If we have a stored base image, use it
-    if (!empty($options['social_share_base_image'])) {
-        return $options['social_share_base_image'];
-    }
-
-    // If no custom image is set, use the default
-    return plugin_dir_url(dirname(__FILE__, 3)) . 'assets/images/default-social-share.jpg';
-    */
 }
 
 // TODO: Add output_meta_tags function

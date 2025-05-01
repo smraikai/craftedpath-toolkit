@@ -1,82 +1,86 @@
 jQuery(document).ready(function ($) {
     console.log('[SEO Settings] Document ready.');
 
-    // Media uploader script
-    let mediaFrame;
-    const imageUploader = '.craftedpath-image-uploader'; // Container class
+    // Store nonce
+    const updatePreviewNonce = $('#craftedpath_update_social_preview_nonce').val();
 
-    $(document).on('click', imageUploader + ' .upload-button', function (e) {
-        e.preventDefault();
+    // --- Helper: Debounce --- 
+    function debounce(func, wait, immediate) {
+        var timeout;
+        return function () {
+            var context = this, args = arguments;
+            var later = function () {
+                timeout = null;
+                if (!immediate) func.apply(context, args);
+            };
+            var callNow = immediate && !timeout;
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+            if (callNow) func.apply(context, args);
+        };
+    };
 
-        const $button = $(this);
-        const $container = $button.closest(imageUploader);
-        const $input = $container.find('.image-id');
-        const $preview = $container.find('.image-preview');
-        const $removeButton = $container.find('.remove-button');
+    // --- Server-Side Preview Update Trigger --- 
+    const triggerServerSidePreviewUpdate = debounce(function (triggerSource) {
+        console.log(`[SEO Settings] Triggering server-side preview update from: ${triggerSource}`);
+        const $previewContainer = $('.social-share-settings .auto-generate-preview .preview-image');
+        const $previewImage = $previewContainer.find('img');
+        const $loadingSpinner = $('<span class="spinner is-active" style="float: none; vertical-align: middle; margin-left: 10px;"></span>');
 
-        // If the media frame already exists, reopen it.
-        if (mediaFrame) {
-            mediaFrame.open();
-            return;
-        }
+        if (!$previewContainer.length) return;
 
-        // Create the media frame.
-        mediaFrame = wp.media({
-            title: $button.data('uploader-title') || 'Select or Upload Image',
-            button: {
-                text: $button.data('uploader-button-text') || 'Use this image',
-            },
-            multiple: false // Set to true if you want to allow multiple image selection
-        });
+        // Show loading state
+        $previewImage.css('opacity', 0.5);
+        $previewContainer.append($loadingSpinner);
 
-        // When an image is selected, run a callback.
-        mediaFrame.on('select', function () {
-            // We only get one image from the selection
-            const attachment = mediaFrame.state().get('selection').first().toJSON();
+        // Gather data
+        const data = {
+            action: 'update_social_image_preview',
+            nonce: updatePreviewNonce,
+            // style: ?? // Need to add style selector if we re-introduce it
+            bg_color: $('#social-bg-color').val(),
+            bg_opacity: $('#social-bg-opacity').val(),
+            logo_id: $('.social-logo-uploader .image-id').val(),
+            bg_image_id: $('.social-bg-uploader .image-id').val(),
+            site_name: $('input[name="craftedpath_seo_settings[site_name]"]').val()
+            // text_color: removed
+        };
 
-            // Update the hidden input field value
-            $input.val(attachment.id);
+        // Perform AJAX request
+        console.log('[SEO Settings] Sending AJAX data:', data);
+        $.post(ajaxurl, data, function (response) {
+            console.log('[SEO Settings] AJAX Response: ', response);
+            $loadingSpinner.remove(); // Remove spinner regardless of outcome
+            $previewImage.css('opacity', 1);
 
-            // Update the image preview
-            if (attachment.sizes && attachment.sizes.medium) {
-                $preview.html('<img src="' + attachment.sizes.medium.url + '" style="max-width: 200px; height: auto;" />');
+            if (response.success && response.data.preview_url) {
+                // Update preview image source
+                $previewImage.attr('src', response.data.preview_url);
+                console.log(`[SEO Settings] Preview image src updated to: ${response.data.preview_url}`);
+                console.log('[SEO Settings] Preview updated successfully.');
             } else {
-                $preview.html('<img src="' + attachment.url + '" style="max-width: 200px; height: auto;" />');
+                // Handle error - maybe show a message?
+                console.error('[SEO Settings] Failed to update preview.', response.data);
+                // Optionally revert to a default or show the fallback URL if provided
+                if (response.data && response.data.fallback_url) {
+                    $previewImage.attr('src', response.data.fallback_url);
+                }
+                // Consider adding a user-visible error message here
             }
-
-            // Show the remove button
-            $removeButton.show();
+        }).fail(function (jqXHR, textStatus, errorThrown) {
+            console.error('[SEO Settings] AJAX request failed: ', textStatus, errorThrown);
+            $loadingSpinner.remove();
+            $previewImage.css('opacity', 1);
+            // Handle AJAX failure - show generic error?
+            console.error('[SEO Settings] AJAX request failed.');
         });
 
-        // Finally, open the modal
-        mediaFrame.open();
-    });
+    }, 500); // Debounce for 500ms
 
-    // Handle remove image button click
-    $(document).on('click', imageUploader + ' .remove-button', function (e) {
-        e.preventDefault();
-
-        const $button = $(this);
-        const $container = $button.closest(imageUploader);
-        const $input = $container.find('.image-id');
-        const $preview = $container.find('.image-preview');
-
-        // Clear the input field value
-        $input.val(''); // Use empty string or 0, depending on how you handle no image
-
-        // Clear the preview
-        $preview.html('');
-
-        // Hide the remove button
-        $button.hide();
-    });
-
-    // --- Social Share Logo Uploader --- 
-    function initializeSocialLogoUploader() {
-        const $container = $('.social-logo-uploader');
+    // --- Media Uploader Initialization (Generic) --- 
+    function initializeMediaUploader($container, updateCallback) {
         if (!$container.length) return;
 
-        // Check if wp.media is loaded
         if (typeof wp === 'undefined' || !wp.media) {
             console.error('[SEO Settings] WP Media library not available.');
             return;
@@ -87,350 +91,179 @@ jQuery(document).ready(function ($) {
         const $preview = $container.find('.image-preview');
         const $uploadButton = $container.find('.upload-button');
         const $removeButton = $container.find('.remove-button');
-        const noLogoText = $preview.find('.description').length ? $preview.find('.description').text() : 'No logo selected.';
+        const noImageText = $preview.find('.description').length ? $preview.find('.description').text() : 'No image selected.';
+        const isLogoUploader = $container.hasClass('social-logo-uploader');
+        const title = isLogoUploader ? 'Select or Upload Logo' : 'Select or Upload Background Image';
+        const buttonText = isLogoUploader ? 'Use this logo' : 'Use this image';
 
-        // Remove any existing handlers first
-        $uploadButton.off('click');
-        $removeButton.off('click');
+        // Clean up old handlers
+        $uploadButton.off('click.cptkSeoUploader');
+        $removeButton.off('click.cptkSeoUploader');
 
-        // Attach new handlers
-        $uploadButton.on('click', function (e) {
+        // Attach new handlers with namespace
+        $uploadButton.on('click.cptkSeoUploader', function (e) {
             e.preventDefault();
-            e.stopPropagation();
+            e.stopPropagation(); // Prevent potential conflicts
 
             if (typeof wp === 'undefined' || !wp.media) {
                 console.error('[SEO Settings] wp.media not available on click!');
                 return;
             }
 
-            // If the media frame already exists, reopen it.
             if (mediaFrame) {
                 mediaFrame.open();
                 return;
             }
 
-            // Create the media frame.
             mediaFrame = wp.media({
-                title: 'Select or Upload Logo',
-                button: {
-                    text: 'Use this logo'
-                },
+                title: title,
+                button: { text: buttonText },
                 library: { type: 'image' },
                 multiple: false
             });
 
-            // When an image is selected, run a callback.
             mediaFrame.on('select', function () {
                 const attachment = mediaFrame.state().get('selection').first().toJSON();
                 $input.val(attachment.id);
                 const displayUrl = (attachment.sizes && attachment.sizes.medium) ? attachment.sizes.medium.url : attachment.url;
-                $preview.html('<img src="' + displayUrl + '" style="max-width: 100%; height: auto; display: block;" />');
+
+                // Different preview structure for logo vs background
+                if (isLogoUploader) {
+                    $preview.html('<img src="' + displayUrl + '" style="max-width: 100%; max-height: 150px; height: auto; display: block;" />');
+                } else {
+                    $preview.html('<img src="' + displayUrl + '" style="max-width: 100%; height: auto; display: block;" />');
+                }
+
+                $uploadButton.text(isLogoUploader ? 'Change Logo' : 'Change Image');
                 $removeButton.show();
 
-                // Update the social share preview
-                updateSocialSharePreview();
+                // Trigger update after selection
+                if (updateCallback) updateCallback();
             });
 
-            // Finally, open the modal
             mediaFrame.open();
         });
 
-        $removeButton.on('click', function (e) {
+        $removeButton.on('click.cptkSeoUploader', function (e) {
             e.preventDefault();
-            e.stopPropagation();
-            $input.val('0');
-            $preview.html('<span class="description">' + noLogoText + '</span>');
+            e.stopPropagation(); // Prevent potential conflicts
+            $input.val('0'); // Use 0 for no image
+            $preview.html('<span class="description" style="margin: 0;">' + noImageText + '</span>');
+            $uploadButton.text(isLogoUploader ? 'Upload/Select Logo' : 'Upload/Select Image');
             $(this).hide();
 
-            // Update the social share preview
-            updateSocialSharePreview();
+            // Trigger update after removal
+            if (updateCallback) updateCallback();
         });
 
-        // If there's already a logo, make sure the remove button is visible
+        // Initial state check
         if ($input.val() && $input.val() !== '0') {
+            $uploadButton.text(isLogoUploader ? 'Change Logo' : 'Change Image');
             $removeButton.show();
-        }
-    }
-
-    // Helper function to get color value
-    function getColorValue(key) {
-        switch (key) {
-            case 'white':
-                return '#ffffff';
-            case 'black':
-                return '#000000';
-            default:
-                return key; // Return the value directly for custom colors
-        }
-    }
-
-    // --- Social Share Preview Generation ---
-    function updateSocialSharePreview() {
-        const $previewContainer = $('.social-share-settings .auto-generate-preview .preview-image');
-        if (!$previewContainer.length) return;
-
-        const bgColorSelect = $('#social-bg-color').val();
-        const bgColor = bgColorSelect === 'custom' ? $('#social-custom-bg-color').val() : bgColorSelect;
-        const bgOpacity = $('#social-bg-opacity').val() / 100;
-        const textColor = $('select[name="craftedpath_seo_settings[social_image_text_color]"]').val();
-        const logoId = $('.social-logo-uploader .image-id').val();
-        const logoUrl = $('.social-logo-uploader .image-preview img').attr('src');
-        const bgImageId = $('.social-bg-uploader .image-id').val();
-        const bgImageUrl = $('.social-bg-uploader .image-preview img').attr('src');
-        const siteName = $('input[name="craftedpath_seo_settings[site_name]"]').val() || 'Site Name';
-
-        // Create canvas
-        const canvas = document.createElement('canvas');
-        canvas.width = 1200;
-        canvas.height = 630;
-        const ctx = canvas.getContext('2d');
-
-        // Draw background image if available
-        if (bgImageUrl) {
-            const bgImg = new Image();
-            bgImg.crossOrigin = 'anonymous';
-            bgImg.onload = function () {
-                // Calculate dimensions for cover sizing
-                const canvasRatio = canvas.width / canvas.height;
-                const imgRatio = bgImg.width / bgImg.height;
-
-                let drawWidth, drawHeight, drawX, drawY;
-
-                if (imgRatio > canvasRatio) {
-                    // Image is wider than canvas
-                    drawHeight = canvas.height;
-                    drawWidth = drawHeight * imgRatio;
-                    drawX = (canvas.width - drawWidth) / 2;
-                    drawY = 0;
-                } else {
-                    // Image is taller than canvas
-                    drawWidth = canvas.width;
-                    drawHeight = drawWidth / imgRatio;
-                    drawX = 0;
-                    drawY = (canvas.height - drawHeight) / 2;
-                }
-
-                // Draw background image with cover sizing
-                ctx.drawImage(bgImg, drawX, drawY, drawWidth, drawHeight);
-
-                // Draw color overlay
-                const bgColorValue = getColorValue(bgColor);
-                ctx.fillStyle = bgColorValue + Math.round(bgOpacity * 255).toString(16).padStart(2, '0');
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                // Load logo if available
-                if (logoUrl) {
-                    const logoImg = new Image();
-                    logoImg.crossOrigin = 'anonymous';
-                    logoImg.onload = function () {
-                        const padding = 80;
-                        const textColorValue = getColorValue(textColor);
-
-                        // Draw logo
-                        const maxW = canvas.width * 0.6;
-                        const maxH = canvas.height * 0.6;
-                        const ratio = Math.min(maxW / logoImg.width, maxH / logoImg.height);
-                        const newW = logoImg.width * ratio;
-                        const newH = logoImg.height * ratio;
-                        const logoX = (canvas.width - newW) / 2;
-                        const logoY = (canvas.height - newH) / 2;
-                        ctx.drawImage(logoImg, logoX, logoY, newW, newH);
-
-                        // Update preview
-                        $previewContainer.find('img').attr('src', canvas.toDataURL('image/jpeg', 0.9));
-                    };
-                    logoImg.src = logoUrl;
-                } else {
-                    // If no logo, show site name
-                    const textColorValue = getColorValue(textColor);
-                    ctx.fillStyle = textColorValue;
-                    ctx.font = 'bold 80px Open Sans';
-                    const siteNameWidth = ctx.measureText(siteName).width;
-                    ctx.fillText(siteName, (canvas.width - siteNameWidth) / 2, canvas.height / 2);
-
-                    // Update preview
-                    $previewContainer.find('img').attr('src', canvas.toDataURL('image/jpeg', 0.9));
-                }
-            };
-            bgImg.src = bgImageUrl;
         } else {
-            // If no background image, just use color
-            const bgColorValue = getColorValue(bgColor);
-            ctx.fillStyle = bgColorValue;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Load logo if available
-            if (logoUrl) {
-                const logoImg = new Image();
-                logoImg.crossOrigin = 'anonymous';
-                logoImg.onload = function () {
-                    const padding = 80;
-                    const textColorValue = getColorValue(textColor);
-
-                    // Draw logo
-                    const maxW = canvas.width * 0.6;
-                    const maxH = canvas.height * 0.6;
-                    const ratio = Math.min(maxW / logoImg.width, maxH / logoImg.height);
-                    const newW = logoImg.width * ratio;
-                    const newH = logoImg.height * ratio;
-                    const logoX = (canvas.width - newW) / 2;
-                    const logoY = (canvas.height - newH) / 2;
-                    ctx.drawImage(logoImg, logoX, logoY, newW, newH);
-
-                    // Update preview
-                    $previewContainer.find('img').attr('src', canvas.toDataURL('image/jpeg', 0.9));
-                };
-                logoImg.src = logoUrl;
-            } else {
-                // If no logo, show site name
-                const textColorValue = getColorValue(textColor);
-                ctx.fillStyle = textColorValue;
-                ctx.font = 'bold 80px Open Sans';
-                const siteNameWidth = ctx.measureText(siteName).width;
-                ctx.fillText(siteName, (canvas.width - siteNameWidth) / 2, canvas.height / 2);
-
-                // Update preview
-                $previewContainer.find('img').attr('src', canvas.toDataURL('image/jpeg', 0.9));
-            }
+            $uploadButton.text(isLogoUploader ? 'Upload/Select Logo' : 'Upload/Select Image');
+            $removeButton.hide();
         }
     }
 
-    // Initialize color picker
+    // --- Initialize Specific Uploaders --- 
+    initializeMediaUploader($('.social-logo-uploader'), function () { triggerServerSidePreviewUpdate('Logo Uploader'); });
+    initializeMediaUploader($('.social-bg-uploader'), function () { triggerServerSidePreviewUpdate('BG Uploader'); });
+
+    // --- Color Picker Initialization ---
     function initializeColorPicker() {
+        console.log('[SEO Settings] Initializing color picker...');
+        const $colorPickerInput = $('#social-bg-color');
+
+        if ($colorPickerInput.length && $.fn.wpColorPicker) {
+            // Clean up previous instance if exists
+            if ($colorPickerInput.closest('.wp-picker-container').length) {
+                $colorPickerInput.wpColorPicker('destroy');
+            }
+
+            try {
+                $colorPickerInput.wpColorPicker({
+                    change: function (event, ui) {
+                        console.log('[SEO Settings] Color picker changed');
+                        triggerServerSidePreviewUpdate('Color Picker Change');
+                    },
+                    clear: function () {
+                        console.log('[SEO Settings] Color picker cleared');
+                        triggerServerSidePreviewUpdate('Color Picker Clear');
+                    }
+                });
+                console.log('[SEO Settings] Color picker initialized successfully.');
+            } catch (e) {
+                console.error('[SEO Settings] Error initializing color picker:', e);
+            }
+        } else {
+            console.log('[SEO Settings] Color picker input not found or wpColorPicker not available.');
+        }
+
+        /* // REMOVED logic for select toggle
         const $bgColorSelect = $('#social-bg-color');
         const $customColorInput = $('#social-custom-bg-color');
-        const $bgOpacity = $('#social-bg-opacity');
-        const $bgOpacityValue = $('#social-bg-opacity-value');
+        const $customColorContainer = $customColorInput.closest('.wp-picker-container') || $customColorInput;
 
-        // Initialize color picker
-        $customColorInput.wpColorPicker({
-            defaultColor: '#f55f4b',
-            change: function (event, ui) {
-                updateSocialSharePreview();
-            }
-        });
-
-        // Show/hide color picker based on selection
-        $bgColorSelect.on('change', function () {
-            if ($(this).val() === 'custom') {
-                $customColorInput.show();
+        function toggleCustomColor() {
+            if ($bgColorSelect.val() === 'custom') {
+                $customColorContainer.show();
             } else {
-                $customColorInput.hide();
+                $customColorContainer.hide();
             }
-            updateSocialSharePreview();
-        });
+            triggerServerSidePreviewUpdate(); // Trigger on select change too
+        }
 
-        // Update opacity value display
-        $bgOpacity.on('input', function () {
-            $bgOpacityValue.text($(this).val() + '%');
-            updateSocialSharePreview();
-        });
+        $bgColorSelect.on('change', toggleCustomColor);
+        toggleCustomColor(); // Initial check
+        */
+    }
 
-        // Initial state
-        if ($bgColorSelect.val() === 'custom') {
-            $customColorInput.show();
+    // --- Opacity Slider --- 
+    function initializeOpacitySlider() {
+        const $slider = $('#social-bg-opacity');
+        const $valueDisplay = $('#social-bg-opacity-value');
+
+        if ($slider.length && $valueDisplay.length) {
+            $slider.on('input change', function () {
+                $valueDisplay.text($(this).val() + '%');
+                console.log('[SEO Settings] Opacity slider changed');
+                triggerServerSidePreviewUpdate('Opacity Slider');
+            });
         }
     }
 
-    // Initialize background image uploader
-    function initializeBackgroundUploader() {
-        const $container = $('.social-bg-uploader');
-        if (!$container.length) return;
-
-        let mediaFrame;
-        const $input = $container.find('.image-id');
-        const $preview = $container.find('.image-preview');
-        const $uploadButton = $container.find('.upload-button');
-        const $removeButton = $container.find('.remove-button');
-        const noImageText = $preview.find('.description').length ? $preview.find('.description').text() : 'No image selected.';
-
-        // Remove any existing handlers first
-        $uploadButton.off('click');
-        $removeButton.off('click');
-
-        // Attach new handlers
-        $uploadButton.on('click', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            if (typeof wp === 'undefined' || !wp.media) {
-                console.error('[SEO Settings] wp.media not available on click!');
-                return;
-            }
-
-            // If the media frame already exists, reopen it.
-            if (mediaFrame) {
-                mediaFrame.open();
-                return;
-            }
-
-            // Create the media frame.
-            mediaFrame = wp.media({
-                title: 'Select or Upload Background Image',
-                button: {
-                    text: 'Use this image'
-                },
-                library: { type: 'image' },
-                multiple: false
-            });
-
-            // When an image is selected, run a callback.
-            mediaFrame.on('select', function () {
-                const attachment = mediaFrame.state().get('selection').first().toJSON();
-                $input.val(attachment.id);
-                const displayUrl = (attachment.sizes && attachment.sizes.medium) ? attachment.sizes.medium.url : attachment.url;
-                $preview.html('<img src="' + displayUrl + '" style="max-width: 100%; height: auto; display: block;" />');
-                $removeButton.show();
-
-                // Update the social share preview
-                updateSocialSharePreview();
-            });
-
-            // Finally, open the modal
-            mediaFrame.open();
+    // --- Site Name Input --- 
+    function initializeSiteNameInput() {
+        $('input[name="craftedpath_seo_settings[site_name]"]').on('input', function () {
+            console.log('[SEO Settings] Site name changed');
+            triggerServerSidePreviewUpdate('Site Name Input');
         });
-
-        $removeButton.on('click', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            $input.val('0');
-            $preview.html('<span class="description">' + noImageText + '</span>');
-            $(this).hide();
-
-            // Update the social share preview
-            updateSocialSharePreview();
-        });
-
-        // If there's already an image, make sure the remove button is visible
-        if ($input.val() && $input.val() !== '0') {
-            $removeButton.show();
-        }
     }
 
-    // --- Event Listeners ---
-    $('select[name^="craftedpath_seo_settings[social_image"]').on('change', function () {
-        updateSocialSharePreview();
+    // --- REMOVED Text Color Select Listener ---
+    /*
+    $('select[name="craftedpath_seo_settings[social_image_text_color]"]').on('change', function() {
+        triggerServerSidePreviewUpdate();
     });
+    */
 
-    $('input[name="craftedpath_seo_settings[site_name]"]').on('input', function () {
-        updateSocialSharePreview();
-    });
-
-    // Initialize everything when document is ready
-    jQuery(document).ready(function ($) {
+    // --- Initialization ---
+    function initSeoSettingsPage() {
+        console.log('[SEO Settings] Initializing page components...');
         initializeColorPicker();
-        initializeBackgroundUploader();
-        initializeSocialLogoUploader();
-        waitForMedia();
-    });
-
-    // Wait for wp.media to be available before initializing preview
-    function waitForMedia() {
-        if (typeof wp !== 'undefined' && wp.media) {
-            // Initialize the preview
-            updateSocialSharePreview();
-        } else {
-            setTimeout(waitForMedia, 100);
-        }
+        initializeOpacitySlider();
+        initializeSiteNameInput();
+        // Uploaders are initialized earlier
+        console.log('[SEO Settings] Page components initialized.');
     }
-}); 
+
+    // Wait for WP Media library if needed
+    if (typeof wp === 'undefined' || !wp.media) {
+        console.warn('[SEO Settings] wp.media not ready, delaying init slightly...');
+        setTimeout(initSeoSettingsPage, 500); // Delay init slightly
+    } else {
+        initSeoSettingsPage(); // Initialize immediately
+    }
+
+}); // End document ready 
