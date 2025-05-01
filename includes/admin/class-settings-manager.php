@@ -92,6 +92,12 @@ class CPT_Settings_Manager
                 'class' => 'CPT_AI_Menu_Generator',
                 'default' => true // Enable by default?
             ),
+            'admin_refresh_ui' => array(
+                'name' => 'Admin Refresh UI',
+                'description' => 'Applies experimental styling refresh to the WP Admin area.',
+                'class' => 'CPT_Admin_Refresh_UI',
+                'default' => false // Disabled by default as it's experimental
+            ),
             // Add more features here as they are developed
         );
     }

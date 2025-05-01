@@ -49,6 +49,8 @@ final class CraftedPath_Toolkit
         // require_once CPT_PLUGIN_DIR . 'includes/features/ai-sitemap-generator/class-cpt-ai-sitemap-generator.php'; // Deprecated
         require_once CPT_PLUGIN_DIR . 'includes/features/ai-page-generator/class-cpt-ai-page-generator.php';
         require_once CPT_PLUGIN_DIR . 'includes/features/ai-menu-generator/class-cpt-ai-menu-generator.php';
+        // Include the Admin Refresh UI feature
+        require_once CPT_PLUGIN_DIR . 'includes/features/admin-refresh-ui/class-admin-refresh-ui.php';
 
         require_once CPT_PLUGIN_DIR . 'includes/admin/class-settings-manager.php';
         require_once CPT_PLUGIN_DIR . 'includes/admin/settings-page.php';
@@ -129,6 +131,15 @@ final class CraftedPath_Toolkit
                 CPT_AI_Menu_Generator::instance();
             } else {
                 error_log("CraftedPath Toolkit Error: CPT_AI_Menu_Generator class not found.");
+            }
+        }
+
+        // Load Admin Refresh UI
+        if ($settings_manager->is_feature_enabled('admin_refresh_ui')) {
+            if (class_exists('CPT_Admin_Refresh_UI')) {
+                CPT_Admin_Refresh_UI::instance();
+            } else {
+                error_log("CraftedPath Toolkit Error: CPT_Admin_Refresh_UI class not found.");
             }
         }
 
