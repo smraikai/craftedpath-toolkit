@@ -5,9 +5,9 @@
 (function ($) {
     'use strict';
 
-    // Check if jQuery is available
-    if (typeof $ === 'undefined') {
-        console.error('jQuery is required for the AI Menu Generator');
+    // Check if jQuery and the SortableJS jQuery wrapper are available
+    if (typeof $ === 'undefined' || typeof $.fn.sortable === 'undefined') {
+        console.error('jQuery and the SortableJS jQuery wrapper (jquery-sortable.js) are required for the AI Menu Generator');
         return;
     }
 
@@ -35,6 +35,8 @@
         const $generateBtn = $('#cpt-generate-menu-btn'); // Use ID from PHP view
         const $createBtn = $('#create_wp_menu'); // Use ID from PHP view
         const $copyBtn = $('#copy_menu_json'); // Use ID from PHP view
+        const $resultsContainer = $('#menu_results'); // Added for delegation
+        const $menuStructureContainer = $('.menu-structure'); // Added for delegation
 
         if (!$generateBtn.length) return;
 
@@ -52,6 +54,13 @@
         $copyBtn.on('click', function () {
             copyMenuJson();
         });
+
+        // Event delegation for potential future actions within the tree
+        $menuStructureContainer.on('click', '.delete-menu-item', function () {
+            $(this).closest('.menu-tree-item').remove();
+            updateStructureFromUI(); // Update structure after removal
+        });
+        // $menuStructureContainer.on('click', '.edit-menu-item', function () { ... });
     }
 
     /**
@@ -70,6 +79,7 @@
         $results.hide();
         $loading.show();
         generatedMenuStructure = null; // Reset stored data
+        $('.menu-structure').empty(); // Clear old tree
 
         // Prepare data
         const data = {
@@ -87,11 +97,10 @@
             success: function (response) {
                 $loading.hide();
 
-                if (response.success && response.data.menu_structure) {
-                    generatedMenuStructure = response.data.menu_structure; // Store the structure
+                if (response.success && response.data.menu_structure && response.data.menu_structure.items) {
+                    generatedMenuStructure = response.data.menu_structure; // Store the whole object {items: [...]} 
 
-                    // Render the menu structure (using JSON viewer or simple list)
-                    renderMenuStructure(generatedMenuStructure);
+                    renderMenuStructure(generatedMenuStructure.items); // Pass the items array
                     $results.show();
                     // Enable buttons
                     $('#create_wp_menu').prop('disabled', false);
@@ -113,29 +122,117 @@
     }
 
     /**
-     * Render menu structure in the UI (using pre/code for JSON)
+     * Render menu structure as an interactive HTML list
+     * @param {Array} items - The array of menu item objects.
      */
-    function renderMenuStructure(menuData) {
-        const $container = $('.menu-structure'); // Use class from PHP view
+    function renderMenuStructure(items) {
+        const $container = $('.menu-structure');
         $container.empty();
 
-        if (menuData && typeof menuData === 'object') {
-            // Display formatted JSON in the code block
-            const jsonString = JSON.stringify(menuData, null, 2); // Pretty print
-            $container.text(jsonString); // Use text to display safely
-            // If using a syntax highlighter like Prism.js, trigger it here
-            // if (typeof Prism !== 'undefined') {
-            //     Prism.highlightElement($container[0]);
-            // }
-        } else {
+        if (!items || !Array.isArray(items)) {
             $container.text('Invalid menu data format.');
+            return;
         }
+
+        const $tree = $('<ul class="menu-tree-list ui-sortable"></ul>'); // Root list
+
+        // Recursive function to build the tree
+        function buildTree(items, $parentList) {
+            items.forEach(function (item) {
+                if (!item || !item.title) return; // Skip invalid items
+
+                const $listItem = $('<li class="menu-tree-item"></li>');
+                $listItem.data('menuItemData', item); // Store original data
+
+                // Item Content (Handle + Title + Controls)
+                const $itemContent = $('<div class="menu-item-content"></div>');
+                $itemContent.append('<span class="dashicons dashicons-menu-alt3 menu-item-handle" title="Drag to reorder"></span>');
+                $itemContent.append('<span class="menu-item-title"></span>').find('.menu-item-title').text(item.title); // Use .text() for safety
+                // Add delete button (optional)
+                // $itemContent.append('<span class="menu-item-controls"> <button class="button button-small delete-menu-item" title="Remove"><span class="dashicons dashicons-trash"></span></button></span>');
+
+                $listItem.append($itemContent);
+
+                // Add sublist if children exist
+                if (item.children && Array.isArray(item.children) && item.children.length > 0) {
+                    const $subList = $('<ul class="menu-tree-children ui-sortable"></ul>');
+                    buildTree(item.children, $subList);
+                    $listItem.append($subList);
+                }
+
+                $parentList.append($listItem);
+            });
+        }
+
+        buildTree(items, $tree);
+        $container.append($tree);
+
+        // Initialize SortableJS using the jQuery wrapper
+        $container.find('.menu-tree-list, .menu-tree-children').sortable({
+            // SortableJS options - use class names for styling
+            group: 'nested', // Allow dragging between lists with the same group name
+            animation: 150, // Animation speed
+            fallbackOnBody: true,
+            swapThreshold: 0.65,
+            handle: '.menu-item-handle', // Specify drag handle
+            ghostClass: 'sortable-ghost',  // Class for drop placeholder
+            chosenClass: 'sortable-chosen', // Class for the element being dragged
+            dragClass: 'sortable-drag', // Class for the mirror element during drag
+            // Event when an item is dropped
+            onEnd: function (/**Event*/evt) {
+                // Update the generatedMenuStructure JS variable after drop
+                updateStructureFromUI();
+            },
+        });
+    }
+
+    /**
+    * Reads the current state of the sortable tree UI 
+    * and updates the `generatedMenuStructure` JavaScript variable.
+    */
+    function updateStructureFromUI() {
+        const $treeRoot = $('.menu-structure > .menu-tree-list');
+
+        function parseTree($list) {
+            let items = [];
+            $list.children('.menu-tree-item').each(function () {
+                const $listItem = $(this);
+                // Retrieve original data, but only use title/url, reconstruct children
+                const originalData = $listItem.data('menuItemData') || {};
+                const newItem = {
+                    title: originalData.title || 'Untitled', // Get title from original data
+                    url: originalData.url || '#' // Get URL from original data
+                    // Add other properties from originalData if needed
+                };
+
+                const $childrenList = $listItem.children('.menu-tree-children');
+                if ($childrenList.length > 0) {
+                    newItem.children = parseTree($childrenList);
+                }
+                items.push(newItem);
+            });
+            return items;
+        }
+
+        if ($treeRoot.length) {
+            const updatedItems = parseTree($treeRoot);
+            generatedMenuStructure = { items: updatedItems }; // Update the global variable
+            console.log("Updated menu structure based on UI:", JSON.stringify(generatedMenuStructure, null, 2));
+        } else {
+            console.error("Could not find menu tree root to update structure.");
+            generatedMenuStructure = null; // Indicate structure is invalid
+        }
+        // Ensure buttons are still enabled/disabled correctly
+        $('#create_wp_menu').prop('disabled', !generatedMenuStructure || !generatedMenuStructure.items || generatedMenuStructure.items.length === 0);
+        $('#copy_menu_json').prop('disabled', !generatedMenuStructure || !generatedMenuStructure.items || generatedMenuStructure.items.length === 0);
     }
 
     /**
      * Copy the menu data as a JSON string
      */
     function copyMenuJson() {
+        updateStructureFromUI(); // Ensure we copy the latest structure
+
         if (!generatedMenuStructure) {
             showToast('No menu structure available to copy.', 'error');
             return;
@@ -148,26 +245,24 @@
         }, function (err) {
             showToast('Failed to copy JSON: ' + err, 'error');
             console.error('Async: Could not copy text: ', err);
-            // Add fallback if needed, similar to page generator
         });
     }
 
     /**
-     * Create WordPress menu from generated data
+     * Create WordPress menu from potentially modified structure
      */
     function createWordPressMenu() {
-        if (!generatedMenuStructure) {
-            showToast('No menu structure generated yet.', 'error');
+        updateStructureFromUI(); // Ensure we use the latest structure
+
+        if (!generatedMenuStructure || !generatedMenuStructure.items || generatedMenuStructure.items.length === 0) {
+            showToast('Cannot create menu: Structure is empty or invalid.', 'error');
             return;
         }
 
-        // Ask for menu name? Or use default from PHP?
-        // Let's stick to PHP default for now ('AI Generated Menu' + timestamp)
-        const menuName = $('#menu_type option:selected').text() + ' Menu (AI)'; // Example name
-
-        const $error = $('#menu_error'); // Use ID from PHP view
-        const $status = $('#menu_status'); // Use ID from PHP view
-        const $loading = $('#menu_loading'); // Use ID from PHP view
+        const menuName = $('#menu_type option:selected').text() + ' Menu (AI)';
+        const $error = $('#menu_error');
+        const $status = $('#menu_status');
+        const $loading = $('#menu_loading');
 
         // Reset UI
         $error.hide().empty();
@@ -177,36 +272,33 @@
         // Prepare data
         const data = {
             action: 'cpt_create_wp_menu',
-            menu_structure: JSON.stringify(generatedMenuStructure), // Send the full structure
-            menu_name: menuName, // Send a suggested name
-            nonce: cptMenuVars.nonce // Use correct nonce var
+            // Send the potentially modified structure
+            menu_structure: JSON.stringify(generatedMenuStructure),
+            menu_name: menuName,
+            nonce: cptMenuVars.nonce
         };
 
         // Make AJAX request
         $.ajax({
-            url: cptMenuVars.ajaxurl, // Use correct ajaxurl var
+            url: cptMenuVars.ajaxurl,
             type: 'POST',
             data: data,
             dataType: 'json',
             success: function (response) {
                 $loading.hide();
                 if (response.success) {
-                    // Use toast notification
                     const message = response.data.message || 'Menu created successfully.';
                     if (typeof cptkShowToast !== 'undefined') {
                         cptkShowToast(message, 'success');
-                        // Log extra info to console?
                         console.log("Menu Creation Details:", response.data);
                     } else {
                         alert(message); // Fallback
                     }
-                    // Add link to edit menu in status area?
                     if (response.data.edit_url) {
                         $status.html(`Menu created. <a href="${escapeUrl(response.data.edit_url)}" target="_blank">Edit Menu</a>`).show();
                     } else {
                         $status.text('Menu created successfully.').show();
                     }
-
                 } else {
                     const errorMessage = response.data ? (typeof response.data === 'string' ? response.data : 'Failed to create menu.') : 'Unknown error during menu creation.';
                     $error.text(errorMessage).show();

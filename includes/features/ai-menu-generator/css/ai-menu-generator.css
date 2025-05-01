@@ -226,3 +226,49 @@
 .menu-item-title {
     font-weight: 500;
 }
+
+/* Append CSS for interactive menu list */
+
+.interactive-menu-list ul {
+    list-style: none;
+    padding-left: 25px;
+    margin-top: 8px;
+    border-left: 2px solid #e0e0e0;
+}
+
+.interactive-menu-list li.menu-tree-item {
+    background-color: #ffffff;
+    border: 1px solid #e5e5e5;
+    margin-bottom: 6px;
+    padding: 8px 10px;
+    border-radius: 4px;
+}
+
+.menu-item-content {
+    display: flex;
+    align-items: center;
+}
+
+.menu-item-handle {
+    cursor: grab;
+    color: #888;
+    margin-right: 8px;
+    padding: 3px;
+}
+
+.menu-item-handle:active {
+    cursor: grabbing;
+}
+
+/* Styles for SortableJS */
+.interactive-menu-list .menu-tree-item.sortable-ghost {
+    background-color: #eaf2fa;
+    border: 1px dashed #a0c4e8;
+    opacity: 0.7;
+}
+
+.interactive-menu-list .menu-tree-item.sortable-chosen,
+.interactive-menu-list .menu-tree-item.sortable-drag {
+    opacity: 0.85;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+}

@@ -66,14 +66,34 @@ class CPT_AI_Menu_Generator
             CPT_VERSION
         );
 
-        // Enqueue scripts (Adjust path)
+        // --- Enqueue SortableJS --- 
+        // 1. Register the core SortableJS library
+        wp_register_script(
+            'sortablejs-core',
+            CPT_PLUGIN_URL . 'assets/js/vendor/Sortable.min.js', // Path to the downloaded core library
+            array(), // No dependencies for the core library itself
+            '1.15.2', // Specify version (optional but good practice)
+            true // Load in footer
+        );
+
+        // 2. Register the jQuery wrapper for SortableJS
+        wp_register_script(
+            'sortablejs-jquery',
+            CPT_PLUGIN_URL . 'includes/features/ai-menu-generator/js/jquery-sortable.js', // Path to the wrapper
+            array('jquery', 'sortablejs-core'), // Depends on jQuery and the core SortableJS library
+            CPT_VERSION, // Use plugin version
+            true // Load in footer
+        );
+
+        // 3. Enqueue the main feature script, now depending on the jQuery wrapper
         wp_enqueue_script(
             'cpt-ai-menu-generator-script',
             CPT_PLUGIN_URL . 'includes/features/ai-menu-generator/js/ai-menu-generator.js', // Adjusted path
-            array('jquery'),
+            array('jquery', 'sortablejs-jquery'), // Depends on jQuery and the Sortable jQuery wrapper
             CPT_VERSION,
             true
         );
+        // --- End Enqueue SortableJS ---
 
         // Localize script with nonce (Adjust variable name)
         wp_localize_script(
@@ -135,7 +155,9 @@ class CPT_AI_Menu_Generator
 
             <div id="menu_results" class="cpt-results-container" style="display: none;">
                 <h3><?php esc_html_e('Generated Menu Structure', 'craftedpath-toolkit'); ?></h3>
-                <pre><code class="language-json menu-structure"></code></pre>
+                <p><?php esc_html_e('Review the structure below. Drag & drop to reorder items before creating the menu.', 'craftedpath-toolkit'); ?>
+                </p>
+                <div class="menu-structure interactive-menu-list"></div>
                 <div class="cpt-actions">
                     <button class="button button-secondary"
                         id="create_wp_menu"><?php esc_html_e('Create WordPress Menu', 'craftedpath-toolkit'); ?></button>
