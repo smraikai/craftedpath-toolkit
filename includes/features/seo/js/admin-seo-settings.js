@@ -157,13 +157,11 @@ jQuery(document).ready(function ($) {
         const $previewContainer = $('.social-share-settings .auto-generate-preview .preview-image');
         if (!$previewContainer.length) return;
 
-        const style = $('select[name="craftedpath_seo_settings[social_image_style]"]').val();
         const bgColor = $('select[name="craftedpath_seo_settings[social_image_bg_color]"]').val();
         const textColor = $('select[name="craftedpath_seo_settings[social_image_text_color]"]').val();
         const logoId = $('.social-logo-uploader .image-id').val();
         const logoUrl = $('.social-logo-uploader .image-preview img').attr('src');
         const siteName = $('input[name="craftedpath_seo_settings[site_name]"]').val() || 'Site Name';
-        const title = 'Sample Title'; // For preview purposes
 
         // Create canvas
         const canvas = document.createElement('canvas');
@@ -184,122 +182,31 @@ jQuery(document).ready(function ($) {
                 const padding = 80;
                 const textColorValue = getColorValue(textColor);
 
-                switch (style) {
-                    case 'style2': // Split Layout
-                        const logoAreaWidth = canvas.width * 0.4;
-                        const textAreaX = logoAreaWidth + padding;
-                        const textAreaWidth = canvas.width - textAreaX - padding;
-
-                        // Draw logo
-                        const maxLogoW = logoAreaWidth - (padding * 1.5);
-                        const maxLogoH = canvas.height - (padding * 2);
-                        const ratio = Math.min(maxLogoW / logoImg.width, maxLogoH / logoImg.height);
-                        const newW = logoImg.width * ratio;
-                        const newH = logoImg.height * ratio;
-                        const splitLogoX = (logoAreaWidth - newW) / 2;
-                        const splitLogoY = (canvas.height - newH) / 2;
-                        ctx.drawImage(logoImg, splitLogoX, splitLogoY, newW, newH);
-
-                        // Draw title
-                        ctx.fillStyle = textColorValue;
-                        ctx.font = 'bold 48px Open Sans';
-                        const titleLines = wrapText(ctx, title, textAreaWidth - padding);
-                        const lineHeight = 48 * 1.4;
-                        const textBlockHeight = titleLines.length * lineHeight;
-                        const titleStartY = (canvas.height - textBlockHeight) / 2 + (48 * 0.3);
-                        titleLines.forEach((line, index) => {
-                            ctx.fillText(line, textAreaX, titleStartY + (index * lineHeight));
-                        });
-
-                        // Draw site name
-                        ctx.font = '20px Open Sans';
-                        const splitSiteNameWidth = ctx.measureText(siteName).width;
-                        ctx.fillText(siteName, canvas.width - padding - splitSiteNameWidth, canvas.height - padding + 10);
-                        break;
-
-                    case 'style3': // Logo Overlay
-                        // Draw dimmed background
-                        ctx.fillStyle = bgColorValue + '4D'; // 30% opacity
-                        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                        // Draw logo
-                        const maxW = canvas.width - (padding * 3);
-                        const maxH = canvas.height - (padding * 3);
-                        const logoRatio = Math.min(maxW / logoImg.width, maxH / logoImg.height);
-                        const logoNewW = logoImg.width * logoRatio;
-                        const logoNewH = logoImg.height * logoRatio;
-                        const overlayLogoX = (canvas.width - logoNewW) / 2;
-                        const overlayLogoY = (canvas.height - logoNewH) / 2;
-                        ctx.drawImage(logoImg, overlayLogoX, overlayLogoY, logoNewW, logoNewH);
-
-                        // Add overlay
-                        ctx.fillStyle = textColorValue + 'E6'; // 90% opacity
-                        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                        // Draw title
-                        ctx.fillStyle = textColorValue;
-                        ctx.font = 'bold 52px Open Sans';
-                        const overlayTitleLines = wrapText(ctx, title, canvas.width - (padding * 2.5));
-                        const overlayLineHeight = 52 * 1.4;
-                        const overlayTextHeight = overlayTitleLines.length * overlayLineHeight;
-                        const overlayStartY = (canvas.height - overlayTextHeight) / 2 + (52 / 2);
-                        overlayTitleLines.forEach((line, index) => {
-                            const textWidth = ctx.measureText(line).width;
-                            const textX = (canvas.width - textWidth) / 2;
-                            // Add shadow
-                            ctx.fillStyle = 'rgba(0,0,0,0.3)';
-                            ctx.fillText(line, textX + 2, overlayStartY + (index * overlayLineHeight) + 2);
-                            ctx.fillStyle = textColorValue;
-                            ctx.fillText(line, textX, overlayStartY + (index * overlayLineHeight));
-                        });
-                        break;
-
-                    default: // style1 - Logo Focus
-                        // Draw logo
-                        const focusMaxW = canvas.width * 0.6;
-                        const focusMaxH = canvas.height * 0.6;
-                        const focusRatio = Math.min(focusMaxW / logoImg.width, focusMaxH / logoImg.height);
-                        const focusNewW = logoImg.width * focusRatio;
-                        const focusNewH = logoImg.height * focusRatio;
-                        const focusX = (canvas.width - focusNewW) / 2;
-                        const focusY = (canvas.height - focusNewH) / 2 - 30;
-                        ctx.drawImage(logoImg, focusX, focusY, focusNewW, focusNewH);
-
-                        // Draw site name
-                        ctx.fillStyle = textColorValue;
-                        ctx.font = '24px Open Sans';
-                        const focusSiteNameWidth = ctx.measureText(siteName).width;
-                        ctx.fillText(siteName, (canvas.width - focusSiteNameWidth) / 2, focusY + focusNewH + 40);
-                        break;
-                }
+                // Draw logo
+                const maxW = canvas.width * 0.6;
+                const maxH = canvas.height * 0.6;
+                const ratio = Math.min(maxW / logoImg.width, maxH / logoImg.height);
+                const newW = logoImg.width * ratio;
+                const newH = logoImg.height * ratio;
+                const logoX = (canvas.width - newW) / 2;
+                const logoY = (canvas.height - newH) / 2;
+                ctx.drawImage(logoImg, logoX, logoY, newW, newH);
 
                 // Update preview
                 $previewContainer.find('img').attr('src', canvas.toDataURL('image/jpeg', 0.9));
             };
             logoImg.src = logoUrl;
         } else {
-            // If no logo, just show the background color
+            // If no logo, show site name
+            const textColorValue = getColorValue(textColor);
+            ctx.fillStyle = textColorValue;
+            ctx.font = 'bold 80px Open Sans';
+            const siteNameWidth = ctx.measureText(siteName).width;
+            ctx.fillText(siteName, (canvas.width - siteNameWidth) / 2, canvas.height / 2);
+
+            // Update preview
             $previewContainer.find('img').attr('src', canvas.toDataURL('image/jpeg', 0.9));
         }
-    }
-
-    // Helper function to wrap text
-    function wrapText(ctx, text, maxWidth) {
-        const words = text.split(' ');
-        const lines = [];
-        let currentLine = words[0];
-
-        for (let i = 1; i < words.length; i++) {
-            const width = ctx.measureText(currentLine + ' ' + words[i]).width;
-            if (width < maxWidth) {
-                currentLine += ' ' + words[i];
-            } else {
-                lines.push(currentLine);
-                currentLine = words[i];
-            }
-        }
-        lines.push(currentLine);
-        return lines;
     }
 
     // Helper function to get color value

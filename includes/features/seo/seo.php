@@ -229,89 +229,73 @@ function render_social_share_logo_field()
 function render_social_share_settings()
 {
     $options = get_option('craftedpath_seo_settings', []);
-    $style = isset($options['social_image_style']) ? $options['social_image_style'] : 'style1';
     $bg_color = isset($options['social_image_bg_color']) ? $options['social_image_bg_color'] : 'primary';
     $text_color = isset($options['social_image_text_color']) ? $options['social_image_text_color'] : 'white';
 
     // Generate a preview image
     $preview_url = generate_social_share_image_preview(); // Use preview function
     ?>
-    <div class="social-share-settings">
-        <div class="auto-generate-preview" style="margin-bottom: 20px;">
-            <h3><?php esc_html_e('Preview', 'craftedpath-toolkit'); ?></h3>
-            <p class="description">
-                <?php esc_html_e('This is how your social share images will look:', 'craftedpath-toolkit'); ?>
-            </p>
-            <div class="preview-image" style="margin-top: 10px; max-width: 600px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <img src="<?php echo esc_url($preview_url); ?>" style="width: 100%; height: auto;" />
-            </div>
+        <div class="social-share-settings">
+    <div class="auto-generate-preview" style="margin-bottom: 20px;">
+        <h3>
+            <?php esc_html_e('Preview', 'craftedpath-toolkit'); ?>
+        </h3>
+        <p class="description">
+            <?php esc_html_e('This is how your social share images will look:', 'craftedpath-toolkit'); ?>
+        </p>
+        <div class="preview-image" style="margin-top: 10px; max-width: 600px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <img src="<?php echo esc_url($preview_url); ?>" style="width: 100%; height: auto;" />
         </div>
+    </div>
 
-        <table class="form-table">
-            <tr>
-                <th scope="row"><?php esc_html_e('Layout Style', 'craftedpath-toolkit'); ?></th>
-                <td>
-                    <select name="craftedpath_seo_settings[social_image_style]">
-                        <option value="style1" <?php selected($style, 'style1'); ?>>
-                            <?php esc_html_e('Logo Focus', 'craftedpath-toolkit'); ?>
-                        </option>
-                        <option value="style2" <?php selected($style, 'style2'); ?>>
-                            <?php esc_html_e('Split Layout (Logo/Title)', 'craftedpath-toolkit'); ?>
-                        </option>
-                        <option value="style3" <?php selected($style, 'style3'); ?>>
-                            <?php esc_html_e('Logo Overlay', 'craftedpath-toolkit'); ?>
-                        </option>
-                    </select>
-                    <p class="description">
-                        <?php esc_html_e('Choose the layout style for your social share images.', 'craftedpath-toolkit'); ?>
+    <table class="form-table">
+        <tr>
+            <th scope="row">
+                <?php esc_html_e('Background Color', 'craftedpath-toolkit'); ?>
+            </th>
+            <td>
+                <select name="craftedpath_seo_settings[social_image_bg_color]">
+                    <option value="primary" <?php selected($bg_color, 'primary'); ?>>
+                        <?php esc_html_e('Primary', 'craftedpath-toolkit'); ?>
+                            </option>
+                            <option value="black" <?php selected($bg_color, 'black'); ?>>
+                        <?php esc_html_e('Black', 'craftedpath-toolkit'); ?>
+                            </option>
+                            <option value="white" <?php selected($bg_color, 'white'); ?>>
+                        <?php esc_html_e('White', 'craftedpath-toolkit'); ?>
+                            </option>
+                            <option value="alt" <?php selected($bg_color, 'alt'); ?>>
+                        <?php esc_html_e('Alternative', 'craftedpath-toolkit'); ?>
+                    </option>
+                    </select> <p class="description">
+                    <?php esc_html_e('Select the background color from your theme presets.', 'craftedpath-toolkit'); ?>
                     </p>
-                </td>
-            </tr>
-            <tr>
-                <th scope="row"><?php esc_html_e('Background Color', 'craftedpath-toolkit'); ?></th>
-                <td>
-                    <select name="craftedpath_seo_settings[social_image_bg_color]">
-                        <option value="primary" <?php selected($bg_color, 'primary'); ?>>
-                            <?php esc_html_e('Primary', 'craftedpath-toolkit'); ?>
-                        </option>
-                        <option value="black" <?php selected($bg_color, 'black'); ?>>
-                            <?php esc_html_e('Black', 'craftedpath-toolkit'); ?>
-                        </option>
-                        <option value="white" <?php selected($bg_color, 'white'); ?>>
-                            <?php esc_html_e('White', 'craftedpath-toolkit'); ?>
-                        </option>
-                        <option value="alt" <?php selected($bg_color, 'alt'); ?>>
-                            <?php esc_html_e('Alternative', 'craftedpath-toolkit'); ?>
-                        </option>
-                    </select>
-                    <p class="description">
-                        <?php esc_html_e('Select the background color from your theme presets.', 'craftedpath-toolkit'); ?>
+            </td>
+        </tr>
+        <tr>
+            <th scope="row">
+                <?php esc_html_e('Text Color', 'craftedpath-toolkit'); ?>
+            </th>
+            <td>
+                <select name="craftedpath_seo_settings[social_image_text_color]">
+                    <option value="primary" <?php selected($text_color, 'primary'); ?>>
+                        <?php esc_html_e('Primary', 'craftedpath-toolkit'); ?>
+                            </option>
+                            <option value="black" <?php selected($text_color, 'black'); ?>>
+                        <?php esc_html_e('Black', 'craftedpath-toolkit'); ?>
+                            </option>
+                            <option value="white" <?php selected($text_color, 'white'); ?>>
+                        <?php esc_html_e('White', 'craftedpath-toolkit'); ?>
+                            </option>
+                            <option value="alt" <?php selected($text_color, 'alt'); ?>>
+                        <?php esc_html_e('Alternative', 'craftedpath-toolkit'); ?>
+                    </option>
+                    </select> <p class="description">
+                    <?php esc_html_e('Select the text color from your theme presets.', 'craftedpath-toolkit'); ?>
                     </p>
-                </td>
-            </tr>
-            <tr>
-                <th scope="row"><?php esc_html_e('Text/Overlay Color', 'craftedpath-toolkit'); ?></th>
-                <td>
-                    <select name="craftedpath_seo_settings[social_image_text_color]">
-                        <option value="primary" <?php selected($text_color, 'primary'); ?>>
-                            <?php esc_html_e('Primary', 'craftedpath-toolkit'); ?>
-                        </option>
-                        <option value="black" <?php selected($text_color, 'black'); ?>>
-                            <?php esc_html_e('Black', 'craftedpath-toolkit'); ?>
-                        </option>
-                        <option value="white" <?php selected($text_color, 'white'); ?>>
-                            <?php esc_html_e('White', 'craftedpath-toolkit'); ?>
-                        </option>
-                        <option value="alt" <?php selected($text_color, 'alt'); ?>>
-                            <?php esc_html_e('Alternative', 'craftedpath-toolkit'); ?>
-                        </option>
-                    </select>
-                    <p class="description">
-                        <?php esc_html_e('Select the text and overlay color from your theme presets.', 'craftedpath-toolkit'); ?>
-                    </p>
-                </td>
-            </tr>
-        </table>
+            </td>
+        </tr>
+    </table>
     </div>
     <?php
 }
@@ -340,7 +324,7 @@ function get_seo_upload_dir()
 
 /**
  * Generate and store the social share image when settings are saved.
- * 
+ *
  * @param array $input The input array.
  * @return array Sanitized array.
  */
@@ -507,7 +491,6 @@ function enqueue_admin_scripts($hook_suffix)
     // Update path to be relative to this file now
     $script_path_relative = 'js/admin-seo-settings.js';
     $script_url = plugin_dir_url(__FILE__) . $script_path_relative;
-    // error_log('[CraftedPath SEO] Enqueuing script URL: ' . $script_url);
 
     wp_enqueue_script(
         'craftedpath-seo-settings-js',
@@ -516,6 +499,11 @@ function enqueue_admin_scripts($hook_suffix)
         defined('CPT_VERSION') ? CPT_VERSION : '1.0',
         true // Load in footer
     );
+
+    // Pass settings to JavaScript
+    wp_localize_script('craftedpath-seo-settings-js', 'cptkSettings', array(
+        'tagline' => get_bloginfo('description')
+    ));
 }
 
 /**
