@@ -449,20 +449,30 @@ function enqueue_admin_scripts($hook_suffix)
     wp_enqueue_style('wp-color-picker');
     wp_enqueue_script('wp-color-picker');
 
-    // Enqueue the admin settings script - simplified
-    // Update path to be relative to this file now
-    $script_path_relative = 'js/admin-seo-settings.js';
-    $script_url = plugin_dir_url(__FILE__) . $script_path_relative;
-
+    // Enqueue the main admin settings script (even if empty for now)
+    $main_script_path_relative = 'js/admin-seo-settings.js';
+    $main_script_url = plugin_dir_url(__FILE__) . $main_script_path_relative;
     wp_enqueue_script(
         'craftedpath-seo-settings-js',
-        $script_url,
-        array('wp-color-picker'), // Add wp-color-picker as a dependency
+        $main_script_url,
+        array('jquery'), // Dependency on jQuery only for the main script
         defined('CPT_VERSION') ? CPT_VERSION : '1.0',
         true // Load in footer
     );
 
-    // Pass settings to JavaScript
+    // Enqueue the social share settings script
+    $social_script_path_relative = 'js/admin-social-settings.js';
+    $social_script_url = plugin_dir_url(__FILE__) . $social_script_path_relative;
+    wp_enqueue_script(
+        'craftedpath-seo-social-settings-js', // New handle
+        $social_script_url,
+        array('jquery', 'wp-color-picker', 'wp-mediaelement'), // Add dependencies 
+        defined('CPT_VERSION') ? CPT_VERSION : '1.0',
+        true // Load in footer
+    );
+
+    // Pass settings to JavaScript (can be accessed by both scripts if needed)
+    // Attaching to the main script handle for consistency
     wp_localize_script('craftedpath-seo-settings-js', 'cptkSettings', array(
         'tagline' => get_bloginfo('description')
     ));
