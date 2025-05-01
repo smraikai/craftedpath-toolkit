@@ -332,12 +332,10 @@
      */
     function createWordPressPages() {
         const $error = $('#sitemap_error');
-        const $loading = $('#sitemap_loading');
         const $resultsContainer = $('#sitemap_results');
 
-        // Reset UI and show loading
+        // Reset UI 
         $error.hide();
-        $loading.show().find('p').text('Creating WordPress pages...');
         $('.notice-success').remove(); // Clear previous success messages
 
         // Get all checked page data directly from checkboxes using .data()
@@ -353,7 +351,6 @@
 
         // Check if any pages are selected
         if (selectedPages.length === 0) {
-            $loading.hide();
             $error.text('Please select at least one page to create').show();
             return;
         }
@@ -372,8 +369,6 @@
             type: 'POST',
             data: data,
             success: function (response) {
-                $loading.hide();
-
                 if (response.success) {
                     // Show success toast notification
                     if (typeof showCPTToast === 'function') {
@@ -390,7 +385,6 @@
                 }
             },
             error: function (jqXHR, textStatus, errorThrown) {
-                $loading.hide();
                 $error.text('Error creating pages: ' + errorThrown).show();
             }
         });
