@@ -145,6 +145,11 @@ jQuery(document).ready(function ($) {
             // Update the social share preview
             updateSocialSharePreview();
         });
+
+        // If there's already a logo, make sure the remove button is visible
+        if ($input.val() && $input.val() !== '0') {
+            $removeButton.show();
+        }
     }
 
     // --- Social Share Preview Generation ---
@@ -320,6 +325,23 @@ jQuery(document).ready(function ($) {
         updateSocialSharePreview();
     });
 
+    $('input[name="craftedpath_seo_settings[site_name]"]').on('input', function () {
+        updateSocialSharePreview();
+    });
+
     // Initialize the logo uploader
     initializeSocialLogoUploader();
+
+    // Wait for wp.media to be available before initializing preview
+    function waitForMedia() {
+        if (typeof wp !== 'undefined' && wp.media) {
+            // Initialize the preview
+            updateSocialSharePreview();
+        } else {
+            setTimeout(waitForMedia, 100);
+        }
+    }
+
+    // Start waiting for wp.media
+    waitForMedia();
 }); 
