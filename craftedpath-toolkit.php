@@ -45,8 +45,11 @@ final class CraftedPath_Toolkit
     private function includes()
     {
         require_once CPT_PLUGIN_DIR . 'includes/features/bem-generator/class-bem-generator.php';
-        // Include the AI sitemap generator file
-        require_once CPT_PLUGIN_DIR . 'includes/features/ai-sitemap-generator/class-cpt-ai-sitemap-generator.php';
+        // Include the AI generator files
+        // require_once CPT_PLUGIN_DIR . 'includes/features/ai-sitemap-generator/class-cpt-ai-sitemap-generator.php'; // Deprecated
+        require_once CPT_PLUGIN_DIR . 'includes/features/ai-page-generator/class-cpt-ai-page-generator.php';
+        require_once CPT_PLUGIN_DIR . 'includes/features/ai-menu-generator/class-cpt-ai-menu-generator.php';
+
         require_once CPT_PLUGIN_DIR . 'includes/admin/class-settings-manager.php';
         require_once CPT_PLUGIN_DIR . 'includes/admin/settings-page.php';
         require_once CPT_PLUGIN_DIR . 'includes/admin/views/ui-components.php';
@@ -94,15 +97,40 @@ final class CraftedPath_Toolkit
         $settings_manager = CPT_Settings_Manager::instance();
 
         if ($settings_manager->is_feature_enabled('bem_generator')) {
-            new CPT_Bem_Generator();
+            // Ensure class exists before instantiation
+            if (class_exists('CPT_Bem_Generator')) {
+                new CPT_Bem_Generator(); // Reverted: Use new, not instance()
+            } else {
+                error_log("CraftedPath Toolkit Error: CPT_Bem_Generator class not found.");
+            }
         }
 
+        // Load AI Page Generator
+        if ($settings_manager->is_feature_enabled('ai_page_generator')) { // Adjusted feature key
+            if (class_exists('CPT_AI_Page_Generator')) {
+                CPT_AI_Page_Generator::instance();
+            } else {
+                error_log("CraftedPath Toolkit Error: CPT_AI_Page_Generator class not found.");
+            }
+        }
+
+        // Load AI Menu Generator
+        if ($settings_manager->is_feature_enabled('ai_menu_generator')) { // Adjusted feature key
+            if (class_exists('CPT_AI_Menu_Generator')) {
+                CPT_AI_Menu_Generator::instance();
+            } else {
+                error_log("CraftedPath Toolkit Error: CPT_AI_Menu_Generator class not found.");
+            }
+        }
+
+        /* Deprecated Sitemap Generator loading
         if ($settings_manager->is_feature_enabled('ai_sitemap_generator')) {
             // Make sure the class exists before instantiating
             if (class_exists('CPT_AI_Sitemap_Generator')) {
                 CPT_AI_Sitemap_Generator::instance();
             }
         }
+        */
     }
 }
 

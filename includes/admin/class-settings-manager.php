@@ -80,11 +80,17 @@ class CPT_Settings_Manager
                 'class' => 'CPT_Bem_Generator',
                 'default' => true
             ),
-            'ai_sitemap_generator' => array(
-                'name' => 'AI Sitemap Generator',
-                'description' => 'Generates a sitemap and menu using AI',
-                'class' => 'CPT_AI_Sitemap_Generator', // Assuming this will be the main class name
-                'default' => false // Disabled by default
+            'ai_page_generator' => array(
+                'name' => 'AI Page Structure Generator',
+                'description' => 'Generates a hierarchical page structure (sitemap) using AI.',
+                'class' => 'CPT_AI_Page_Generator',
+                'default' => true // Enable by default?
+            ),
+            'ai_menu_generator' => array(
+                'name' => 'AI Menu Generator',
+                'description' => 'Generates a navigation menu structure using AI, optionally based on page structure.',
+                'class' => 'CPT_AI_Menu_Generator',
+                'default' => true // Enable by default?
             ),
             // Add more features here as they are developed
         );
@@ -116,26 +122,27 @@ class CPT_Settings_Manager
             array($this, 'render_settings_page') // Callback
         );
 
-        // Conditionally add AI Generator related pages if the feature class exists
-        if (class_exists('CPT_AI_Sitemap_Generator')) {
-            // Add Sitemap Generator Page
+        // Conditionally add AI Page Generator page
+        if (class_exists('CPT_AI_Page_Generator')) {
             add_submenu_page(
                 'craftedpath-toolkit',
-                'AI Sitemap Generator',
-                'Sitemap Generator',
+                'AI Page Generator',
+                'Page Generator',
                 'manage_options',
-                'cpt-aismg-sitemap',           // New slug for sitemap generator UI
-                array(CPT_AI_Sitemap_Generator::instance(), 'render_sitemap_page')
+                'cpt-aipg-pages',           // New slug for page generator UI
+                array(CPT_AI_Page_Generator::instance(), 'render_page_generator_page')
             );
+        }
 
-            // Add Menu Generator Page
+        // Conditionally add AI Menu Generator page
+        if (class_exists('CPT_AI_Menu_Generator')) {
             add_submenu_page(
                 'craftedpath-toolkit',
                 'AI Menu Generator',
                 'Menu Generator',
                 'manage_options',
-                'cpt-aismg-menu',              // New slug for menu generator UI
-                array(CPT_AI_Sitemap_Generator::instance(), 'render_menu_page')
+                'cpt-aimg-menu',              // New slug for menu generator UI
+                array(CPT_AI_Menu_Generator::instance(), 'render_menu_page')
             );
         }
 
@@ -183,8 +190,8 @@ class CPT_Settings_Manager
         // Define hooks for all toolkit pages based on screen ID patterns
         $toolkit_page_ids = [
             'toplevel_page_craftedpath-toolkit',       // Main Features page
-            'craftedpath_page_cpt-aismg-sitemap',   // Sitemap Generator submenu
-            'craftedpath_page_cpt-aismg-menu',       // Menu Generator submenu
+            'craftedpath_page_cpt-aipg-pages',     // Added new Page Gen slug
+            'craftedpath_page_cpt-aimg-menu',      // Added new Menu Gen slug
             'craftedpath_page_cptk_settings_page'   // General Settings submenu
         ];
 
