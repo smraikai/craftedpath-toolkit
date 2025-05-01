@@ -143,18 +143,80 @@ function wrap_text($fontSize, $angle, $fontFile, $text, $maxWidth)
 }
 
 /**
+ * Calculate a hash based on relevant image generation settings.
+ *
+ * @param array $settings The settings array.
+ * @param string|null $title Optional title.
+ * @return string The MD5 hash.
+ */
+function calculate_settings_hash($settings, $title = null)
+{
+    $options = !empty($settings) ? $settings : get_option('craftedpath_seo_settings', []);
+    $default_site_name = get_bloginfo('name');
+
+    // Extract relevant settings for hash calculation
+    $hash_data = [
+        'style' => $options['social_image_style'] ?? 'style1',
+        'bg_color_input' => $options['social_image_bg_color'] ?? '#ffffff',
+        'custom_bg_color' => $options['social_image_custom_bg_color'] ?? '#f55f4b',
+        'bg_opacity' => isset($options['social_image_bg_opacity']) ? intval($options['social_image_bg_opacity']) : 100,
+        'bg_image_id' => $options['social_image_bg_image_id'] ?? 0,
+        'text_color_input' => $options['social_image_text_color'] ?? 'white',
+        'logo_id' => $options['social_share_logo_id'] ?? 0,
+        'site_name' => !empty($options['site_name']) ? $options['site_name'] : $default_site_name,
+        'title' => $title // Include title if provided (for future per-post images)
+    ];
+    return md5(json_encode($hash_data));
+}
+
+/**
  * Main function to generate the social share image based on settings.
  *
  * @param array $settings SEO settings array.
  * @param string $title Optional title override (e.g., for post-specific previews).
- * @param string $filename_suffix Optional suffix for filename differentiation (e.g., 'preview').
- * @return string|false Generated image URL or false on failure.
+ * @param string $type Type of image to generate ('base' or 'preview').
+ * @param string|null $stored_hash The hash of the currently saved base image (only relevant for type 'base').
+ * @return array|string|false \{
+ *     For type 'base': Array ['url' => string, 'hash' => string] on success, false on failure.
+ *     For type 'preview': string URL on success, false on failure.
+ * }
  */
-function generate_image($settings = [], $title = null, $filename_suffix = 'base')
+function generate_image($settings = [], $title = null, $type = 'base', $stored_hash = null)
 {
     $options = !empty($settings) ? $settings : get_option('craftedpath_seo_settings', []);
 
-    // Defaults
+    // --- Calculate Hash --- 
+    $current_settings_hash = calculate_settings_hash($options, $title);
+
+    // --- Determine Filename & Path --- 
+    $seo_dir = get_seo_upload_dir();
+    if (!$seo_dir) {
+        error_log('Social Image Generator: Failed to get SEO upload directory.');
+        return false;
+    }
+
+    $filename = ($type === 'preview') ? 'social_share_preview.jpg' : 'social_share.jpg';
+    $file_path = $seo_dir['path'] . '/' . $filename;
+    $file_url = $seo_dir['url'] . '/' . $filename;
+    if (is_ssl()) {
+        $file_url = str_replace('http://', 'https://', $file_url);
+    }
+
+    // --- Caching Logic (for 'base' type only) ---
+    if ($type === 'base') {
+        // If the stored hash matches the current hash AND the file exists, no need to regenerate.
+        if ($stored_hash !== null && $stored_hash === $current_settings_hash && file_exists($file_path)) {
+            // Return existing URL and the matching hash
+            // Even though we didn't generate, return the structure expected on success
+            return ['url' => $file_url, 'hash' => $current_settings_hash];
+        }
+        // Otherwise, proceed to generate (overwrite existing or create new)
+    }
+    // For 'preview' type, we always regenerate.
+
+    // --- Start Generation --- 
+
+    // Defaults & Settings Extraction (moved after hash calculation)
     $width = 1200;
     $height = 630;
     $padding = 80;
@@ -197,53 +259,6 @@ function generate_image($settings = [], $title = null, $filename_suffix = 'base'
     // Get Background Image URL
     $bg_image_url = $bg_image_id ? wp_get_attachment_image_url($bg_image_id, 'full') : '';
 
-    // --- Generate Filename --- 
-    // Create a hash based on relevant settings to ensure regeneration when needed
-    $settings_hash = md5(json_encode([
-        'style' => $style,
-        'bg_color' => $bg_color,
-        'opacity' => $bg_opacity,
-        'bg_image_id' => $bg_image_id,
-        'text_color' => $text_color,
-        'logo_id' => $logo_id,
-        'site_name' => $site_name,
-        // Add title if it's being used (for potential future per-post images)
-        'title' => $title
-    ]));
-
-    $filename = 'social-' . $filename_suffix . '-' . $settings_hash . '.jpg';
-
-    // --- Check Cache --- 
-    $seo_dir = get_seo_upload_dir();
-    if (!$seo_dir) {
-        error_log('Social Image Generator: Failed to get SEO upload directory.');
-        if ($logo_img_resource)
-            imagedestroy($logo_img_resource);
-        return false;
-    }
-    $file_path = $seo_dir['path'] . '/' . $filename;
-    $file_url = $seo_dir['url'] . '/' . $filename;
-    if (is_ssl()) {
-        $file_url = str_replace('http://', 'https://', $file_url);
-    }
-
-    // If image exists, return its URL
-    if (file_exists($file_path)) {
-        if ($logo_img_resource)
-            imagedestroy($logo_img_resource);
-        return $file_url;
-    }
-
-    // Delete old files with the same suffix (e.g., old base or preview images)
-    $old_files = glob($seo_dir['path'] . '/social-' . $filename_suffix . '-*.jpg');
-    if ($old_files) {
-        foreach ($old_files as $old_file) {
-            if ($old_file !== $file_path) { // Don't delete the file we are about to create
-                @unlink($old_file);
-            }
-        }
-    }
-
     // --- Create Image --- 
     $image = imagecreatetruecolor($width, $height);
     if (!$image) {
@@ -284,22 +299,29 @@ function generate_image($settings = [], $title = null, $filename_suffix = 'base'
             if ($bg_img_resource) {
                 // Calculate dimensions for cover sizing
                 $canvas_ratio = $width / $height;
-                $img_ratio = imagesx($bg_img_resource) / imagesy($bg_img_resource);
-
-                if ($img_ratio > $canvas_ratio) {
-                    $draw_height = $height;
-                    $draw_width = $draw_height * $img_ratio;
-                    $draw_x = ($width - $draw_width) / 2;
-                    $draw_y = 0;
+                // Prevent division by zero if image height is 0
+                $bg_img_h = imagesy($bg_img_resource);
+                if ($bg_img_h == 0) {
+                    error_log('Social Image Generator: Background image height is zero. URL: ' . $bg_image_url);
+                    imagedestroy($bg_img_resource); // Clean up resource
                 } else {
-                    $draw_width = $width;
-                    $draw_height = $draw_width / $img_ratio;
-                    $draw_x = 0;
-                    $draw_y = ($height - $draw_height) / 2;
-                }
+                    $img_ratio = imagesx($bg_img_resource) / $bg_img_h;
 
-                imagecopyresampled($image, $bg_img_resource, $draw_x, $draw_y, 0, 0, $draw_width, $draw_height, imagesx($bg_img_resource), imagesy($bg_img_resource));
-                imagedestroy($bg_img_resource);
+                    if ($img_ratio > $canvas_ratio) {
+                        $draw_height = $height;
+                        $draw_width = $draw_height * $img_ratio;
+                        $draw_x = ($width - $draw_width) / 2;
+                        $draw_y = 0;
+                    } else {
+                        $draw_width = $width;
+                        $draw_height = $draw_width / $img_ratio;
+                        $draw_x = 0;
+                        $draw_y = ($height - $draw_height) / 2;
+                    }
+
+                    imagecopyresampled($image, $bg_img_resource, $draw_x, $draw_y, 0, 0, $draw_width, $draw_height, imagesx($bg_img_resource), imagesy($bg_img_resource));
+                    imagedestroy($bg_img_resource);
+                }
             } else {
                 error_log('Social Image Generator: Failed to create background image resource from URL: ' . $bg_image_url);
             }
@@ -324,123 +346,131 @@ function generate_image($settings = [], $title = null, $filename_suffix = 'base'
         $logo_w = imagesx($logo_img_resource);
         $logo_h = imagesy($logo_img_resource);
 
-        switch ($style) {
-            case 'style2': // Split Layout
-                $logo_area_width = $width * 0.4;
-                $text_area_x = $logo_area_width + $padding;
-                $text_area_width = $width - $text_area_x - $padding;
+        // Prevent division by zero if logo dimensions are 0
+        if ($logo_w == 0 || $logo_h == 0) {
+            error_log('Social Image Generator: Logo dimensions are invalid (width: ' . $logo_w . ', height: ' . $logo_h . '). URL: ' . $logo_url);
+            imagedestroy($logo_img_resource);
+            $logo_img_resource = null; // Ensure it's null so the 'else' block below handles it
+        } else {
+            // Proceed with drawing logo if dimensions are valid
+            switch ($style) {
+                case 'style2': // Split Layout
+                    $logo_area_width = $width * 0.4;
+                    $text_area_x = $logo_area_width + $padding;
+                    $text_area_width = $width - $text_area_x - $padding;
 
-                // Draw logo (centered in left area)
-                $max_logo_w = $logo_area_width - ($padding * 1.5);
-                $max_logo_h = $height - ($padding * 2);
-                $ratio = min($max_logo_w / $logo_w, $max_logo_h / $logo_h);
-                $new_w = $logo_w * $ratio;
-                $new_h = $logo_h * $ratio;
-                $logo_x = ($logo_area_width - $new_w) / 2;
-                $logo_y = ($height - $new_h) / 2;
-                imagecopyresampled($image, $logo_img_resource, $logo_x, $logo_y, 0, 0, $new_w, $new_h, $logo_w, $logo_h);
+                    // Draw logo (centered in left area)
+                    $max_logo_w = $logo_area_width - ($padding * 1.5);
+                    $max_logo_h = $height - ($padding * 2);
+                    $ratio = min($max_logo_w / $logo_w, $max_logo_h / $logo_h);
+                    $new_w = $logo_w * $ratio;
+                    $new_h = $logo_h * $ratio;
+                    $logo_x = ($logo_area_width - $new_w) / 2;
+                    $logo_y = ($height - $new_h) / 2;
+                    imagecopyresampled($image, $logo_img_resource, $logo_x, $logo_y, 0, 0, $new_w, $new_h, $logo_w, $logo_h);
 
-                // Draw Title (if provided) or Site Name (if not) in right area
-                $display_text = $title ?: $site_name;
-                $font_size = 60; // Start large
-                $lines = [];
-                // Decrease font size until text fits
-                do {
-                    $lines = wrap_text($font_size, 0, $font_path, $display_text, $text_area_width);
-                    if (empty($lines)) { // Check if wrap_text failed
-                        error_log("Social Image Generator: wrap_text failed for font size {$font_size}");
-                        $font_size -= 2;
-                        continue;
-                    }
-                    $total_text_height = (count($lines) * $font_size * 1.5); // Approximate height
-                    if ($total_text_height > ($height - $padding * 2)) {
-                        $font_size -= 2;
-                    } else {
-                        break;
-                    }
-                } while ($font_size > 10); // Minimum font size
-
-                $line_height = $font_size * 1.5;
-                $start_y = ($height - (count($lines) * $line_height - ($line_height - $font_size))) / 2 + $font_size / 2; // Center vertically
-
-                foreach ($lines as $i => $line) {
-                    $text_box = @imagettfbbox($font_size, 0, $font_path, $line);
-                    if (!$text_box) {
-                        continue;
-                    }
-                    $line_width = abs($text_box[4] - $text_box[0]);
-                    $line_x = $text_area_x + ($text_area_width - $line_width) / 2; // Center horizontally in text area
-                    $line_y = $start_y + ($i * $line_height);
-                    imagettftext($image, $font_size, 0, $line_x, $line_y, $text_alloc, $font_path, $line);
-                }
-
-                // Optionally add site name at bottom if title was shown
-                if ($title && $site_name) {
-                    $site_name_font_size = 20;
-                    $site_name_box = @imagettfbbox($site_name_font_size, 0, $font_path, $site_name);
-                    if ($site_name_box) {
-                        $site_name_width = abs($site_name_box[4] - $site_name_box[0]);
-                        imagettftext($image, $site_name_font_size, 0, $width - $padding - $site_name_width, $height - $padding + 10, $text_alloc, $font_path, $site_name);
-                    }
-                }
-                break;
-
-            case 'style3': // Logo Overlay
-                // Draw logo centered
-                $max_w = $width - ($padding * 3);
-                $max_h = $height - ($padding * 3);
-                $ratio = min($max_w / $logo_w, $max_h / $logo_h);
-                $new_w = $logo_w * $ratio;
-                $new_h = $logo_h * $ratio;
-                $logo_x = ($width - $new_w) / 2;
-                $logo_y = ($height - $new_h) / 2;
-                imagecopyresampled($image, $logo_img_resource, $logo_x, $logo_y, 0, 0, $new_w, $new_h, $logo_w, $logo_h);
-
-                // Add slight dark overlay to make text more readable potentially?
-                // Let's keep this simple for now and match the original logic where style3 didn't add text.
-                break;
-
-            default: // style1 - Logo Focus (Logo + Site Name Below)
-                // Draw logo centered, slightly raised
-                $max_logo_w = $width * 0.6;
-                $max_logo_h = $height * 0.6;
-                $ratio = min($max_logo_w / $logo_w, $max_logo_h / $logo_h);
-                $new_w = $logo_w * $ratio;
-                $new_h = $logo_h * $ratio;
-                $logo_x = ($width - $new_w) / 2;
-                $logo_y = ($height - $new_h) / 2 - 30; // Adjust vertical position
-                imagecopyresampled($image, $logo_img_resource, $logo_x, $logo_y, 0, 0, $new_w, $new_h, $logo_w, $logo_h);
-
-                // Draw site name below logo
-                $font_size = 40;
-                $text_box = @imagettfbbox($font_size, 0, $font_path, $site_name);
-                if ($text_box) {
-                    $site_name_width = abs($text_box[4] - $text_box[0]);
-                    // Prevent text exceeding image width
-                    while ($site_name_width > ($width - $padding * 2) && $font_size > 10) {
-                        $font_size -= 2;
-                        $text_box = @imagettfbbox($font_size, 0, $font_path, $site_name);
-                        if (!$text_box)
+                    // Draw Title (if provided) or Site Name (if not) in right area
+                    $display_text = $title ?: $site_name;
+                    $font_size = 60; // Start large
+                    $lines = [];
+                    // Decrease font size until text fits
+                    do {
+                        $lines = wrap_text($font_size, 0, $font_path, $display_text, $text_area_width);
+                        if (empty($lines)) { // Check if wrap_text failed
+                            error_log("Social Image Generator: wrap_text failed for font size {$font_size}");
+                            $font_size -= 2;
+                            continue;
+                        }
+                        $total_text_height = (count($lines) * $font_size * 1.5); // Approximate height
+                        if ($total_text_height > ($height - $padding * 2)) {
+                            $font_size -= 2;
+                        } else {
                             break;
+                        }
+                    } while ($font_size > 10); // Minimum font size
+
+                    $line_height = $font_size * 1.5;
+                    $start_y = ($height - (count($lines) * $line_height - ($line_height - $font_size))) / 2 + $font_size / 2; // Center vertically
+
+                    foreach ($lines as $i => $line) {
+                        $text_box = @imagettfbbox($font_size, 0, $font_path, $line);
+                        if (!$text_box) {
+                            continue;
+                        }
+                        $line_width = abs($text_box[4] - $text_box[0]);
+                        $line_x = $text_area_x + ($text_area_width - $line_width) / 2; // Center horizontally in text area
+                        $line_y = $start_y + ($i * $line_height);
+                        imagettftext($image, $font_size, 0, $line_x, $line_y, $text_alloc, $font_path, $line);
+                    }
+
+                    // Optionally add site name at bottom if title was shown
+                    if ($title && $site_name) {
+                        $site_name_font_size = 20;
+                        $site_name_box = @imagettfbbox($site_name_font_size, 0, $font_path, $site_name);
+                        if ($site_name_box) {
+                            $site_name_width = abs($site_name_box[4] - $site_name_box[0]);
+                            imagettftext($image, $site_name_font_size, 0, $width - $padding - $site_name_width, $height - $padding + 10, $text_alloc, $font_path, $site_name);
+                        }
+                    }
+                    break;
+
+                case 'style3': // Logo Overlay
+                    // Draw logo centered
+                    $max_w = $width - ($padding * 3);
+                    $max_h = $height - ($padding * 3);
+                    $ratio = min($max_w / $logo_w, $max_h / $logo_h);
+                    $new_w = $logo_w * $ratio;
+                    $new_h = $logo_h * $ratio;
+                    $logo_x = ($width - $new_w) / 2;
+                    $logo_y = ($height - $new_h) / 2;
+                    imagecopyresampled($image, $logo_img_resource, $logo_x, $logo_y, 0, 0, $new_w, $new_h, $logo_w, $logo_h);
+
+                    // Add slight dark overlay to make text more readable potentially?
+                    // Let's keep this simple for now and match the original logic where style3 didn't add text.
+                    break;
+
+                default: // style1 - Logo Focus (Logo + Site Name Below)
+                    // Draw logo centered, slightly raised
+                    $max_logo_w = $width * 0.6;
+                    $max_logo_h = $height * 0.6;
+                    $ratio = min($max_logo_w / $logo_w, $max_logo_h / $logo_h);
+                    $new_w = $logo_w * $ratio;
+                    $new_h = $logo_h * $ratio;
+                    $logo_x = ($width - $new_w) / 2;
+                    $logo_y = ($height - $new_h) / 2 - 30; // Adjust vertical position
+                    imagecopyresampled($image, $logo_img_resource, $logo_x, $logo_y, 0, 0, $new_w, $new_h, $logo_w, $logo_h);
+
+                    // Draw site name below logo
+                    $font_size = 40;
+                    $text_box = @imagettfbbox($font_size, 0, $font_path, $site_name);
+                    if ($text_box) {
                         $site_name_width = abs($text_box[4] - $text_box[0]);
+                        // Prevent text exceeding image width
+                        while ($site_name_width > ($width - $padding * 2) && $font_size > 10) {
+                            $font_size -= 2;
+                            $text_box = @imagettfbbox($font_size, 0, $font_path, $site_name);
+                            if (!$text_box)
+                                break;
+                            $site_name_width = abs($text_box[4] - $text_box[0]);
+                        }
+                        if ($text_box) { // Check again after loop
+                            $site_name_x = ($width - $site_name_width) / 2;
+                            $site_name_y = $logo_y + $new_h + $padding / 2 + $font_size; // Position below logo
+                            imagettftext($image, $font_size, 0, $site_name_x, $site_name_y, $text_alloc, $font_path, $site_name);
+                        }
+                    } else {
+                        error_log('Social Image Generator: Failed to calculate text box for site name: ' . $site_name);
                     }
-                    if ($text_box) { // Check again after loop
-                        $site_name_x = ($width - $site_name_width) / 2;
-                        $site_name_y = $logo_y + $new_h + $padding / 2 + $font_size; // Position below logo
-                        imagettftext($image, $font_size, 0, $site_name_x, $site_name_y, $text_alloc, $font_path, $site_name);
-                    }
-                } else {
-                    error_log('Social Image Generator: Failed to calculate text box for site name: ' . $site_name);
-                }
-                break;
-        }
-        imagedestroy($logo_img_resource); // Clean up logo resource
-    } else {
-        // No logo - Maybe just draw Title or Site Name centered?
-        // For now, let's keep it simple: if no logo, the image might be suboptimal based on style.
-        // Style 1 would just be background + overlay.
-        // Style 2 would be background + overlay + Text (if title/site name exists).
-        // Style 3 would just be background + overlay.
+                    break;
+            }
+            imagedestroy($logo_img_resource); // Clean up logo resource
+        } // End else for valid logo dimensions
+    }
+
+    // Handle case where logo resource is not available or invalid
+    if (!$logo_img_resource) {
+        error_log('Social Image Generator: Logo resource not available or invalid. Drawing text only for applicable styles.');
+        // Draw text only for style 2 if no logo
         if ($style === 'style2') {
             $display_text = $title ?: $site_name;
             if ($display_text) {
@@ -477,7 +507,7 @@ function generate_image($settings = [], $title = null, $filename_suffix = 'base'
                 }
             }
         }
-        error_log('Social Image Generator: Logo resource not available or failed to load.');
+        // Logged error above, no need for duplicate log here.
     }
 
     // --- Save Image --- 
@@ -488,5 +518,13 @@ function generate_image($settings = [], $title = null, $filename_suffix = 'base'
     }
     imagedestroy($image);
 
-    return $file_url;
+    // --- Return Value --- 
+    if ($type === 'base') {
+        // Return URL and the hash of the settings used to generate this image
+        return ['url' => $file_url, 'hash' => $current_settings_hash];
+    } else { // 'preview'
+        // Return only the URL for the preview image
+        // Append a timestamp to prevent browser caching of the preview image
+        return $file_url . '?t=' . time();
+    }
 }
