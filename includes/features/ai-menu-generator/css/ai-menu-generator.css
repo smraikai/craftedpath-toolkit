@@ -292,6 +292,7 @@
     background-color: #ffffff;
     /* Ensure background stays white */
     border-color: #c0c0c0;
+    list-style: none !important;
 }
 
 /* Remove any conflicting older styles if they exist */

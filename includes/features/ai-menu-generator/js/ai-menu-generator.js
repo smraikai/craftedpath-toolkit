@@ -144,21 +144,18 @@
                 const $listItem = $('<li class="menu-tree-item"></li>');
                 $listItem.data('menuItemData', item); // Store original data
 
-                // Item Content (Title only - handle removed)
                 const $itemContent = $('<div class="menu-item-content"></div>');
-                // REMOVED Handle Element: $itemContent.append('<i class="iconoir-drag menu-item-handle" title="Drag to reorder"></i>'); 
-                $itemContent.append('<span class="menu-item-title"></span>').find('.menu-item-title').text(item.title); // Use .text() for safety
-                // Optional: Add back controls if needed
-                // $itemContent.append('<span class="menu-item-controls"> ... </span>');
-
+                $itemContent.append('<span class="menu-item-title"></span>').find('.menu-item-title').text(item.title);
                 $listItem.append($itemContent);
 
-                // Add sublist if children exist
+                // Always add a child UL container, even if children array is empty
+                const $subList = $('<ul class="menu-tree-children ui-sortable"></ul>');
                 if (item.children && Array.isArray(item.children) && item.children.length > 0) {
-                    const $subList = $('<ul class="menu-tree-children ui-sortable"></ul>');
+                    // If children exist, build them into the sublist
                     buildTree(item.children, $subList);
-                    $listItem.append($subList);
                 }
+                // Append the sublist (either populated or empty)
+                $listItem.append($subList);
 
                 $parentList.append($listItem);
             });
@@ -167,22 +164,25 @@
         buildTree(items, $tree);
         $container.append($tree);
 
-        // Initialize SortableJS using the jQuery wrapper
-        $container.find('.menu-tree-list, .menu-tree-children').sortable({
-            // SortableJS options - use class names for styling
-            group: 'nested', // Allow dragging between lists with the same group name
-            animation: 150, // Animation speed
-            fallbackOnBody: true,
-            swapThreshold: 0.65,
-            // handle: '.menu-item-handle', // REMOVED Handle option - entire item is draggable
-            ghostClass: 'sortable-ghost',  // Class for drop placeholder
-            chosenClass: 'sortable-chosen', // Class for the element being dragged
-            dragClass: 'sortable-drag', // Class for the mirror element during drag
-            // Event when an item is dropped
-            onEnd: function (/**Event*/evt) {
-                // Update the generatedMenuStructure JS variable after drop
-                updateStructureFromUI();
-            },
+        // Initialize SortableJS using the native approach (matching example)
+        const listElements = $container.find('.menu-tree-list, .menu-tree-children').get(); // Get native DOM elements
+
+        listElements.forEach(function (listEl) {
+            new Sortable(listEl, { // Use native initialization
+                group: 'nested', // Allow dragging between lists with the same group name
+                animation: 150, // Animation speed
+                fallbackOnBody: true,
+                swapThreshold: 0.65,
+                forceFallback: true,
+                ghostClass: 'sortable-ghost',  // Class for drop placeholder
+                chosenClass: 'sortable-chosen', // Class for the element being dragged
+                dragClass: 'sortable-drag', // Class for the mirror element during drag
+                // Event when an item is dropped
+                onEnd: function (/**Event*/evt) {
+                    // Update the generatedMenuStructure JS variable after drop
+                    updateStructureFromUI();
+                },
+            });
         });
     }
 
