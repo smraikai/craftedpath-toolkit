@@ -375,21 +375,16 @@
                 $loading.hide();
 
                 if (response.success) {
-                    // Show success message with link to pages
-                    const message = $('<div class="notice notice-success"><p>' + response.data.message + '</p></div>');
-
-                    if (response.data.pages && response.data.pages.length > 0) {
-                        const pagesList = $('<ul class="created-pages-list"></ul>');
-
-                        response.data.pages.forEach(function (page) {
-                            pagesList.append('<li><a href="' + page.edit_url + '" target="_blank">' + page.title + '</a> - <a href="' + page.view_url + '" target="_blank">View</a></li>');
-                        });
-
-                        message.append(pagesList);
+                    // Show success toast notification
+                    if (typeof showCPTToast === 'function') {
+                        showCPTToast(response.data.message, 'success');
+                    } else {
+                        // Fallback if toast function isn't available
+                        alert(response.data.message);
                     }
-
-                    // Append message after the results container
-                    $resultsContainer.after(message);
+                    // Optionally, clear the selection or results after success
+                    // $resultsContainer.hide(); 
+                    // window.sitemapData = null;
                 } else {
                     $error.text(response.data).show();
                 }
