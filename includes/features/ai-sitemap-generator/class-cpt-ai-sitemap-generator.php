@@ -45,6 +45,7 @@ class CPT_AI_Sitemap_Generator
         add_action('wp_ajax_cpt_generate_sitemap', array($this, 'ajax_generate_sitemap'));
         add_action('wp_ajax_cpt_generate_menu', array($this, 'ajax_generate_menu'));
         add_action('wp_ajax_cpt_create_wp_menu', array($this, 'ajax_create_wp_menu'));
+        add_action('wp_ajax_cpt_create_wp_pages', array($this, 'ajax_create_wp_pages'));
     }
 
     /**
@@ -126,7 +127,7 @@ class CPT_AI_Sitemap_Generator
     {
         ?>
         <div class="cpt-sitemap-generator-container">
-            <p><?php esc_html_e('Generate a comprehensive sitemap for your website using AI. This tool will analyze your existing content and suggest an optimal sitemap structure.', 'craftedpath-toolkit'); ?>
+            <p><?php esc_html_e('Generate a comprehensive sitemap for your website using AI. This tool will analyze your existing content and suggest an optimal sitemap structure. You can then create WordPress pages based on the AI suggestions.', 'craftedpath-toolkit'); ?>
             </p>
 
             <div class="cpt-form-row">
@@ -146,6 +147,8 @@ class CPT_AI_Sitemap_Generator
 
             <div id="sitemap_results" class="cpt-results-container" style="display: none;">
                 <h3><?php esc_html_e('Generated Sitemap', 'craftedpath-toolkit'); ?></h3>
+                <p><?php esc_html_e('Select which pages you want to create, then click "Create WordPress Pages".', 'craftedpath-toolkit'); ?>
+                </p>
                 <div class="sitemap-tree"></div>
                 <div class="cpt-actions">
                     <button class="button button-secondary"
@@ -744,5 +747,101 @@ Ensure the output is strictly a valid JSON object starting with { and ending wit
         }
 
         return $pages;
+    }
+
+    /**
+     * AJAX endpoint for creating WordPress pages
+     */
+    public function ajax_create_wp_pages()
+    {
+        // Check nonce
+        if (!isset($_POST['security']) || !wp_verify_nonce($_POST['security'], 'cpt_sitemap_nonce')) {
+            wp_send_json_error(__('Security check failed.', 'craftedpath-toolkit'));
+        }
+
+        // Get page data
+        if (!isset($_POST['pages_data'])) {
+            wp_send_json_error(__('No page data received.', 'craftedpath-toolkit'));
+        }
+
+        $pages_data = json_decode(stripslashes($_POST['pages_data']), true);
+
+        if (json_last_error() !== JSON_ERROR_NONE || !is_array($pages_data)) {
+            wp_send_json_error(__('Invalid page data format.', 'craftedpath-toolkit'));
+        }
+
+        // Check permissions
+        if (!current_user_can('publish_pages')) {
+            wp_send_json_error(__('You do not have permission to create pages.', 'craftedpath-toolkit'));
+        }
+
+        // Track created pages
+        $created_pages = array();
+        $page_id_map = array(); // Maps our internal IDs to WP post IDs
+
+        // Create pages recursively
+        $this->create_pages_recursive($pages_data, 0, $created_pages, $page_id_map);
+
+        // Return success with page information
+        wp_send_json_success(array(
+            'message' => sprintf(
+                _n(
+                    'Successfully created %d page.',
+                    'Successfully created %d pages.',
+                    count($created_pages),
+                    'craftedpath-toolkit'
+                ),
+                count($created_pages)
+            ),
+            'pages' => $created_pages
+        ));
+    }
+
+    /**
+     * Recursively create pages and their children
+     * 
+     * @param array $pages Array of page data
+     * @param int $parent_id Parent page ID (0 for top-level pages)
+     * @param array &$created_pages Reference to array to track created pages
+     * @param array &$page_id_map Reference to array mapping our internal IDs to WP post IDs
+     */
+    private function create_pages_recursive($pages, $parent_id, &$created_pages, &$page_id_map)
+    {
+        foreach ($pages as $page) {
+            // Create the page
+            $page_data = array(
+                'post_title' => sanitize_text_field($page['title']),
+                'post_content' => isset($page['description']) ? wp_kses_post($page['description']) : '',
+                'post_status' => 'draft', // Default to draft for safety
+                'post_type' => 'page',
+                'post_parent' => $parent_id,
+                'post_name' => sanitize_title($page['title']), // Generate slug
+            );
+
+            // Insert the page
+            $page_id = wp_insert_post($page_data);
+
+            if (is_wp_error($page_id)) {
+                continue; // Skip this page if there's an error
+            }
+
+            // Store our internal page ID mapping
+            if (isset($page['parentId'])) {
+                $page_id_map[$page['parentId']] = $page_id;
+            }
+
+            // Add to created pages list
+            $created_pages[] = array(
+                'id' => $page_id,
+                'title' => $page['title'],
+                'edit_url' => get_edit_post_link($page_id, ''),
+                'view_url' => get_permalink($page_id)
+            );
+
+            // Process children if any
+            if (!empty($page['children']) && is_array($page['children'])) {
+                $this->create_pages_recursive($page['children'], $page_id, $created_pages, $page_id_map);
+            }
+        }
     }
 }

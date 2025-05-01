@@ -38,6 +38,17 @@
         $('#export_sitemap').on('click', function () {
             exportSitemapToCsv();
         });
+
+        // Create Pages button handler
+        $('#create_pages').on('click', function () {
+            createWordPressPages();
+        });
+
+        // Select/Deselect All checkbox handler
+        $('#select_all_pages').on('change', function () {
+            const isChecked = $(this).prop('checked');
+            $('.page-checkbox').prop('checked', isChecked);
+        });
     }
 
     /**
@@ -103,8 +114,8 @@
                     // Store the response for later use
                     window.sitemapData = response.data;
 
-                    // Render the sitemap tree
-                    renderSitemapTree(response.data);
+                    // Render the sitemap tree with checkboxes
+                    renderSitemapTreeWithCheckboxes(response.data);
                     $results.show();
                 } else {
                     $error.text(response.data).show();
@@ -172,27 +183,41 @@
     }
 
     /**
-     * Render sitemap tree in the UI
+     * Render sitemap tree with checkboxes in the UI
      */
-    function renderSitemapTree(data) {
+    function renderSitemapTreeWithCheckboxes(data) {
         const $container = $('.sitemap-tree');
         $container.empty();
+
+        // Add checkbox controls at the top
+        const $controls = $('<div class="sitemap-controls"></div>');
+        $controls.append('<label><input type="checkbox" id="select_all_pages" checked> Select/Deselect All</label>');
+        $container.append($controls);
 
         const $tree = $('<ul class="sitemap-tree-list"></ul>');
 
         // Build the tree recursively
-        function buildTree(items, $parent) {
-            items.forEach(function (item) {
+        function buildTree(items, $parent, parentPath = '') {
+            items.forEach(function (item, index) {
+                const itemPath = item.path || '';
+                const pageId = 'page_' + parentPath.replace(/\//g, '_') + '_' + index;
+
                 const $item = $('<li></li>');
-                $item.append('<span class="sitemap-page-title">' + item.title + '</span>');
+                const $checkbox = $('<input type="checkbox" class="page-checkbox" id="' + pageId + '" checked data-path="' + itemPath + '" data-parent="' + parentPath + '">');
+                const $label = $('<label for="' + pageId + '"></label>');
+
+                $label.append('<span class="sitemap-page-title">' + item.title + '</span>');
 
                 if (item.description) {
-                    $item.append('<p class="sitemap-page-desc">' + item.description + '</p>');
+                    $label.append('<p class="sitemap-page-desc">' + item.description + '</p>');
                 }
+
+                $item.append($checkbox);
+                $item.append($label);
 
                 if (item.children && item.children.length) {
                     const $subList = $('<ul></ul>');
-                    buildTree(item.children, $subList);
+                    buildTree(item.children, $subList, itemPath);
                     $item.append($subList);
                 }
 
@@ -204,6 +229,11 @@
         if (Array.isArray(data)) {
             buildTree(data, $tree);
             $container.append($tree);
+        }
+
+        // Add Create Pages button if not already there
+        if ($('#create_pages').length === 0) {
+            $('.cpt-actions').prepend('<button class="button button-primary" id="create_pages">Create WordPress Pages</button>');
         }
     }
 
@@ -342,6 +372,102 @@
             error: function (jqXHR, textStatus, errorThrown) {
                 $loading.hide();
                 $error.text('Error: ' + errorThrown).show();
+            }
+        });
+    }
+
+    /**
+     * Create WordPress pages from the generated sitemap
+     */
+    function createWordPressPages() {
+        if (!window.sitemapData) return;
+
+        const $error = $('#sitemap_error');
+        const $loading = $('#sitemap_loading');
+
+        // Reset UI and show loading
+        $error.hide();
+        $loading.show().find('p').text('Creating WordPress pages...');
+
+        // Get all checked pages
+        const checkedPages = [];
+
+        // Function to collect checked pages recursively
+        function collectCheckedPages(items, parentId = 0) {
+            const selectedItems = [];
+
+            items.forEach(function (item, index) {
+                const pageId = parentId === 0 ? 'page_' + index : 'page_' + parentId + '_' + index;
+                const $checkbox = $('#' + pageId.replace(/\//g, '_'));
+
+                if ($checkbox.is(':checked')) {
+                    // Clone the item to avoid reference issues
+                    const selectedItem = Object.assign({}, item);
+
+                    // Set parent ID
+                    selectedItem.parentId = parentId;
+
+                    // If it has children, process them recursively
+                    if (item.children && item.children.length) {
+                        selectedItem.children = collectCheckedPages(item.children, pageId);
+                    } else {
+                        selectedItem.children = [];
+                    }
+
+                    selectedItems.push(selectedItem);
+                }
+            });
+
+            return selectedItems;
+        }
+
+        // Collect all checked pages
+        const selectedPages = collectCheckedPages(window.sitemapData);
+
+        // Check if any pages are selected
+        if (selectedPages.length === 0) {
+            $loading.hide();
+            $error.text('Please select at least one page to create').show();
+            return;
+        }
+
+        // Prepare AJAX data
+        const data = {
+            action: 'cpt_create_wp_pages',
+            pages_data: JSON.stringify(selectedPages),
+            security: cptSitemapVars.nonce
+        };
+
+        // Make AJAX request to create pages
+        $.ajax({
+            url: ajaxurl,
+            type: 'POST',
+            data: data,
+            success: function (response) {
+                $loading.hide();
+
+                if (response.success) {
+                    // Show success message with link to pages
+                    const message = $('<div class="notice notice-success"><p>' + response.data.message + '</p></div>');
+
+                    if (response.data.pages && response.data.pages.length > 0) {
+                        const pagesList = $('<ul class="created-pages-list"></ul>');
+
+                        response.data.pages.forEach(function (page) {
+                            pagesList.append('<li><a href="' + page.edit_url + '" target="_blank">' + page.title + '</a> - <a href="' + page.view_url + '" target="_blank">View</a></li>');
+                        });
+
+                        message.append(pagesList);
+                    }
+
+                    $('.sitemap-tree').after(message);
+                } else {
+                    $error.text(response.data).show();
+                }
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                $loading.hide();
+                $error.text('Error creating pages: ' + errorThrown).show();
             }
         });
     }
