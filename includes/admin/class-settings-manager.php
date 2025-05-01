@@ -213,7 +213,8 @@ class CPT_Settings_Manager
             'toplevel_page_craftedpath-toolkit',       // Main Features page
             'craftedpath_page_cpt-aipg-pages',     // Added new Page Gen slug
             'craftedpath_page_cpt-aimg-menu',      // Added new Menu Gen slug
-            'craftedpath_page_cptk_settings_page'   // General Settings submenu
+            'craftedpath_page_cptk_settings_page', // General Settings submenu
+            'craftedpath_page_craftedpath-seo-settings' // <<< Added SEO Settings page hook
         ];
 
         // Check if the current screen ID matches any toolkit page

@@ -117,48 +117,20 @@ function register_settings()
 }
 
 /**
- * Callback function to render the actual form content for the settings card.
- */
-function render_seo_settings_form_content()
-{
-    settings_fields('craftedpath_seo_options'); // Group name for SEO settings
-    do_settings_sections('craftedpath-seo-settings'); // Page slug used in add_settings_field
-}
-
-/**
- * Render the SEO settings page container using UI components.
+ * Render the SEO settings page container.
  */
 function render_settings_page()
 {
-    // Check if settings were just updated (for toast)
-    if (isset($_GET['settings-updated']) && $_GET['settings-updated'] === 'true') {
-        cptk_create_toast_trigger(__('SEO settings saved successfully.', 'craftedpath-toolkit'), 'success');
-    }
     ?>
-    <div class="wrap craftedpath-settings">
-        <?php cptk_render_header_card(); ?>
-
-        <div class="craftedpath-content">
-            <form action="options.php" method="post">
-                <?php
-                // Prepare footer content (Submit button)
-                ob_start();
-                submit_button(__('Save SEO Settings', 'craftedpath-toolkit'), 'primary', 'submit-seo', false);
-                $footer_html = ob_get_clean();
-
-                // Define icon (using inline SVG for Heroicon)
-                $icon_svg = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="20" height="20" style="vertical-align: text-bottom; margin-right: 5px;"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" /></svg>';
-
-                // Render the card
-                cptk_render_card(
-                    __('General SEO Settings', 'craftedpath-toolkit'),
-                    $icon_svg, // Pass the SVG string
-                    __NAMESPACE__ . '\\render_seo_settings_form_content',
-                    $footer_html
-                );
-                ?>
-            </form>
-        </div>
+    <div class="wrap">
+        <h1><?php echo esc_html(get_admin_page_title()); ?></h1>
+        <form action="options.php" method="post">
+            <?php
+            settings_fields('craftedpath_seo_options');
+            do_settings_sections('craftedpath-seo-settings');
+            submit_button(__('Save Settings', 'craftedpath-toolkit'));
+            ?>
+        </form>
     </div>
     <?php
 }
@@ -272,9 +244,9 @@ function enqueue_admin_scripts($hook_suffix)
     // Enqueue the admin settings script
     wp_enqueue_script(
         'craftedpath-seo-settings-js',
-        plugin_dir_url(dirname(__FILE__, 3)) . 'assets/js/admin-seo-settings.js',
+        plugin_dir_url(dirname(__FILE__, 2)) . 'assets/js/admin-seo-settings.js',
         ['jquery', 'wp-mediaelement'], // Dependencies
-        defined('CPT_VERSION') ? CPT_VERSION : '1.0', // Use defined() check for safety
+        CPT_VERSION, // Use plugin version constant
         true // Load in footer
     );
 }
