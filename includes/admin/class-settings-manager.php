@@ -137,17 +137,6 @@ class CPT_Settings_Manager
                 'cpt-aismg-menu',              // New slug for menu generator UI
                 array(CPT_AI_Sitemap_Generator::instance(), 'render_menu_page')
             );
-
-            // Add API Settings Submenu (Currently points to Sitemap Generator settings)
-            // TODO: Revisit if AI Sitemap Generator specific API settings are needed here or in general settings
-            add_submenu_page(
-                'craftedpath-toolkit',          // Parent slug
-                'AI API Settings',              // Page title (Clarified)
-                'AI API Settings',              // Menu title (Clarified)
-                'manage_options',
-                'cpt-aismg-settings',           // Submenu slug 
-                array(CPT_AI_Sitemap_Generator::instance(), 'render_settings_page') // Callback in Sitemap class
-            );
         }
 
         // Add General Toolkit Settings Submenu (OpenAI API Key, etc.)
@@ -196,7 +185,6 @@ class CPT_Settings_Manager
             'toplevel_page_craftedpath-toolkit',       // Main Features page
             'craftedpath_page_cpt-aismg-sitemap',   // Sitemap Generator submenu
             'craftedpath_page_cpt-aismg-menu',       // Menu Generator submenu
-            'craftedpath_page_cpt-aismg-settings',  // AI API Settings submenu
             'craftedpath_page_cptk_settings_page'   // General Settings submenu
         ];
 

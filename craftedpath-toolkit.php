@@ -45,8 +45,8 @@ final class CraftedPath_Toolkit
     private function includes()
     {
         require_once CPT_PLUGIN_DIR . 'includes/features/bem-generator/class-bem-generator.php';
-        // Only include the AI sitemap generator file if the feature might be enabled
-        // require_once CPT_PLUGIN_DIR . 'includes/features/ai-sitemap-generator/class-cpt-ai-sitemap-generator.php';
+        // Include the AI sitemap generator file
+        require_once CPT_PLUGIN_DIR . 'includes/features/ai-sitemap-generator/class-cpt-ai-sitemap-generator.php';
         require_once CPT_PLUGIN_DIR . 'includes/admin/class-settings-manager.php';
         require_once CPT_PLUGIN_DIR . 'includes/admin/settings-page.php';
         require_once CPT_PLUGIN_DIR . 'includes/admin/views/ui-components.php';
