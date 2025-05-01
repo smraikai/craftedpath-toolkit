@@ -455,14 +455,14 @@ function sanitize_settings($input)
             if ($bg === false) {
                 error_log('Failed to allocate background color');
                 imagedestroy($image);
-                return $output;
+                return false;
             }
             imagefill($image, 0, 0, $bg);
             $text_color_gd = imagecolorallocate($image, $text_r, $text_g, $text_b);
             if ($text_color_gd === false) {
                 error_log('Failed to allocate text color');
                 imagedestroy($image);
-                return $output;
+                return false;
             }
 
             // Load background image if available
@@ -839,14 +839,14 @@ function generate_social_share_image($post_id)
     if ($bg === false) {
         error_log('Failed to allocate background color');
         imagedestroy($image);
-        return $image_url;
+        return false;
     }
     imagefill($image, 0, 0, $bg);
     $text_color_gd = imagecolorallocate($image, $text_r, $text_g, $text_b);
     if ($text_color_gd === false) {
         error_log('Failed to allocate text color');
         imagedestroy($image);
-        return $image_url;
+        return false;
     }
 
     // Load background image if available
