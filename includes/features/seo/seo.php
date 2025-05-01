@@ -18,10 +18,7 @@ if (!defined('ABSPATH')) {
 function setup()
 {
     add_action('init', __NAMESPACE__ . '\\register_meta_fields');
-    add_action('admin_menu', __NAMESPACE__ . '\\add_settings_page');
     add_action('admin_init', __NAMESPACE__ . '\\register_settings');
-
-    // Add more hooks here later for outputting meta tags etc.
     add_action('wp_head', __NAMESPACE__ . '\\output_meta_tags', 1); // Use priority 1 to run early
 }
 
@@ -59,22 +56,6 @@ function register_meta_fields()
             )
         );
     }
-}
-
-/**
- * Add the SEO settings page under the main CraftedPath admin menu.
- */
-function add_settings_page()
-{
-    // Add as a submenu under the main 'craftedpath-toolkit' menu
-    add_submenu_page(
-        'craftedpath-toolkit',                  // Parent slug
-        __('SEO', 'craftedpath-toolkit'), // Page title
-        __('SEO', 'craftedpath-toolkit'), // Menu title
-        'manage_options',                         // Capability required
-        'craftedpath-seo-settings',             // Menu slug (keep consistent)
-        __NAMESPACE__ . '\\render_settings_page'    // Callback function
-    );
 }
 
 /**

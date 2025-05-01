@@ -143,6 +143,18 @@ class CPT_Settings_Manager
             array($this, 'render_settings_page') // Callback
         );
 
+        // Add SEO Settings Submenu
+        if ($this->is_feature_enabled('seo_tools')) {
+            add_submenu_page(
+                'craftedpath-toolkit',          // Parent slug
+                __('SEO', 'craftedpath-toolkit'), // Page title
+                __('SEO', 'craftedpath-toolkit'), // Menu title
+                'manage_options',
+                'craftedpath-seo-settings',     // Menu slug
+                '\CraftedPath\Toolkit\SEO\render_settings_page' // Callback
+            );
+        }
+
         // Conditionally add AI Page Generator page
         if (class_exists('CPT_AI_Page_Generator')) {
             add_submenu_page(
