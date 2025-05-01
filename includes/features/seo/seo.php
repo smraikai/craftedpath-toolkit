@@ -317,8 +317,30 @@ function render_social_share_settings()
 }
 
 /**
- * Sanitize SEO settings.
- *
+ * Get the upload directory for SEO images.
+ * 
+ * @return array Array with 'path' and 'url' keys.
+ */
+function get_seo_upload_dir()
+{
+    $upload_dir = wp_upload_dir();
+    $seo_dir = 'seo';
+
+    // Create the directory if it doesn't exist
+    $seo_path = $upload_dir['basedir'] . '/' . $seo_dir;
+    if (!file_exists($seo_path)) {
+        wp_mkdir_p($seo_path);
+    }
+
+    return array(
+        'path' => $seo_path,
+        'url' => $upload_dir['baseurl'] . '/' . $seo_dir
+    );
+}
+
+/**
+ * Generate and store the social share image when settings are saved.
+ * 
  * @param array $input The input array.
  * @return array Sanitized array.
  */
@@ -346,6 +368,121 @@ function sanitize_settings($input)
     $allowed_colors = ['primary', 'black', 'white', 'alt', 'hover'];
     $output['social_image_bg_color'] = isset($input['social_image_bg_color']) && in_array($input['social_image_bg_color'], $allowed_colors, true) ? $input['social_image_bg_color'] : 'primary';
     $output['social_image_text_color'] = isset($input['social_image_text_color']) && in_array($input['social_image_text_color'], $allowed_colors, true) ? $input['social_image_text_color'] : 'white';
+
+    // Generate and store the social share image
+    if (isset($output['social_share_logo_id']) && $output['social_share_logo_id']) {
+        $logo_url = wp_get_attachment_image_url($output['social_share_logo_id'], 'full');
+        if ($logo_url) {
+            // Get SEO upload directory
+            $seo_dir = get_seo_upload_dir();
+
+            // Generate a unique filename based on settings
+            $filename = 'social-share-base-' . md5(json_encode($output)) . '.jpg';
+            $file_path = $seo_dir['path'] . '/' . $filename;
+
+            // Create image using GD
+            $width = 1200;
+            $height = 630;
+            $padding = 80;
+            $image = imagecreatetruecolor($width, $height);
+
+            // Get colors
+            $bg_color = get_color_value($output['social_image_bg_color']);
+            $text_color = get_color_value($output['social_image_text_color']);
+            list($bg_r, $bg_g, $bg_b) = sscanf($bg_color, "#%02x%02x%02x");
+            list($text_r, $text_g, $text_b) = sscanf($text_color, "#%02x%02x%02x");
+
+            // Set background
+            $bg = imagecolorallocate($image, $bg_r, $bg_g, $bg_b);
+            imagefill($image, 0, 0, $bg);
+            $text_color_gd = imagecolorallocate($image, $text_r, $text_g, $text_b);
+
+            // Load logo
+            $logo_data = @file_get_contents($logo_url);
+            if ($logo_data) {
+                $logo_img = @imagecreatefromstring($logo_data);
+                if ($logo_img) {
+                    switch ($output['social_image_style']) {
+                        case 'style2': // Split Layout
+                            $logo_area_width = $width * 0.4;
+                            $text_area_x = $logo_area_width + $padding;
+                            $text_area_width = $width - $text_area_x - $padding;
+
+                            // Draw logo
+                            $max_logo_w = $logo_area_width - ($padding * 1.5);
+                            $max_logo_h = $height - ($padding * 2);
+                            $ratio = min($max_logo_w / imagesx($logo_img), $max_logo_h / imagesy($logo_img));
+                            $new_w = imagesx($logo_img) * $ratio;
+                            $new_h = imagesy($logo_img) * $ratio;
+                            $logo_x = ($logo_area_width - $new_w) / 2;
+                            $logo_y = ($height - $new_h) / 2;
+                            imagecopyresampled($image, $logo_img, $logo_x, $logo_y, 0, 0, $new_w, $new_h, imagesx($logo_img), imagesy($logo_img));
+
+                            // Draw site name
+                            $font_path = get_font_path();
+                            $site_name = $output['site_name'] ?: get_bloginfo('name');
+                            $font_size = 20;
+                            $text_box = imagettfbbox($font_size, 0, $font_path, $site_name);
+                            $site_name_width = abs($text_box[4] - $text_box[0]);
+                            imagettftext($image, $font_size, 0, $width - $padding - $site_name_width, $height - $padding + 10, $text_color_gd, $font_path, $site_name);
+                            break;
+
+                        case 'style3': // Logo Overlay
+                            // Draw dimmed background
+                            $dimmed_bg = imagecolorallocatealpha($image, $bg_r, $bg_g, $bg_b, 30);
+                            imagefilledrectangle($image, 0, 0, $width, $height, $dimmed_bg);
+
+                            // Draw logo
+                            $max_w = $width - ($padding * 3);
+                            $max_h = $height - ($padding * 3);
+                            $ratio = min($max_w / imagesx($logo_img), $max_h / imagesy($logo_img));
+                            $new_w = imagesx($logo_img) * $ratio;
+                            $new_h = imagesy($logo_img) * $ratio;
+                            $logo_x = ($width - $new_w) / 2;
+                            $logo_y = ($height - $new_h) / 2;
+                            imagecopyresampled($image, $logo_img, $logo_x, $logo_y, 0, 0, $new_w, $new_h, imagesx($logo_img), imagesy($logo_img));
+
+                            // Add overlay
+                            $overlay = imagecolorallocatealpha($image, $text_r, $text_g, $text_b, 90);
+                            imagefilledrectangle($image, 0, 0, $width, $height, $overlay);
+                            break;
+
+                        default: // style1 - Logo Focus
+                            // Draw logo
+                            $max_logo_w = $width * 0.6;
+                            $max_logo_h = $height * 0.6;
+                            $ratio = min($max_logo_w / imagesx($logo_img), $max_logo_h / imagesy($logo_img));
+                            $new_w = imagesx($logo_img) * $ratio;
+                            $new_h = imagesy($logo_img) * $ratio;
+                            $logo_x = ($width - $new_w) / 2;
+                            $logo_y = ($height - $new_h) / 2 - 30;
+                            imagecopyresampled($image, $logo_img, $logo_x, $logo_y, 0, 0, $new_w, $new_h, imagesx($logo_img), imagesy($logo_img));
+
+                            // Draw site name
+                            $font_path = get_font_path();
+                            $site_name = $output['site_name'] ?: get_bloginfo('name');
+                            $font_size = 24;
+                            $text_box = imagettfbbox($font_size, 0, $font_path, $site_name);
+                            $site_name_width = abs($text_box[4] - $text_box[0]);
+                            imagettftext($image, $font_size, 0, ($width - $site_name_width) / 2, $logo_y + $new_h + 40, $text_color_gd, $font_path, $site_name);
+                            break;
+                    }
+                    imagedestroy($logo_img);
+                }
+            }
+
+            // Save image
+            imagejpeg($image, $file_path, 90);
+            imagedestroy($image);
+
+            // Store the image URL in settings
+            $image_url = $seo_dir['url'] . '/' . $filename;
+            if (is_ssl()) {
+                $image_url = str_replace('http://', 'https://', $image_url);
+            }
+            $output['social_share_base_image'] = $image_url;
+        }
+    }
 
     return $output;
 }
@@ -478,16 +615,13 @@ function get_social_share_image_url($post_id = null)
 
     // Get global settings
     $options = get_option('craftedpath_seo_settings', []);
-    $use_custom = isset($options['use_custom_social_image']) ? $options['use_custom_social_image'] : false;
 
-    if ($use_custom && !empty($options['social_share_image_id'])) {
-        $image_url = wp_get_attachment_image_url($options['social_share_image_id'], 'full');
-        if ($image_url) {
-            return $image_url;
-        }
+    // If we have a stored base image, use it
+    if (!empty($options['social_share_base_image'])) {
+        return $options['social_share_base_image'];
     }
 
-    // If no custom image is set or custom images are disabled, generate one
+    // If no custom image is set, generate one
     return generate_social_share_image($post_id);
 }
 
@@ -815,7 +949,7 @@ function handle_social_image_preview()
     $style = isset($_POST['style']) ? sanitize_text_field($_POST['style']) : 'style1';
     $bg_color = isset($_POST['bg_color']) ? sanitize_text_field($_POST['bg_color']) : 'primary';
     $text_color = isset($_POST['text_color']) ? sanitize_text_field($_POST['text_color']) : 'white';
-    // Removed font_family retrieval
+    $logo_id = isset($_POST['logo_id']) ? absint($_POST['logo_id']) : 0;
 
     // Update temporary settings for preview generation
     $options = get_option('craftedpath_seo_preview_settings', []); // Get temporary if exists
@@ -824,7 +958,7 @@ function handle_social_image_preview()
     $options['social_image_style'] = $style;
     $options['social_image_bg_color'] = $bg_color;
     $options['social_image_text_color'] = $text_color;
-    // Removed font_family update
+    $options['social_share_logo_id'] = $logo_id;
     update_option('craftedpath_seo_preview_settings', $options, false);
 
     // Generate new preview using temporary settings
@@ -857,6 +991,7 @@ function generate_social_share_image_preview()
     $style = isset($options['social_image_style']) ? $options['social_image_style'] : 'style1';
     $bg_color_key = isset($options['social_image_bg_color']) ? $options['social_image_bg_color'] : 'primary';
     $text_color_key = isset($options['social_image_text_color']) ? $options['social_image_text_color'] : 'white';
+    $logo_id = isset($options['social_share_logo_id']) ? absint($options['social_share_logo_id']) : 0;
 
     // Get color values
     $bg_color = get_color_value($bg_color_key);
@@ -865,9 +1000,7 @@ function generate_social_share_image_preview()
     // Get font path (always Open Sans)
     $font_path = get_font_path();
 
-    // Get site logo - Prioritize plugin setting, fallback to theme mod
-    $plugin_logo_id = isset($options['social_share_logo_id']) ? absint($options['social_share_logo_id']) : 0;
-    $logo_id = $plugin_logo_id ?: get_theme_mod('custom_logo'); // Use plugin logo if set, else theme logo
+    // Get site logo - Use the logo ID from temporary settings
     $logo_url = $logo_id ? wp_get_attachment_image_url($logo_id, 'full') : '';
 
     $logo_img_resource = null;
