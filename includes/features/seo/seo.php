@@ -69,8 +69,8 @@ function add_settings_page()
     // Add as a submenu under the main 'craftedpath-toolkit' menu
     add_submenu_page(
         'craftedpath-toolkit',                  // Parent slug
-        __('SEO Settings', 'craftedpath-toolkit'), // Page title
-        __('SEO Settings', 'craftedpath-toolkit'), // Menu title
+        __('SEO', 'craftedpath-toolkit'), // Page title
+        __('SEO', 'craftedpath-toolkit'), // Menu title
         'manage_options',                         // Capability required
         'craftedpath-seo-settings',             // Menu slug (keep consistent)
         __NAMESPACE__ . '\\render_settings_page'    // Callback function
@@ -146,13 +146,13 @@ function render_settings_page()
                 submit_button(__('Save SEO Settings', 'craftedpath-toolkit'), 'primary', 'submit-seo', false);
                 $footer_html = ob_get_clean();
 
-                // Define icon (using inline SVG for Heroicon)
-                $icon_svg = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="20" height="20" style="vertical-align: text-bottom; margin-right: 5px;"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" /></svg>';
+                // Use Iconoir icon
+                $icon_html = '<i class="iconoir-input-search" style="vertical-align: text-bottom; margin-right: 5px;"></i>';
 
                 // Render the card
                 cptk_render_card(
-                    __('General SEO Settings', 'craftedpath-toolkit'),
-                    $icon_svg, // Pass the SVG string
+                    __('Search Engine Optimization', 'craftedpath-toolkit'),
+                    $icon_html, // Pass the Iconoir HTML
                     __NAMESPACE__ . '\\render_seo_settings_form_content',
                     $footer_html
                 );

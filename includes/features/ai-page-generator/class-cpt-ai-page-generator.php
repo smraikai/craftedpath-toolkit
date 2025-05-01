@@ -103,7 +103,7 @@ class CPT_AI_Page_Generator
 
                 cptk_render_card(
                     __('AI Page Structure Generator', 'craftedpath-toolkit'),
-                    'dashicons-networking',
+                    '<i class="iconoir-sparks" style="vertical-align: text-bottom; margin-right: 5px;"></i>',
                     array($this, 'render_page_generator_content'),
                     $footer_html
                 );

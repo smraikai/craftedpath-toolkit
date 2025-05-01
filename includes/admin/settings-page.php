@@ -38,16 +38,13 @@ function cptk_render_settings_page()
             submit_button(__('Save General Settings', 'craftedpath-toolkit'), 'primary', 'submit_general_settings', false);
             $footer_html = ob_get_clean();
 
-            // Render the card using the standalone component
-            echo '<form action="options.php" method="post">';
-            settings_fields('cptk_settings'); // Must match the group registered in cptk_register_settings
+            // Render the card using the component
             cptk_render_card(
                 __('General Settings', 'craftedpath-toolkit'),
-                'dashicons-admin-generic',
-                'cptk_render_settings_form_content', // Callback function below for card body
-                $footer_html // Pass the submit button HTML
+                '<i class="iconoir-settings" style="vertical-align: text-bottom; margin-right: 5px;"></i>', // Iconoir icon
+                'cptk_render_general_settings_content',
+                $footer_html // Pass the footer content
             );
-            echo '</form>';
             ?>
         </div>
     </div>

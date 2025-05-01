@@ -124,7 +124,7 @@ class CPT_AI_Menu_Generator
 
                 cptk_render_card(
                     __('AI Menu Generator', 'craftedpath-toolkit'),
-                    'dashicons-menu',
+                    '<i class="iconoir-sparks" style="vertical-align: text-bottom; margin-right: 5px;"></i>',
                     array($this, 'render_menu_content'),
                     $footer_html
                 );

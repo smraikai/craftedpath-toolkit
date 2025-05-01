@@ -32,8 +32,8 @@ function cptk_render_header_card()
  * Renders a standard card component.
  *
  * @param string $title The card title.
- * @param string $icon Dashicon class for the title icon (e.g., 'dashicons-admin-plugins').
- * @param callable $content_callback A function/method that echoes the card body content.
+ * @param string $icon HTML string (e.g., SVG or <i> tag with Iconoir class) or a CSS class name (legacy for Dashicons).
+ * @param callable|string $content_callback A function/method that echoes the card body content, or a string of HTML content.
  * @param string $footer_content Optional HTML string for the card footer.
  */
 function cptk_render_card($title, $icon, $content_callback, $footer_content = '')
@@ -42,7 +42,15 @@ function cptk_render_card($title, $icon, $content_callback, $footer_content = ''
     <div class="craftedpath-card">
         <div class="craftedpath-card-header">
             <h2>
-                <span class="dashicons <?php echo esc_attr($icon); ?>"></span>
+                <?php
+                // Check if $icon looks like an HTML tag (SVG or <i>), otherwise assume class name
+                if (is_string($icon) && strpos(trim($icon), '<') === 0) {
+                    echo $icon; // Output raw HTML/SVG
+                } elseif (!empty($icon)) {
+                    // Fallback for class names (e.g., Dashicons)
+                    echo '<span class="' . esc_attr($icon) . '"></span>';
+                }
+                ?>
                 <?php echo esc_html($title); ?>
             </h2>
             <?php

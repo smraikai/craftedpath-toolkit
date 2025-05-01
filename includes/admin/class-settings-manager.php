@@ -129,7 +129,7 @@ class CPT_Settings_Manager
             'manage_options',
             'craftedpath-toolkit',
             array($this, 'render_settings_page'), // Callback for main page (Features)
-            'dashicons-admin-tools',
+            '<i class="iconoir-tools" style="font-size: 20px; margin-top: 4px;"></i>',
             100
         );
 
@@ -256,7 +256,7 @@ class CPT_Settings_Manager
      * Made public to be callable from settings-page.php
      *
      * @param string $title The card title.
-     * @param string $icon Dashicon class for the title icon (e.g., 'dashicons-admin-plugins').
+     * @param string $icon HTML string (e.g., SVG or <i> tag with Iconoir class) or a CSS class name (legacy for Dashicons).
      * @param callable $content_callback A function/method that echoes the card body content.
      * @param string $footer_content Optional HTML string for the card footer.
      */
@@ -316,15 +316,18 @@ class CPT_Settings_Manager
         <div class="craftedpath-card">
             <div class="craftedpath-card-header">
                 <h2>
-                    <span class="dashicons dashicons-admin-plugins"></span>
+                    <?php
+                    // Use Iconoir icon
+                    echo '<i class="iconoir-settings" style="vertical-align: text-bottom; margin-right: 5px;"></i>';
+                    ?>
                     <?php echo esc_html(__('Available Features', 'craftedpath-toolkit')); ?>
                 </h2>
                 <div class="cpt-accordion-controls">
                     <button type="button" class="button button-secondary button-small cpt-expand-all">
-                        <span class="iconoir-expand"></span> <?php esc_html_e('Expand All', 'craftedpath-toolkit'); ?>
+                        <i class="iconoir-expand"></i> <?php esc_html_e('Expand All', 'craftedpath-toolkit'); ?>
                     </button>
                     <button type="button" class="button button-secondary button-small cpt-collapse-all">
-                        <span class="iconoir-collapse"></span> <?php esc_html_e('Collapse All', 'craftedpath-toolkit'); ?>
+                        <i class="iconoir-collapse"></i> <?php esc_html_e('Collapse All', 'craftedpath-toolkit'); ?>
                     </button>
                 </div>
             </div>

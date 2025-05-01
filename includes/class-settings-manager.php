@@ -103,7 +103,7 @@ class CPT_Settings_Manager
             'manage_options',
             'craftedpath-toolkit',          // Main slug
             array($this, 'render_settings_page'), // Callback for main page (Features)
-            'dashicons-admin-tools',
+            '<i class="iconoir-tools" style="font-size: 20px; margin-top: 4px;"></i>',
             100
         );
 
@@ -253,7 +253,7 @@ class CPT_Settings_Manager
             <div class="craftedpath-card">
                 <div class="craftedpath-card-header">
                     <h2>
-                        <span class="dashicons dashicons-admin-plugins"></span>
+                        <i class="iconoir-plugin" style="vertical-align: text-bottom; margin-right: 5px;"></i>
                         Available Features
                     </h2>
                     <p>Enable or disable CraftedPath Toolkit features below.</p>
