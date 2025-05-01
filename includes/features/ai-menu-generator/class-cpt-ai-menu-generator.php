@@ -121,7 +121,7 @@ class CPT_AI_Menu_Generator
     {
         ?>
         <div class="cpt-menu-generator-container">
-            <p><?php esc_html_e('Generate an optimized navigation menu structure for your website using AI.', 'craftedpath-toolkit'); ?>
+            <p><?php esc_html_e('Generate an optimized navigation menu structure for your website using AI, based on your existing published pages.', 'craftedpath-toolkit'); ?>
             </p>
 
             <div class="cpt-form-row">
@@ -131,17 +131,6 @@ class CPT_AI_Menu_Generator
                     <option value="footer"><?php esc_html_e('Footer Menu', 'craftedpath-toolkit'); ?></option>
                     <option value="mobile"><?php esc_html_e('Mobile Menu', 'craftedpath-toolkit'); ?></option>
                 </select>
-            </div>
-
-            <div class="cpt-form-row">
-                <label
-                    for="use_existing_sitemap"><?php esc_html_e('Use Existing Sitemap (Optional)', 'craftedpath-toolkit'); ?></label>
-                <input type="checkbox" id="use_existing_sitemap" name="use_existing_sitemap">
-                <span
-                    class="description"><?php esc_html_e('Use previously generated page structure as base.', 'craftedpath-toolkit'); ?></span>
-                <textarea id="existing_sitemap_data" name="existing_sitemap_data" rows="8"
-                    style="display:none; width: 100%; margin-top: 5px;"
-                    placeholder="<?php esc_attr_e('Paste JSON sitemap structure here if not using checkbox...', 'craftedpath-toolkit'); ?>"></textarea>
             </div>
 
             <div id="menu_results" class="cpt-results-container" style="display: none;">
@@ -288,33 +277,16 @@ class CPT_AI_Menu_Generator
         }
 
         $menu_type = isset($_POST['menu_type']) ? sanitize_text_field(wp_unslash($_POST['menu_type'])) : 'main';
-        $sitemap_json = isset($_POST['sitemap_data']) ? wp_unslash($_POST['sitemap_data']) : ''; // Allow JSON
-        $use_sitemap = isset($_POST['use_sitemap']) && $_POST['use_sitemap'] === 'true';
-
-        $sitemap_data = null;
-        if ($use_sitemap && !empty($sitemap_json)) {
-            $sitemap_data = json_decode($sitemap_json, true);
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                wp_send_json_error(__('Invalid JSON provided for existing sitemap.', 'craftedpath-toolkit'));
-                return;
-            }
-        } elseif ($use_sitemap) {
-            // Optionally, fetch a saved sitemap from options or transient if checkbox is true but no JSON pasted
-            // For now, we assume JSON is provided if the checkbox is checked AND text area is filled
-            // Or potentially retrieve from the Page Generator's last run?
-            // Requires inter-feature communication - maybe via options/transients.
-            $sitemap_data = get_transient('cpt_last_generated_sitemap'); // Example: Get from transient
-            if (!$sitemap_data) {
-                // Send a specific notice instead of error? Or let the prompt handle it?
-                // wp_send_json_error(__('Sitemap data not found. Please generate pages first or provide JSON.', 'craftedpath-toolkit'));
-                // return;
-                $sitemap_data = null; // Proceed without sitemap if not found
-            }
+        // Get existing pages instead
+        $existing_pages = $this->get_existing_pages_structured();
+        if (empty($existing_pages)) {
+            wp_send_json_error(__('No published pages found to build a menu from.', 'craftedpath-toolkit'));
+            return;
         }
 
-
-        $prompt = $this->build_menu_prompt($menu_type, $sitemap_data);
-        $system_message = 'You are an expert website architect specializing in creating intuitive navigation menu structures.'; // Define system message
+        // Pass existing pages to the prompt builder
+        $prompt = $this->build_menu_prompt($menu_type, $existing_pages);
+        $system_message = 'You are an expert website architect specializing in creating intuitive navigation menu structures based on existing website pages.'; // Updated system message
 
         // Pass system message to the API call
         $response = $this->call_openai_api($prompt, [], $system_message);
@@ -363,80 +335,102 @@ class CPT_AI_Menu_Generator
     }
 
     /**
-     * Build the prompt for the OpenAI API to generate a menu structure.
+     * Build the prompt for the OpenAI API to generate a menu structure based on existing pages.
      *
      * @param string $menu_type Type of menu (main, footer, mobile).
-     * @param array|null $sitemap_data Optional sitemap data (associative array).
+     * @param array $existing_pages Hierarchical array of existing page data.
      * @return string The generated prompt.
      */
-    private function build_menu_prompt($menu_type, $sitemap_data)
+    private function build_menu_prompt($menu_type, $existing_pages)
     {
         $prompt = sprintf("Generate an optimal navigation menu structure for a website's '%s' menu.", esc_html($menu_type));
+        $prompt .= "\n\nBase the menu structure ONLY on the following list of existing published pages on the website. Consider the provided hierarchy (parent/child relationships) when building the menu.";
 
-        if (!empty($sitemap_data)) {
-            $formatted_sitemap = $this->format_sitemap_for_prompt($sitemap_data);
-            $prompt .= "\n\nBase the menu structure primarily on the following proposed sitemap (represented as nested JSON):";
-            $prompt .= "\n" . $formatted_sitemap;
-            $prompt .= "\n\nConsider these pages when deciding the menu items and hierarchy.";
-        } else {
-            $prompt .= "\n\nAssume a standard website structure if no sitemap is provided. Include common top-level pages like Home, About, Services, Blog, Contact.";
-        }
+        // Format existing pages for the prompt
+        $formatted_pages = $this->format_existing_pages_for_prompt($existing_pages);
+        $prompt .= "\n\nExisting Pages (Hierarchy indicated by indentation):\n";
+        $prompt .= $formatted_pages;
 
-        $prompt .= sprintf("\n\nThe menu type is '%s', so tailor the items and depth accordingly.", esc_html($menu_type));
+        $prompt .= sprintf("\n\nThe menu type is '%s', so tailor the items and depth accordingly. For example:", esc_html($menu_type));
         if ($menu_type === 'footer') {
-            $prompt .= " Footer menus are often flatter and may include links like Privacy Policy, Terms of Service, and secondary navigation.";
+            $prompt .= " Footer menus often contain essential pages like Home, Contact, Privacy Policy, Terms, etc., and might be flatter.";
         } else if ($menu_type === 'main') {
-            $prompt .= " Main navigation should prioritize key user tasks and top-level pages. Aim for a depth of 1-2 levels, maximum 3.";
+            $prompt .= " Main navigation should prioritize key pages. Aim for a depth of 1-2 levels, maximum 3. Only include pages from the provided list.";
         } else if ($menu_type === 'mobile') {
-            $prompt .= " Mobile menus need to be concise and easy to navigate on small screens. It might be similar to the main menu but potentially simplified.";
+            $prompt .= " Mobile menus need to be concise. Select the most important pages from the provided list.";
         }
 
-        $prompt .= "\n\nProvide the output ONLY as a valid JSON object with a single root key 'items'. Each item in the 'items' array should be an object with 'title' (string, navigation label), and optionally 'children' (an array of nested item objects for sub-menus), and 'url' (string, use '#' for placeholders if specific URL is unknown). Example format:";
-        $prompt .= "\n{\"items\": [ {\"title\": \"Home\", \"url\": \"#home\"}, {\"title\": \"About Us\", \"url\": \"#about\", \"children\": [ {\"title\": \"Team\", \"url\": \"#team\"} ] } ]}";
+        $prompt .= "\n\nIMPORTANT: Only use pages titles that appear in the 'Existing Pages' list provided above.";
+        $prompt .= "\n\nProvide the output ONLY as a valid JSON object with a single root key 'items'. Each item in the 'items' array should be an object with 'title' (string, matching an existing page title exactly), and optionally 'children' (an array of nested item objects for sub-menus), and 'url' (string, use the actual page permalink if available in the provided data, otherwise use '#' placeholder). Example format:";
+        $prompt .= "\n{\"items\": [ {\"title\": \"Home\", \"url\": \"/\"}, {\"title\": \"About Us\", \"url\": \"/about/\", \"children\": [ {\"title\": \"Team\", \"url\": \"/about/team/\"} ] } ]}";
         $prompt .= "\n\nDo not include any explanatory text before or after the JSON object. Just the JSON.";
 
         return $prompt;
     }
 
     /**
-     * Format sitemap data into a string suitable for the prompt.
+     * Helper function to format the hierarchical list of existing pages for the prompt.
      *
-     * @param array $sitemap_data The sitemap data.
-     * @param int $level Current nesting level.
-     * @return string Formatted sitemap string.
+     * @param array $pages Hierarchical array of page data from get_existing_pages_structured.
+     * @param int $level Current indentation level.
+     * @return string Formatted string list of pages.
      */
-    private function format_sitemap_for_prompt($sitemap_data, $level = 0)
+    private function format_existing_pages_for_prompt($pages, $level = 0)
     {
         $output = "";
         $indent = str_repeat("  ", $level);
 
-        // Check if it's the top-level 'sitemap' structure or already the 'pages' array
-        $pages = isset($sitemap_data['pages']) ? $sitemap_data['pages'] : (isset($sitemap_data['items']) ? $sitemap_data['items'] : $sitemap_data);
-
-        if (is_array($pages)) {
-            foreach ($pages as $page) {
-                if (isset($page['title'])) {
-                    $output .= $indent . "- " . $page['title'] . "\n";
-                    if (!empty($page['children'])) {
-                        $output .= $this->format_sitemap_for_prompt($page['children'], $level + 1);
-                    }
-                } else if (is_string($page)) { // Handle simpler array of strings if needed
-                    $output .= $indent . "- " . $page . "\n";
-                }
+        foreach ($pages as $page) {
+            $output .= $indent . "- " . esc_html($page['title']) . " (URL: " . esc_html($page['url']) . ")\n";
+            if (!empty($page['children'])) {
+                $output .= $this->format_existing_pages_for_prompt($page['children'], $level + 1);
             }
         }
-
-        // If the initial input was the sitemap structure, wrap it
-        if ($level === 0 && (isset($sitemap_data['pages']) || isset($sitemap_data['items']))) {
-            return "{\n" . rtrim($output) . "\n}";
-        } elseif ($level === 0) {
-            // Attempt to handle array directly passed
-            return "{\n  \"items\": [\n" . rtrim($output) . "\n  ]\n}";
-        }
-
-        return rtrim($output);
+        return $output;
     }
 
+    /**
+     * Get existing published pages in a hierarchical structure.
+     *
+     * @return array Hierarchical array of page data (id, title, url, children).
+     */
+    private function get_existing_pages_structured()
+    {
+        $pages = get_pages(array(
+            'post_status' => 'publish', // Only published pages
+            'sort_column' => 'menu_order, post_title',
+            'hierarchical' => 1, // Fetch in hierarchy
+        ));
+
+        if (empty($pages)) {
+            return array();
+        }
+
+        // Build hierarchical array
+        $page_map = array();
+        foreach ($pages as $page) {
+            $page_map[$page->ID] = array(
+                'id' => $page->ID,
+                'parent_id' => $page->post_parent,
+                'title' => $page->post_title,
+                'url' => get_permalink($page->ID),
+                'children' => array(),
+            );
+        }
+
+        $structured_pages = array();
+        foreach ($page_map as $page_id => &$page_data) {
+            if ($page_data['parent_id'] && isset($page_map[$page_data['parent_id']])) {
+                $page_map[$page_data['parent_id']]['children'][] = &$page_data;
+            } else {
+                // Add top-level pages
+                $structured_pages[] = &$page_data;
+            }
+        }
+        unset($page_data); // Unset reference
+
+        return $structured_pages;
+    }
 
     /**
      * AJAX handler for creating the WordPress menu
