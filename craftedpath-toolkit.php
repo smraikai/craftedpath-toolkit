@@ -55,6 +55,9 @@ final class CraftedPath_Toolkit
         require_once CPT_PLUGIN_DIR . 'includes/admin/class-settings-manager.php';
         require_once CPT_PLUGIN_DIR . 'includes/admin/settings-page.php';
         require_once CPT_PLUGIN_DIR . 'includes/admin/views/ui-components.php';
+
+        // SEO functionality is now loaded conditionally in load_features()
+        // require_once CPT_PLUGIN_DIR . 'includes/seo.php';
     }
 
     private function init_hooks()
@@ -62,13 +65,22 @@ final class CraftedPath_Toolkit
         add_action('plugins_loaded', array($this, 'init_settings'));
         add_action('plugins_loaded', array($this, 'load_features'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_assets'));
+
+        // Initialize SEO hooks moved to load_features()
+        /*
+        if (file_exists(CPT_PLUGIN_DIR . 'includes/seo.php') && function_exists('\CraftedPath\Toolkit\SEO\setup')) {
+            \CraftedPath\Toolkit\SEO\setup();
+        }
+        */
     }
 
     /**
      * Enqueue scripts and styles for the plugin.
      */
-    public function enqueue_assets()
+    public function enqueue_assets($hook_suffix)
     {
+        // --- General Admin Assets ---
+
         // Enqueue Toast CSS
         wp_enqueue_style(
             'cpt-toast-style',
@@ -94,6 +106,48 @@ final class CraftedPath_Toolkit
             CPT_VERSION,
             true // Load in footer
         );
+
+        // --- Editor Assets ---
+        // Get screen information
+        $screen = get_current_screen();
+
+        // Check if we are on a block editor screen
+        if ($screen && $screen->is_block_editor()) {
+            // --- Conditionally Enqueue SEO Panel Assets ---
+            $settings_manager = CPT_Settings_Manager::instance(); // Get settings manager instance
+            if ($settings_manager->is_feature_enabled('seo_tools')) {
+                // Enqueue the SEO panel script
+                $script_asset_path = CPT_PLUGIN_DIR . "build/index.asset.php";
+                if (file_exists($script_asset_path)) {
+                    $script_asset = require($script_asset_path);
+                    wp_enqueue_script(
+                        'craftedpath-seo-panel-script',
+                        CPT_PLUGIN_URL . 'build/index.js',
+                        $script_asset['dependencies'],
+                        $script_asset['version'],
+                        true // Load in footer
+                    );
+
+                    // Localize script with SEO settings
+                    $seo_options = get_option('craftedpath_seo_settings', []);
+                    $site_name = !empty($seo_options['site_name']) ? $seo_options['site_name'] : get_bloginfo('name');
+                    $divider = $seo_options['meta_divider'] ?? '|';
+
+                    wp_localize_script(
+                        'craftedpath-seo-panel-script',
+                        'cptSeoData',
+                        array(
+                            'siteName' => $site_name,
+                            'divider' => $divider,
+                        )
+                    );
+                }
+            }
+            // --- End SEO Panel Assets ---
+
+            // Potentially enqueue other editor-specific styles/scripts here if needed
+            // wp_enqueue_style(...);
+        }
     }
 
     public function init_settings()
@@ -140,6 +194,19 @@ final class CraftedPath_Toolkit
                 CPT_Admin_Refresh_UI::instance();
             } else {
                 error_log("CraftedPath Toolkit Error: CPT_Admin_Refresh_UI class not found.");
+            }
+        }
+
+        // Load SEO Tools
+        if ($settings_manager->is_feature_enabled('seo_tools')) {
+            $seo_file = CPT_PLUGIN_DIR . 'includes/features/seo/seo.php';
+            if (file_exists($seo_file)) {
+                require_once $seo_file;
+                if (function_exists('\CraftedPath\Toolkit\SEO\setup')) {
+                    \CraftedPath\Toolkit\SEO\setup();
+                }
+            } else {
+                error_log("CraftedPath Toolkit Error: includes/features/seo/seo.php file not found.");
             }
         }
 

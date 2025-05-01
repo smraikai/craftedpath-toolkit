@@ -105,6 +105,14 @@ class CPT_Settings_Manager
                 'default' => false,
                 'section' => 'UI Enhancements'
             ),
+            // Section: SEO Tools
+            'seo_tools' => array(
+                'name' => 'SEO Title & Meta',
+                'description' => 'Adds SEO title and meta description fields to posts/pages and a global settings page.',
+                'class' => null, // No specific class to instantiate for setup
+                'default' => true, // Enable by default?
+                'section' => 'SEO Tools' // New section
+            ),
             // Add more features here as they are developed
         );
     }
@@ -351,6 +359,7 @@ class CPT_Settings_Manager
             __('Developer Tools', 'craftedpath-toolkit'),
             __('AI Tools', 'craftedpath-toolkit'),
             __('UI Enhancements', 'craftedpath-toolkit'),
+            __('SEO Tools', 'craftedpath-toolkit'),
             __('Other', 'craftedpath-toolkit')
         ];
 
