@@ -349,7 +349,16 @@ function get_seo_upload_dir()
     // Create the directory if it doesn't exist
     $seo_path = $upload_dir['basedir'] . '/' . $seo_dir;
     if (!file_exists($seo_path)) {
-        wp_mkdir_p($seo_path);
+        if (!wp_mkdir_p($seo_path)) {
+            error_log('Failed to create SEO upload directory: ' . $seo_path);
+            return false;
+        }
+    }
+
+    // Check if directory is writable
+    if (!is_writable($seo_path)) {
+        error_log('SEO upload directory is not writable: ' . $seo_path);
+        return false;
     }
 
     return array(
@@ -416,6 +425,10 @@ function sanitize_settings($input)
         if ($logo_url) {
             // Get SEO upload directory
             $seo_dir = get_seo_upload_dir();
+            if (!$seo_dir) {
+                error_log('Failed to get SEO upload directory');
+                return $output;
+            }
 
             // Use fixed filename
             $filename = 'social_share.jpg';
@@ -426,6 +439,10 @@ function sanitize_settings($input)
             $height = 630;
             $padding = 80;
             $image = imagecreatetruecolor($width, $height);
+            if (!$image) {
+                error_log('Failed to create image resource');
+                return $output;
+            }
 
             // Get colors
             $bg_color = $output['social_image_bg_color'] === 'custom' ? $output['social_image_custom_bg_color'] : $output['social_image_bg_color'];
@@ -435,8 +452,70 @@ function sanitize_settings($input)
 
             // Set background
             $bg = imagecolorallocate($image, $bg_r, $bg_g, $bg_b);
+            if ($bg === false) {
+                error_log('Failed to allocate background color');
+                imagedestroy($image);
+                return $output;
+            }
             imagefill($image, 0, 0, $bg);
             $text_color_gd = imagecolorallocate($image, $text_r, $text_g, $text_b);
+            if ($text_color_gd === false) {
+                error_log('Failed to allocate text color');
+                imagedestroy($image);
+                return $output;
+            }
+
+            // Load background image if available
+            if (!empty($output['social_image_bg_image_id'])) {
+                $bg_image_url = wp_get_attachment_image_url($output['social_image_bg_image_id'], 'full');
+                if ($bg_image_url) {
+                    $bg_image_data = @file_get_contents($bg_image_url);
+                    if ($bg_image_data) {
+                        $bg_image = @imagecreatefromstring($bg_image_data);
+                        if ($bg_image) {
+                            // Calculate dimensions for cover sizing
+                            $canvas_ratio = $width / $height;
+                            $img_ratio = imagesx($bg_image) / imagesy($bg_image);
+
+                            if ($img_ratio > $canvas_ratio) {
+                                // Image is wider than canvas
+                                $draw_height = $height;
+                                $draw_width = $draw_height * $img_ratio;
+                                $draw_x = ($width - $draw_width) / 2;
+                                $draw_y = 0;
+                            } else {
+                                // Image is taller than canvas
+                                $draw_width = $width;
+                                $draw_height = $draw_width / $img_ratio;
+                                $draw_x = 0;
+                                $draw_y = ($height - $draw_height) / 2;
+                            }
+
+                            // Draw background image with cover sizing
+                            imagecopyresampled($image, $bg_image, $draw_x, $draw_y, 0, 0, $draw_width, $draw_height, imagesx($bg_image), imagesy($bg_image));
+                            imagedestroy($bg_image);
+                        } else {
+                            error_log('Failed to create background image from string');
+                        }
+                    } else {
+                        error_log('Failed to get background image data from URL: ' . $bg_image_url);
+                    }
+                }
+            }
+
+            // Apply color overlay with opacity
+            if (!empty($output['social_image_bg_opacity'])) {
+                $opacity = intval($output['social_image_bg_opacity']);
+                if ($opacity > 0) {
+                    $alpha = round(($opacity / 100) * 127); // Convert 0-100 to 0-127
+                    $overlay = imagecolorallocatealpha($image, $bg_r, $bg_g, $bg_b, $alpha);
+                    if ($overlay === false) {
+                        error_log('Failed to allocate overlay color');
+                    } else {
+                        imagefilledrectangle($image, 0, 0, $width, $height, $overlay);
+                    }
+                }
+            }
 
             // Load logo
             $logo_data = @file_get_contents($logo_url);
@@ -469,10 +548,6 @@ function sanitize_settings($input)
                             break;
 
                         case 'style3': // Logo Overlay
-                            // Draw dimmed background
-                            $dimmed_bg = imagecolorallocatealpha($image, $bg_r, $bg_g, $bg_b, 30);
-                            imagefilledrectangle($image, 0, 0, $width, $height, $dimmed_bg);
-
                             // Draw logo
                             $max_w = $width - ($padding * 3);
                             $max_h = $height - ($padding * 3);
@@ -485,7 +560,11 @@ function sanitize_settings($input)
 
                             // Add overlay
                             $overlay = imagecolorallocatealpha($image, $text_r, $text_g, $text_b, 90);
-                            imagefilledrectangle($image, 0, 0, $width, $height, $overlay);
+                            if ($overlay === false) {
+                                error_log('Failed to allocate overlay color');
+                            } else {
+                                imagefilledrectangle($image, 0, 0, $width, $height, $overlay);
+                            }
                             break;
 
                         default: // style1 - Logo Focus
@@ -509,11 +588,19 @@ function sanitize_settings($input)
                             break;
                     }
                     imagedestroy($logo_img);
+                } else {
+                    error_log('Failed to create logo image from string');
                 }
+            } else {
+                error_log('Failed to get logo data from URL: ' . $logo_url);
             }
 
             // Save image
-            imagejpeg($image, $file_path, 90);
+            if (!imagejpeg($image, $file_path, 90)) {
+                error_log('Failed to save image to: ' . $file_path);
+                imagedestroy($image);
+                return $output;
+            }
             imagedestroy($image);
 
             // Store the image URL in settings
@@ -670,8 +757,8 @@ function get_social_share_image_url($post_id = null)
         return $options['social_share_base_image'];
     }
 
-    // If no custom image is set, generate one
-    return generate_social_share_image($post_id);
+    // If no custom image is set, use the default
+    return plugin_dir_url(dirname(__FILE__, 3)) . 'assets/images/default-social-share.jpg';
 }
 
 /**
@@ -741,158 +828,140 @@ function generate_social_share_image($post_id)
     $padding = 80;
     $image = imagecreatetruecolor($width, $height);
 
-    // Convert hex colors to RGB
+    // Get colors
+    $bg_color = $options['social_image_bg_color'] === 'custom' ? $options['social_image_custom_bg_color'] : $options['social_image_bg_color'];
+    $text_color = get_color_value($options['social_image_text_color']);
     list($bg_r, $bg_g, $bg_b) = sscanf($bg_color, "#%02x%02x%02x");
     list($text_r, $text_g, $text_b) = sscanf($text_color, "#%02x%02x%02x");
 
-    // Set background color
+    // Set background
     $bg = imagecolorallocate($image, $bg_r, $bg_g, $bg_b);
+    if ($bg === false) {
+        error_log('Failed to allocate background color');
+        imagedestroy($image);
+        return $image_url;
+    }
     imagefill($image, 0, 0, $bg);
-
-    // Set text color
     $text_color_gd = imagecolorallocate($image, $text_r, $text_g, $text_b);
-
-    // Add logo and text based on style
-    switch ($style) {
-        case 'style2': // Split Layout (Logo Left / Title Right)
-            $logo_area_width = $width * 0.4; // 40% for logo
-            $text_area_x = $logo_area_width + $padding;
-            $text_area_width = $width - $text_area_x - $padding;
-
-            // Draw Logo centered vertically in left area
-            if ($logo_img_resource) {
-                $logo_w = imagesx($logo_img_resource);
-                $logo_h = imagesy($logo_img_resource);
-                $max_logo_w = $logo_area_width - ($padding * 1.5);
-                $max_logo_h = $height - ($padding * 2);
-
-                $ratio = min($max_logo_w / $logo_w, $max_logo_h / $logo_h);
-                $new_w = $logo_w * $ratio;
-                $new_h = $logo_h * $ratio;
-                $logo_x = ($logo_area_width - $new_w) / 2;
-                $logo_y = ($height - $new_h) / 2;
-                imagecopyresampled($image, $logo_img_resource, $logo_x, $logo_y, 0, 0, $new_w, $new_h, $logo_w, $logo_h);
-            } else {
-                // Placeholder if no logo?
-            }
-
-            // Draw Title in right area
-            $font_size = 48;
-            $title_lines = wrap_text($font_size, 0, $font_path, $title, $text_area_width);
-            $line_height = $font_size * 1.4;
-            $text_block_height = count($title_lines) * $line_height;
-            $title_start_y = ($height - $text_block_height) / 2 + ($font_size * 0.3); // Center vertically
-
-            foreach ($title_lines as $index => $line) {
-                imagettftext($image, $font_size, 0, $text_area_x, $title_start_y + ($index * $line_height), $text_color_gd, $font_path, $line);
-            }
-
-            // Draw site name at bottom right
-            $site_name_size = 20;
-            $text_box = imagettfbbox($site_name_size, 0, $font_path, $site_name);
-            $site_name_width = abs($text_box[4] - $text_box[0]);
-            imagettftext($image, $site_name_size, 0, $width - $padding - $site_name_width, $height - $padding + 10, $text_color_gd, $font_path, $site_name);
-            break;
-
-        case 'style3': // Logo Overlay
-            // Draw slightly dimmed background color
-            $dimmed_bg = imagecolorallocatealpha($image, $bg_r, $bg_g, $bg_b, 30); // Adjust alpha for dimming
-            imagefilledrectangle($image, 0, 0, $width, $height, $dimmed_bg);
-
-            // Draw Logo centered and large
-            if ($logo_img_resource) {
-                $logo_w = imagesx($logo_img_resource);
-                $logo_h = imagesy($logo_img_resource);
-                // Scale to fit within padding
-                $max_w = $width - ($padding * 3);
-                $max_h = $height - ($padding * 3);
-                $ratio = min($max_w / $logo_w, $max_h / $logo_h);
-                $new_w = $logo_w * $ratio;
-                $new_h = $logo_h * $ratio;
-                $logo_x = ($width - $new_w) / 2;
-                $logo_y = ($height - $new_h) / 2;
-                imagecopyresampled($image, $logo_img_resource, $logo_x, $logo_y, 0, 0, $new_w, $new_h, $logo_w, $logo_h);
-            } else {
-                // Draw Site Name if no logo
-                $font_size = 80;
-                $lines = wrap_text($font_size, 0, $font_path, $site_name, $width - $padding * 2);
-                $line_height = $font_size * 1.3;
-                $text_h = count($lines) * $line_height;
-                $start_y = ($height - $text_h) / 2 + ($font_size / 2);
-                foreach ($lines as $index => $line) {
-                    $t_box = imagettfbbox($font_size, 0, $font_path, $line);
-                    $t_width = abs($t_box[4] - $t_box[0]);
-                    $text_x = (int) (($width - $t_width) / 2);
-                    $text_y = (int) ($start_y + ($index * $line_height));
-                    imagettftext($image, $font_size, 0, $text_x, $text_y, $text_color_gd, $font_path, $line);
-                }
-            }
-
-            // Add Overlay Color wash
-            $overlay_color = get_color_value($text_color_key); // Use text color as overlay
-            list($overlay_r, $overlay_g, $overlay_b) = sscanf($overlay_color, "#%02x%02x%02x");
-            $overlay_gd = imagecolorallocatealpha($image, $overlay_r, $overlay_g, $overlay_b, 90); // Adjust alpha for intensity
-            imagefilledrectangle($image, 0, 0, $width, $height, $overlay_gd);
-
-            // Draw Title centered over everything
-            $font_size = 52;
-            $title_lines = wrap_text($font_size, 0, $font_path, $title, $width - $padding * 2.5);
-            $line_height = $font_size * 1.4;
-            $text_height = count($title_lines) * $line_height;
-            $start_y = ($height - $text_height) / 2 + ($font_size / 2);
-            foreach ($title_lines as $index => $line) {
-                $text_box = imagettfbbox($font_size, 0, $font_path, $line);
-                $text_width = abs($text_box[4] - $text_box[0]);
-                $text_x = ($width - $text_width) / 2;
-                // Add slight shadow to text for contrast
-                $shadow_color = imagecolorallocatealpha($image, 0, 0, 0, 50);
-                imagettftext($image, $font_size, 0, $text_x + 2, $start_y + ($index * $line_height) + 2, $shadow_color, $font_path, $line);
-                imagettftext($image, $font_size, 0, $text_x, $start_y + ($index * $line_height), $text_color_gd, $font_path, $line);
-            }
-            break;
-
-        default: // style1 - Logo Focus
-            // Draw Logo centered and large
-            if ($logo_img_resource) {
-                $logo_w = imagesx($logo_img_resource);
-                $logo_h = imagesy($logo_img_resource);
-                $max_logo_w = $width * 0.6; // Allow logo to be quite large
-                $max_logo_h = $height * 0.6;
-
-                $ratio = min($max_logo_w / $logo_w, $max_logo_h / $logo_h);
-                $new_w = $logo_w * $ratio;
-                $new_h = $logo_h * $ratio;
-                $logo_x = ($width - $new_w) / 2;
-                $logo_y = ($height - $new_h) / 2 - 30; // Shift up slightly
-                imagecopyresampled($image, $logo_img_resource, $logo_x, $logo_y, 0, 0, $new_w, $new_h, $logo_w, $logo_h);
-
-                // Draw site name below logo
-                $site_name_size = 24;
-                $text_box = imagettfbbox($site_name_size, 0, $font_path, $site_name);
-                $site_name_width = abs($text_box[4] - $text_box[0]);
-                imagettftext($image, $site_name_size, 0, ($width - $site_name_width) / 2, $logo_y + $new_h + 40, $text_color_gd, $font_path, $site_name);
-
-            } else {
-                // Draw Site Name large if no logo
-                $font_size = 80;
-                $lines = wrap_text($font_size, 0, $font_path, $site_name, $width - $padding * 2);
-                $line_height = $font_size * 1.3;
-                $text_h = count($lines) * $line_height;
-                $start_y = ($height - $text_h) / 2 + ($font_size / 2);
-                foreach ($lines as $index => $line) {
-                    $t_box = imagettfbbox($font_size, 0, $font_path, $line);
-                    $t_width = abs($t_box[4] - $t_box[0]);
-                    $text_x = (int) (($width - $t_width) / 2);
-                    $text_y = (int) ($start_y + ($index * $line_height));
-                    imagettftext($image, $font_size, 0, $text_x, $text_y, $text_color_gd, $font_path, $line);
-                }
-            }
-            break;
+    if ($text_color_gd === false) {
+        error_log('Failed to allocate text color');
+        imagedestroy($image);
+        return $image_url;
     }
 
-    // Destroy logo resource if created
-    if ($logo_img_resource)
-        imagedestroy($logo_img_resource);
+    // Load background image if available
+    if (!empty($options['social_image_bg_image_id'])) {
+        $bg_image_url = wp_get_attachment_image_url($options['social_image_bg_image_id'], 'full');
+        if ($bg_image_url) {
+            $bg_image_data = @file_get_contents($bg_image_url);
+            if ($bg_image_data) {
+                $bg_image = @imagecreatefromstring($bg_image_data);
+                if ($bg_image) {
+                    // Calculate dimensions for cover sizing
+                    $canvas_ratio = $width / $height;
+                    $img_ratio = imagesx($bg_image) / imagesy($bg_image);
+
+                    if ($img_ratio > $canvas_ratio) {
+                        // Image is wider than canvas
+                        $draw_height = $height;
+                        $draw_width = $draw_height * $img_ratio;
+                        $draw_x = ($width - $draw_width) / 2;
+                        $draw_y = 0;
+                    } else {
+                        // Image is taller than canvas
+                        $draw_width = $width;
+                        $draw_height = $draw_width / $img_ratio;
+                        $draw_x = 0;
+                        $draw_y = ($height - $draw_height) / 2;
+                    }
+
+                    // Draw background image with cover sizing
+                    imagecopyresampled($image, $bg_image, $draw_x, $draw_y, 0, 0, $draw_width, $draw_height, imagesx($bg_image), imagesy($bg_image));
+                    imagedestroy($bg_image);
+                }
+            }
+        }
+    }
+
+    // Apply color overlay with opacity
+    if (!empty($options['social_image_bg_opacity'])) {
+        $opacity = intval($options['social_image_bg_opacity']);
+        if ($opacity > 0) {
+            $alpha = round(($opacity / 100) * 127); // Convert 0-100 to 0-127
+            $overlay = imagecolorallocatealpha($image, $bg_r, $bg_g, $bg_b, $alpha);
+            imagefilledrectangle($image, 0, 0, $width, $height, $overlay);
+        }
+    }
+
+    // Load logo
+    $logo_data = @file_get_contents($logo_url);
+    if ($logo_data) {
+        $logo_img = @imagecreatefromstring($logo_data);
+        if ($logo_img) {
+            switch ($options['social_image_style']) {
+                case 'style2': // Split Layout
+                    $logo_area_width = $width * 0.4;
+                    $text_area_x = $logo_area_width + $padding;
+                    $text_area_width = $width - $text_area_x - $padding;
+
+                    // Draw logo
+                    $max_logo_w = $logo_area_width - ($padding * 1.5);
+                    $max_logo_h = $height - ($padding * 2);
+                    $ratio = min($max_logo_w / imagesx($logo_img), $max_logo_h / imagesy($logo_img));
+                    $new_w = imagesx($logo_img) * $ratio;
+                    $new_h = imagesy($logo_img) * $ratio;
+                    $logo_x = ($logo_area_width - $new_w) / 2;
+                    $logo_y = ($height - $new_h) / 2;
+                    imagecopyresampled($image, $logo_img, $logo_x, $logo_y, 0, 0, $new_w, $new_h, imagesx($logo_img), imagesy($logo_img));
+
+                    // Draw site name
+                    $font_path = get_font_path();
+                    $site_name = $options['site_name'] ?: get_bloginfo('name');
+                    $font_size = 20;
+                    $text_box = imagettfbbox($font_size, 0, $font_path, $site_name);
+                    $site_name_width = abs($text_box[4] - $text_box[0]);
+                    imagettftext($image, $font_size, 0, $width - $padding - $site_name_width, $height - $padding + 10, $text_color_gd, $font_path, $site_name);
+                    break;
+
+                case 'style3': // Logo Overlay
+                    // Draw logo
+                    $max_w = $width - ($padding * 3);
+                    $max_h = $height - ($padding * 3);
+                    $ratio = min($max_w / imagesx($logo_img), $max_h / imagesy($logo_img));
+                    $new_w = imagesx($logo_img) * $ratio;
+                    $new_h = imagesy($logo_img) * $ratio;
+                    $logo_x = ($width - $new_w) / 2;
+                    $logo_y = ($height - $new_h) / 2;
+                    imagecopyresampled($image, $logo_img, $logo_x, $logo_y, 0, 0, $new_w, $new_h, imagesx($logo_img), imagesy($logo_img));
+
+                    // Add overlay
+                    $overlay = imagecolorallocatealpha($image, $text_r, $text_g, $text_b, 90);
+                    imagefilledrectangle($image, 0, 0, $width, $height, $overlay);
+                    break;
+
+                default: // style1 - Logo Focus
+                    // Draw logo
+                    $max_logo_w = $width * 0.6;
+                    $max_logo_h = $height * 0.6;
+                    $ratio = min($max_logo_w / imagesx($logo_img), $max_logo_h / imagesy($logo_img));
+                    $new_w = imagesx($logo_img) * $ratio;
+                    $new_h = imagesy($logo_img) * $ratio;
+                    $logo_x = ($width - $new_w) / 2;
+                    $logo_y = ($height - $new_h) / 2 - 30;
+                    imagecopyresampled($image, $logo_img, $logo_x, $logo_y, 0, 0, $new_w, $new_h, imagesx($logo_img), imagesy($logo_img));
+
+                    // Draw site name
+                    $font_path = get_font_path();
+                    $site_name = $options['site_name'] ?: get_bloginfo('name');
+                    $font_size = 24;
+                    $text_box = imagettfbbox($font_size, 0, $font_path, $site_name);
+                    $site_name_width = abs($text_box[4] - $text_box[0]);
+                    imagettftext($image, $font_size, 0, ($width - $site_name_width) / 2, $logo_y + $new_h + 40, $text_color_gd, $font_path, $site_name);
+                    break;
+            }
+            imagedestroy($logo_img);
+        }
+    }
 
     // Save image
     imagejpeg($image, $file_path, 90);
@@ -1020,189 +1089,24 @@ function handle_social_image_preview()
 }
 
 /**
- * Generate a social share image preview using temporary settings.
- * This function is similar to generate_social_share_image but uses 
- * the temporary 'craftedpath_seo_preview_settings' option.
+ * Generate a preview of the social share image.
+ * This function is similar to generate_social_share_image but uses
+ * the current settings instead of post-specific settings.
  * 
- * @return string Generated image URL.
+ * @return string Image URL.
  */
 function generate_social_share_image_preview()
 {
-    // Use homepage ID for preview context
-    $post_id = get_option('page_on_front');
+    // Get current settings
+    $options = get_option('craftedpath_seo_settings', []);
 
-    // Get post data
-    $title = $post_id ? get_the_title($post_id) : get_bloginfo('name');
-    $site_name = get_bloginfo('name');
-
-    // Get temporary settings
-    $options = get_option('craftedpath_seo_preview_settings', []);
-    $style = isset($options['social_image_style']) ? $options['social_image_style'] : 'style1';
-    $bg_color_key = isset($options['social_image_bg_color']) ? $options['social_image_bg_color'] : 'primary';
-    $text_color_key = isset($options['social_image_text_color']) ? $options['social_image_text_color'] : 'white';
-    $logo_id = isset($options['social_share_logo_id']) ? absint($options['social_share_logo_id']) : 0;
-
-    // Get color values
-    $bg_color = get_color_value($bg_color_key);
-    $text_color = get_color_value($text_color_key);
-
-    // Get font path (always Open Sans)
-    $font_path = get_font_path();
-
-    // Get site logo - Use the logo ID from temporary settings
-    $logo_url = $logo_id ? wp_get_attachment_image_url($logo_id, 'full') : '';
-
-    $logo_img_resource = null;
-    if ($logo_url) {
-        // Try fetching with https first, then http if needed
-        $logo_data = @file_get_contents($logo_url);
-        if (!$logo_data && strpos($logo_url, 'https://') === 0) {
-            $logo_data = @file_get_contents(str_replace('https://', 'http://', $logo_url));
-        }
-        if ($logo_data) {
-            $logo_img_resource = @imagecreatefromstring($logo_data);
-        }
+    // If we have a stored base image, use it
+    if (!empty($options['social_share_base_image'])) {
+        return $options['social_share_base_image'];
     }
 
-    // Generate unique filename for preview
-    $filename = 'social-image-preview-' . md5(json_encode($options) . time()) . '.jpg';
-    $upload_dir = wp_upload_dir();
-    $file_path = $upload_dir['path'] . '/' . $filename;
-
-    // Create image
-    $width = 1200;
-    $height = 630;
-    $padding = 80;
-    $image = imagecreatetruecolor($width, $height);
-    list($bg_r, $bg_g, $bg_b) = sscanf($bg_color, "#%02x%02x%02x");
-    list($text_r, $text_g, $text_b) = sscanf($text_color, "#%02x%02x%02x");
-    $bg = imagecolorallocate($image, $bg_r, $bg_g, $bg_b);
-    imagefill($image, 0, 0, $bg);
-    $text_color_gd = imagecolorallocate($image, $text_r, $text_g, $text_b);
-
-    // --- Logic mirrors generate_social_share_image() --- 
-    switch ($style) {
-        case 'style2': // Split Layout (Logo Left / Title Right)
-            $logo_area_width = $width * 0.4;
-            $text_area_x = $logo_area_width + $padding;
-            $text_area_width = $width - $text_area_x - $padding;
-            if ($logo_img_resource) {
-                $logo_w = imagesx($logo_img_resource);
-                $logo_h = imagesy($logo_img_resource);
-                $max_logo_w = $logo_area_width - ($padding * 1.5);
-                $max_logo_h = $height - ($padding * 2);
-                $ratio = min($max_logo_w / $logo_w, $max_logo_h / $logo_h);
-                $new_w = $logo_w * $ratio;
-                $new_h = $logo_h * $ratio;
-                $logo_x = ($logo_area_width - $new_w) / 2;
-                $logo_y = ($height - $new_h) / 2;
-                imagecopyresampled($image, $logo_img_resource, $logo_x, $logo_y, 0, 0, $new_w, $new_h, $logo_w, $logo_h);
-            }
-            $font_size = 48;
-            $title_lines = wrap_text($font_size, 0, $font_path, $title, $text_area_width);
-            $line_height = $font_size * 1.4;
-            $text_block_height = count($title_lines) * $line_height;
-            $title_start_y = ($height - $text_block_height) / 2 + ($font_size * 0.3);
-            foreach ($title_lines as $index => $line) {
-                imagettftext($image, $font_size, 0, $text_area_x, $title_start_y + ($index * $line_height), $text_color_gd, $font_path, $line);
-            }
-            $site_name_size = 20;
-            $text_box = imagettfbbox($site_name_size, 0, $font_path, $site_name);
-            $site_name_width = abs($text_box[4] - $text_box[0]);
-            imagettftext($image, $site_name_size, 0, $width - $padding - $site_name_width, $height - $padding + 10, $text_color_gd, $font_path, $site_name);
-            break;
-        case 'style3': // Logo Overlay
-            $dimmed_bg = imagecolorallocatealpha($image, $bg_r, $bg_g, $bg_b, 30);
-            imagefilledrectangle($image, 0, 0, $width, $height, $dimmed_bg);
-            if ($logo_img_resource) {
-                $logo_w = imagesx($logo_img_resource);
-                $logo_h = imagesy($logo_img_resource);
-                $max_w = $width - ($padding * 3);
-                $max_h = $height - ($padding * 3);
-                $ratio = min($max_w / $logo_w, $max_h / $logo_h);
-                $new_w = $logo_w * $ratio;
-                $new_h = $logo_h * $ratio;
-                $logo_x = ($width - $new_w) / 2;
-                $logo_y = ($height - $new_h) / 2;
-                imagecopyresampled($image, $logo_img_resource, $logo_x, $logo_y, 0, 0, $new_w, $new_h, $logo_w, $logo_h);
-            } else {
-                $font_size = 80;
-                $lines = wrap_text($font_size, 0, $font_path, $site_name, $width - $padding * 2);
-                $line_height = $font_size * 1.3;
-                $text_h = count($lines) * $line_height;
-                $start_y = ($height - $text_h) / 2 + ($font_size / 2);
-                foreach ($lines as $index => $line) {
-                    $t_box = imagettfbbox($font_size, 0, $font_path, $line);
-                    $t_width = abs($t_box[4] - $t_box[0]);
-                    $text_x = (int) (($width - $t_width) / 2);
-                    $text_y = (int) ($start_y + ($index * $line_height));
-                    imagettftext($image, $font_size, 0, $text_x, $text_y, $text_color_gd, $font_path, $line);
-                }
-            }
-            $overlay_color = get_color_value($text_color_key);
-            list($overlay_r, $overlay_g, $overlay_b) = sscanf($overlay_color, "#%02x%02x%02x");
-            $overlay_gd = imagecolorallocatealpha($image, $overlay_r, $overlay_g, $overlay_b, 90);
-            imagefilledrectangle($image, 0, 0, $width, $height, $overlay_gd);
-            $font_size = 52;
-            $title_lines = wrap_text($font_size, 0, $font_path, $title, $width - $padding * 2.5);
-            $line_height = $font_size * 1.4;
-            $text_height = count($title_lines) * $line_height;
-            $start_y = ($height - $text_height) / 2 + ($font_size / 2);
-            foreach ($title_lines as $index => $line) {
-                $text_box = imagettfbbox($font_size, 0, $font_path, $line);
-                $text_width = abs($text_box[4] - $text_box[0]);
-                $text_x = ($width - $text_width) / 2;
-                $shadow_color = imagecolorallocatealpha($image, 0, 0, 0, 50);
-                imagettftext($image, $font_size, 0, $text_x + 2, $start_y + ($index * $line_height) + 2, $shadow_color, $font_path, $line);
-                imagettftext($image, $font_size, 0, $text_x, $start_y + ($index * $line_height), $text_color_gd, $font_path, $line);
-            }
-            break;
-        default: // style1 - Logo Focus
-            if ($logo_img_resource) {
-                $logo_w = imagesx($logo_img_resource);
-                $logo_h = imagesy($logo_img_resource);
-                $max_logo_w = $width * 0.6;
-                $max_logo_h = $height * 0.6;
-                $ratio = min($max_logo_w / $logo_w, $max_logo_h / $logo_h);
-                $new_w = $logo_w * $ratio;
-                $new_h = $logo_h * $ratio;
-                $logo_x = ($width - $new_w) / 2;
-                $logo_y = ($height - $new_h) / 2 - 30;
-                imagecopyresampled($image, $logo_img_resource, $logo_x, $logo_y, 0, 0, $new_w, $new_h, $logo_w, $logo_h);
-                $site_name_size = 24;
-                $text_box = imagettfbbox($site_name_size, 0, $font_path, $site_name);
-                $site_name_width = abs($text_box[4] - $text_box[0]);
-                imagettftext($image, $site_name_size, 0, ($width - $site_name_width) / 2, $logo_y + $new_h + 40, $text_color_gd, $font_path, $site_name);
-            } else {
-                $font_size = 80;
-                $lines = wrap_text($font_size, 0, $font_path, $site_name, $width - $padding * 2);
-                $line_height = $font_size * 1.3;
-                $text_h = count($lines) * $line_height;
-                $start_y = ($height - $text_h) / 2 + ($font_size / 2);
-                foreach ($lines as $index => $line) {
-                    $t_box = imagettfbbox($font_size, 0, $font_path, $line);
-                    $t_width = abs($t_box[4] - $t_box[0]);
-                    $text_x = (int) (($width - $t_width) / 2);
-                    $text_y = (int) ($start_y + ($index * $line_height));
-                    imagettftext($image, $font_size, 0, $text_x, $text_y, $text_color_gd, $font_path, $line);
-                }
-            }
-            break;
-    }
-    // --- End of mirrored logic --- 
-
-    // Destroy logo resource if created
-    if ($logo_img_resource)
-        imagedestroy($logo_img_resource);
-
-    imagejpeg($image, $file_path, 90);
-    imagedestroy($image);
-
-    $image_url = $upload_dir['url'] . '/' . $filename;
-    if (is_ssl()) {
-        $image_url = str_replace('http://', 'https://', $image_url);
-    }
-    return $image_url;
+    // If no custom image is set, use the default
+    return plugin_dir_url(dirname(__FILE__, 3)) . 'assets/images/default-social-share.jpg';
 }
 
 // TODO: Add output_meta_tags function
