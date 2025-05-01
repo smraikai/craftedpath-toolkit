@@ -152,15 +152,31 @@ jQuery(document).ready(function ($) {
         }
     }
 
+    // Helper function to get color value
+    function getColorValue(key) {
+        switch (key) {
+            case 'white':
+                return '#ffffff';
+            case 'black':
+                return '#000000';
+            default:
+                return key; // Return the value directly for custom colors
+        }
+    }
+
     // --- Social Share Preview Generation ---
     function updateSocialSharePreview() {
         const $previewContainer = $('.social-share-settings .auto-generate-preview .preview-image');
         if (!$previewContainer.length) return;
 
-        const bgColor = $('select[name="craftedpath_seo_settings[social_image_bg_color]"]').val();
+        const bgColorSelect = $('#social-bg-color').val();
+        const bgColor = bgColorSelect === 'custom' ? $('#social-custom-bg-color').val() : bgColorSelect;
+        const bgOpacity = $('#social-bg-opacity').val() / 100;
         const textColor = $('select[name="craftedpath_seo_settings[social_image_text_color]"]').val();
         const logoId = $('.social-logo-uploader .image-id').val();
         const logoUrl = $('.social-logo-uploader .image-preview img').attr('src');
+        const bgImageId = $('.social-bg-uploader .image-id').val();
+        const bgImageUrl = $('.social-bg-uploader .image-preview img').attr('src');
         const siteName = $('input[name="craftedpath_seo_settings[site_name]"]').val() || 'Site Name';
 
         // Create canvas
@@ -169,61 +185,225 @@ jQuery(document).ready(function ($) {
         canvas.height = 630;
         const ctx = canvas.getContext('2d');
 
-        // Set background color
-        const bgColorValue = getColorValue(bgColor);
-        ctx.fillStyle = bgColorValue;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Draw background image if available
+        if (bgImageUrl) {
+            const bgImg = new Image();
+            bgImg.crossOrigin = 'anonymous';
+            bgImg.onload = function () {
+                // Calculate dimensions for cover sizing
+                const canvasRatio = canvas.width / canvas.height;
+                const imgRatio = bgImg.width / bgImg.height;
 
-        // Load logo if available
-        if (logoUrl) {
-            const logoImg = new Image();
-            logoImg.crossOrigin = 'anonymous';
-            logoImg.onload = function () {
-                const padding = 80;
+                let drawWidth, drawHeight, drawX, drawY;
+
+                if (imgRatio > canvasRatio) {
+                    // Image is wider than canvas
+                    drawHeight = canvas.height;
+                    drawWidth = drawHeight * imgRatio;
+                    drawX = (canvas.width - drawWidth) / 2;
+                    drawY = 0;
+                } else {
+                    // Image is taller than canvas
+                    drawWidth = canvas.width;
+                    drawHeight = drawWidth / imgRatio;
+                    drawX = 0;
+                    drawY = (canvas.height - drawHeight) / 2;
+                }
+
+                // Draw background image with cover sizing
+                ctx.drawImage(bgImg, drawX, drawY, drawWidth, drawHeight);
+
+                // Draw color overlay
+                const bgColorValue = getColorValue(bgColor);
+                ctx.fillStyle = bgColorValue + Math.round(bgOpacity * 255).toString(16).padStart(2, '0');
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Load logo if available
+                if (logoUrl) {
+                    const logoImg = new Image();
+                    logoImg.crossOrigin = 'anonymous';
+                    logoImg.onload = function () {
+                        const padding = 80;
+                        const textColorValue = getColorValue(textColor);
+
+                        // Draw logo
+                        const maxW = canvas.width * 0.6;
+                        const maxH = canvas.height * 0.6;
+                        const ratio = Math.min(maxW / logoImg.width, maxH / logoImg.height);
+                        const newW = logoImg.width * ratio;
+                        const newH = logoImg.height * ratio;
+                        const logoX = (canvas.width - newW) / 2;
+                        const logoY = (canvas.height - newH) / 2;
+                        ctx.drawImage(logoImg, logoX, logoY, newW, newH);
+
+                        // Update preview
+                        $previewContainer.find('img').attr('src', canvas.toDataURL('image/jpeg', 0.9));
+                    };
+                    logoImg.src = logoUrl;
+                } else {
+                    // If no logo, show site name
+                    const textColorValue = getColorValue(textColor);
+                    ctx.fillStyle = textColorValue;
+                    ctx.font = 'bold 80px Open Sans';
+                    const siteNameWidth = ctx.measureText(siteName).width;
+                    ctx.fillText(siteName, (canvas.width - siteNameWidth) / 2, canvas.height / 2);
+
+                    // Update preview
+                    $previewContainer.find('img').attr('src', canvas.toDataURL('image/jpeg', 0.9));
+                }
+            };
+            bgImg.src = bgImageUrl;
+        } else {
+            // If no background image, just use color
+            const bgColorValue = getColorValue(bgColor);
+            ctx.fillStyle = bgColorValue;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Load logo if available
+            if (logoUrl) {
+                const logoImg = new Image();
+                logoImg.crossOrigin = 'anonymous';
+                logoImg.onload = function () {
+                    const padding = 80;
+                    const textColorValue = getColorValue(textColor);
+
+                    // Draw logo
+                    const maxW = canvas.width * 0.6;
+                    const maxH = canvas.height * 0.6;
+                    const ratio = Math.min(maxW / logoImg.width, maxH / logoImg.height);
+                    const newW = logoImg.width * ratio;
+                    const newH = logoImg.height * ratio;
+                    const logoX = (canvas.width - newW) / 2;
+                    const logoY = (canvas.height - newH) / 2;
+                    ctx.drawImage(logoImg, logoX, logoY, newW, newH);
+
+                    // Update preview
+                    $previewContainer.find('img').attr('src', canvas.toDataURL('image/jpeg', 0.9));
+                };
+                logoImg.src = logoUrl;
+            } else {
+                // If no logo, show site name
                 const textColorValue = getColorValue(textColor);
-
-                // Draw logo
-                const maxW = canvas.width * 0.6;
-                const maxH = canvas.height * 0.6;
-                const ratio = Math.min(maxW / logoImg.width, maxH / logoImg.height);
-                const newW = logoImg.width * ratio;
-                const newH = logoImg.height * ratio;
-                const logoX = (canvas.width - newW) / 2;
-                const logoY = (canvas.height - newH) / 2;
-                ctx.drawImage(logoImg, logoX, logoY, newW, newH);
+                ctx.fillStyle = textColorValue;
+                ctx.font = 'bold 80px Open Sans';
+                const siteNameWidth = ctx.measureText(siteName).width;
+                ctx.fillText(siteName, (canvas.width - siteNameWidth) / 2, canvas.height / 2);
 
                 // Update preview
                 $previewContainer.find('img').attr('src', canvas.toDataURL('image/jpeg', 0.9));
-            };
-            logoImg.src = logoUrl;
-        } else {
-            // If no logo, show site name
-            const textColorValue = getColorValue(textColor);
-            ctx.fillStyle = textColorValue;
-            ctx.font = 'bold 80px Open Sans';
-            const siteNameWidth = ctx.measureText(siteName).width;
-            ctx.fillText(siteName, (canvas.width - siteNameWidth) / 2, canvas.height / 2);
-
-            // Update preview
-            $previewContainer.find('img').attr('src', canvas.toDataURL('image/jpeg', 0.9));
+            }
         }
     }
 
-    // Helper function to get color value
-    function getColorValue(key) {
-        switch (key) {
-            case 'primary':
-                return '#f55f4b';
-            case 'black':
-                return '#1f2937';
-            case 'white':
-                return '#ffffff';
-            case 'alt':
-                return '#6b7280';
-            case 'hover':
-                return '#e14b37';
-            default:
-                return '#f55f4b';
+    // Initialize color picker
+    function initializeColorPicker() {
+        const $bgColorSelect = $('#social-bg-color');
+        const $customColorInput = $('#social-custom-bg-color');
+        const $bgOpacity = $('#social-bg-opacity');
+        const $bgOpacityValue = $('#social-bg-opacity-value');
+
+        // Initialize color picker
+        $customColorInput.wpColorPicker({
+            defaultColor: '#f55f4b',
+            change: function (event, ui) {
+                updateSocialSharePreview();
+            }
+        });
+
+        // Show/hide color picker based on selection
+        $bgColorSelect.on('change', function () {
+            if ($(this).val() === 'custom') {
+                $customColorInput.show();
+            } else {
+                $customColorInput.hide();
+            }
+            updateSocialSharePreview();
+        });
+
+        // Update opacity value display
+        $bgOpacity.on('input', function () {
+            $bgOpacityValue.text($(this).val() + '%');
+            updateSocialSharePreview();
+        });
+
+        // Initial state
+        if ($bgColorSelect.val() === 'custom') {
+            $customColorInput.show();
+        }
+    }
+
+    // Initialize background image uploader
+    function initializeBackgroundUploader() {
+        const $container = $('.social-bg-uploader');
+        if (!$container.length) return;
+
+        let mediaFrame;
+        const $input = $container.find('.image-id');
+        const $preview = $container.find('.image-preview');
+        const $uploadButton = $container.find('.upload-button');
+        const $removeButton = $container.find('.remove-button');
+        const noImageText = $preview.find('.description').length ? $preview.find('.description').text() : 'No image selected.';
+
+        // Remove any existing handlers first
+        $uploadButton.off('click');
+        $removeButton.off('click');
+
+        // Attach new handlers
+        $uploadButton.on('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (typeof wp === 'undefined' || !wp.media) {
+                console.error('[SEO Settings] wp.media not available on click!');
+                return;
+            }
+
+            // If the media frame already exists, reopen it.
+            if (mediaFrame) {
+                mediaFrame.open();
+                return;
+            }
+
+            // Create the media frame.
+            mediaFrame = wp.media({
+                title: 'Select or Upload Background Image',
+                button: {
+                    text: 'Use this image'
+                },
+                library: { type: 'image' },
+                multiple: false
+            });
+
+            // When an image is selected, run a callback.
+            mediaFrame.on('select', function () {
+                const attachment = mediaFrame.state().get('selection').first().toJSON();
+                $input.val(attachment.id);
+                const displayUrl = (attachment.sizes && attachment.sizes.medium) ? attachment.sizes.medium.url : attachment.url;
+                $preview.html('<img src="' + displayUrl + '" style="max-width: 100%; height: auto; display: block;" />');
+                $removeButton.show();
+
+                // Update the social share preview
+                updateSocialSharePreview();
+            });
+
+            // Finally, open the modal
+            mediaFrame.open();
+        });
+
+        $removeButton.on('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            $input.val('0');
+            $preview.html('<span class="description">' + noImageText + '</span>');
+            $(this).hide();
+
+            // Update the social share preview
+            updateSocialSharePreview();
+        });
+
+        // If there's already an image, make sure the remove button is visible
+        if ($input.val() && $input.val() !== '0') {
+            $removeButton.show();
         }
     }
 
@@ -236,8 +416,13 @@ jQuery(document).ready(function ($) {
         updateSocialSharePreview();
     });
 
-    // Initialize the logo uploader
-    initializeSocialLogoUploader();
+    // Initialize everything when document is ready
+    jQuery(document).ready(function ($) {
+        initializeColorPicker();
+        initializeBackgroundUploader();
+        initializeSocialLogoUploader();
+        waitForMedia();
+    });
 
     // Wait for wp.media to be available before initializing preview
     function waitForMedia() {
@@ -248,7 +433,4 @@ jQuery(document).ready(function ($) {
             setTimeout(waitForMedia, 100);
         }
     }
-
-    // Start waiting for wp.media
-    waitForMedia();
 }); 

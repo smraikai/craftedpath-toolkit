@@ -229,73 +229,109 @@ function render_social_share_logo_field()
 function render_social_share_settings()
 {
     $options = get_option('craftedpath_seo_settings', []);
-    $bg_color = isset($options['social_image_bg_color']) ? $options['social_image_bg_color'] : 'primary';
+    $bg_color = isset($options['social_image_bg_color']) ? $options['social_image_bg_color'] : '#ffffff';
+    $bg_opacity = isset($options['social_image_bg_opacity']) ? $options['social_image_bg_opacity'] : '100';
+    $bg_image_id = isset($options['social_image_bg_image_id']) ? $options['social_image_bg_image_id'] : 0;
     $text_color = isset($options['social_image_text_color']) ? $options['social_image_text_color'] : 'white';
 
-    // Generate a preview image
-    $preview_url = generate_social_share_image_preview(); // Use preview function
-    ?>
-        <div class="social-share-settings">
-    <div class="auto-generate-preview" style="margin-bottom: 20px;">
-        <h3>
-            <?php esc_html_e('Preview', 'craftedpath-toolkit'); ?>
-        </h3>
-        <p class="description">
-            <?php esc_html_e('This is how your social share images will look:', 'craftedpath-toolkit'); ?>
-        </p>
-        <div class="preview-image" style="margin-top: 10px; max-width: 600px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-            <img src="<?php echo esc_url($preview_url); ?>" style="width: 100%; height: auto;" />
-        </div>
-    </div>
+    // Get background image URL if exists
+    $bg_image_url = $bg_image_id ? wp_get_attachment_image_url($bg_image_id, 'full') : '';
 
-    <table class="form-table">
-        <tr>
-            <th scope="row">
-                <?php esc_html_e('Background Color', 'craftedpath-toolkit'); ?>
-            </th>
-            <td>
-                <select name="craftedpath_seo_settings[social_image_bg_color]">
-                    <option value="primary" <?php selected($bg_color, 'primary'); ?>>
-                        <?php esc_html_e('Primary', 'craftedpath-toolkit'); ?>
-                            </option>
-                            <option value="black" <?php selected($bg_color, 'black'); ?>>
-                        <?php esc_html_e('Black', 'craftedpath-toolkit'); ?>
-                            </option>
-                            <option value="white" <?php selected($bg_color, 'white'); ?>>
-                        <?php esc_html_e('White', 'craftedpath-toolkit'); ?>
-                            </option>
-                            <option value="alt" <?php selected($bg_color, 'alt'); ?>>
-                        <?php esc_html_e('Alternative', 'craftedpath-toolkit'); ?>
-                    </option>
-                    </select> <p class="description">
-                    <?php esc_html_e('Select the background color from your theme presets.', 'craftedpath-toolkit'); ?>
+    // Generate a preview image
+    $preview_url = generate_social_share_image_preview();
+    ?>
+    <div class="social-share-settings">
+        <div class="auto-generate-preview" style="margin-bottom: 20px;">
+            <h3><?php esc_html_e('Preview', 'craftedpath-toolkit'); ?></h3>
+            <p class="description">
+                <?php esc_html_e('This is how your social share images will look:', 'craftedpath-toolkit'); ?>
+            </p>
+            <div class="preview-image" style="margin-top: 10px; max-width: 600px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <img src="<?php echo esc_url($preview_url); ?>" style="width: 100%; height: auto;" />
+            </div>
+        </div>
+
+        <table class="form-table">
+            <tr>
+                <th scope="row"><?php esc_html_e('Background Image', 'craftedpath-toolkit'); ?></th>
+                <td>
+                    <div class="craftedpath-image-uploader social-bg-uploader">
+                        <input type="hidden" name="craftedpath_seo_settings[social_image_bg_image_id]"
+                            value="<?php echo esc_attr($bg_image_id); ?>" class="image-id">
+                        <button type="button" class="button upload-button">
+                            <?php esc_html_e('Upload/Select Image', 'craftedpath-toolkit'); ?>
+                        </button>
+                        <button type="button" class="button remove-button"
+                            style="<?php echo $bg_image_id ? '' : 'display:none;'; ?>">
+                            <?php esc_html_e('Remove Image', 'craftedpath-toolkit'); ?>
+                        </button>
+                        <div class="image-preview"
+                            style="margin-top: 10px; background: #f0f0f1; padding: 10px; min-height: 50px; max-width: 200px; display: inline-block; vertical-align: top;">
+                            <?php if ($bg_image_url): ?>
+                                <img src="<?php echo esc_url($bg_image_url); ?>"
+                                    style="max-width: 100%; height: auto; display: block;" />
+                            <?php else: ?>
+                                <span
+                                    class="description"><?php esc_html_e('No image selected.', 'craftedpath-toolkit'); ?></span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <p class="description">
+                        <?php esc_html_e('Upload or select a background image for your social share images.', 'craftedpath-toolkit'); ?>
                     </p>
-            </td>
-        </tr>
-        <tr>
-            <th scope="row">
-                <?php esc_html_e('Text Color', 'craftedpath-toolkit'); ?>
-            </th>
-            <td>
-                <select name="craftedpath_seo_settings[social_image_text_color]">
-                    <option value="primary" <?php selected($text_color, 'primary'); ?>>
-                        <?php esc_html_e('Primary', 'craftedpath-toolkit'); ?>
-                            </option>
-                            <option value="black" <?php selected($text_color, 'black'); ?>>
-                        <?php esc_html_e('Black', 'craftedpath-toolkit'); ?>
-                            </option>
-                            <option value="white" <?php selected($text_color, 'white'); ?>>
-                        <?php esc_html_e('White', 'craftedpath-toolkit'); ?>
-                            </option>
-                            <option value="alt" <?php selected($text_color, 'alt'); ?>>
-                        <?php esc_html_e('Alternative', 'craftedpath-toolkit'); ?>
-                    </option>
-                    </select> <p class="description">
-                    <?php esc_html_e('Select the text color from your theme presets.', 'craftedpath-toolkit'); ?>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row"><?php esc_html_e('Background Color', 'craftedpath-toolkit'); ?></th>
+                <td>
+                    <select name="craftedpath_seo_settings[social_image_bg_color]" id="social-bg-color">
+                        <option value="#ffffff" <?php selected($bg_color, '#ffffff'); ?>>
+                            <?php esc_html_e('White', 'craftedpath-toolkit'); ?>
+                        </option>
+                        <option value="#000000" <?php selected($bg_color, '#000000'); ?>>
+                            <?php esc_html_e('Black', 'craftedpath-toolkit'); ?>
+                        </option>
+                        <option value="custom" <?php selected($bg_color, 'custom'); ?>>
+                            <?php esc_html_e('Custom', 'craftedpath-toolkit'); ?>
+                        </option>
+                    </select>
+                    <input type="text" name="craftedpath_seo_settings[social_image_custom_bg_color]"
+                        id="social-custom-bg-color"
+                        value="<?php echo esc_attr(isset($options['social_image_custom_bg_color']) ? $options['social_image_custom_bg_color'] : '#f55f4b'); ?>"
+                        class="color-picker" style="display: none;" />
+                    <p class="description">
+                        <?php esc_html_e('Select the background color overlay for your social share images.', 'craftedpath-toolkit'); ?>
                     </p>
-            </td>
-        </tr>
-    </table>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row"><?php esc_html_e('Color Opacity', 'craftedpath-toolkit'); ?></th>
+                <td>
+                    <input type="range" name="craftedpath_seo_settings[social_image_bg_opacity]" id="social-bg-opacity"
+                        min="0" max="100" step="1" value="<?php echo esc_attr($bg_opacity); ?>" />
+                    <span id="social-bg-opacity-value"><?php echo esc_html($bg_opacity); ?>%</span>
+                    <p class="description">
+                        <?php esc_html_e('Adjust the opacity of the background color overlay.', 'craftedpath-toolkit'); ?>
+                    </p>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row"><?php esc_html_e('Text Color', 'craftedpath-toolkit'); ?></th>
+                <td>
+                    <select name="craftedpath_seo_settings[social_image_text_color]">
+                        <option value="white" <?php selected($text_color, 'white'); ?>>
+                            <?php esc_html_e('White', 'craftedpath-toolkit'); ?>
+                        </option>
+                        <option value="black" <?php selected($text_color, 'black'); ?>>
+                            <?php esc_html_e('Black', 'craftedpath-toolkit'); ?>
+                        </option>
+                    </select>
+                    <p class="description">
+                        <?php esc_html_e('Select the text color for your social share images.', 'craftedpath-toolkit'); ?>
+                    </p>
+                </td>
+            </tr>
+        </table>
     </div>
     <?php
 }
@@ -323,7 +359,7 @@ function get_seo_upload_dir()
 }
 
 /**
- * Generate and store the social share image when settings are saved.
+ * Sanitize and save the SEO settings.
  *
  * @param array $input The input array.
  * @return array Sanitized array.
@@ -349,8 +385,29 @@ function sanitize_settings($input)
     $allowed_styles = ['style1', 'style2', 'style3'];
     $output['social_image_style'] = isset($input['social_image_style']) && in_array($input['social_image_style'], $allowed_styles, true) ? $input['social_image_style'] : 'style1';
 
-    $allowed_colors = ['primary', 'black', 'white', 'alt', 'hover'];
-    $output['social_image_bg_color'] = isset($input['social_image_bg_color']) && in_array($input['social_image_bg_color'], $allowed_colors, true) ? $input['social_image_bg_color'] : 'primary';
+    // Sanitize background color
+    if (isset($input['social_image_bg_color'])) {
+        $output['social_image_bg_color'] = sanitize_text_field($input['social_image_bg_color']);
+    }
+
+    // Sanitize custom background color
+    if (isset($input['social_image_custom_bg_color'])) {
+        $output['social_image_custom_bg_color'] = sanitize_hex_color($input['social_image_custom_bg_color']);
+    }
+
+    // Sanitize background opacity
+    if (isset($input['social_image_bg_opacity'])) {
+        $opacity = intval($input['social_image_bg_opacity']);
+        $output['social_image_bg_opacity'] = max(0, min(100, $opacity)); // Ensure between 0-100
+    }
+
+    // Sanitize background image
+    if (isset($input['social_image_bg_image_id'])) {
+        $output['social_image_bg_image_id'] = absint($input['social_image_bg_image_id']);
+    }
+
+    // Sanitize text color
+    $allowed_colors = ['white', 'black'];
     $output['social_image_text_color'] = isset($input['social_image_text_color']) && in_array($input['social_image_text_color'], $allowed_colors, true) ? $input['social_image_text_color'] : 'white';
 
     // Generate and store the social share image
@@ -371,7 +428,7 @@ function sanitize_settings($input)
             $image = imagecreatetruecolor($width, $height);
 
             // Get colors
-            $bg_color = get_color_value($output['social_image_bg_color']);
+            $bg_color = $output['social_image_bg_color'] === 'custom' ? $output['social_image_custom_bg_color'] : $output['social_image_bg_color'];
             $text_color = get_color_value($output['social_image_text_color']);
             list($bg_r, $bg_g, $bg_b) = sscanf($bg_color, "#%02x%02x%02x");
             list($text_r, $text_g, $text_b) = sscanf($text_color, "#%02x%02x%02x");
@@ -487,6 +544,10 @@ function enqueue_admin_scripts($hook_suffix)
     // Enqueue WP media assets (still needed for wp.media object)
     wp_enqueue_media();
 
+    // Enqueue WordPress color picker
+    wp_enqueue_style('wp-color-picker');
+    wp_enqueue_script('wp-color-picker');
+
     // Enqueue the admin settings script - simplified
     // Update path to be relative to this file now
     $script_path_relative = 'js/admin-seo-settings.js';
@@ -495,7 +556,7 @@ function enqueue_admin_scripts($hook_suffix)
     wp_enqueue_script(
         'craftedpath-seo-settings-js',
         $script_url,
-        array(), // Keep dependencies empty
+        array('wp-color-picker'), // Add wp-color-picker as a dependency
         defined('CPT_VERSION') ? CPT_VERSION : '1.0',
         true // Load in footer
     );
