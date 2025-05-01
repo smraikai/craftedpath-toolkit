@@ -147,14 +147,11 @@ class CPT_AI_Sitemap_Generator
 
             <div id="sitemap_results" class="cpt-results-container" style="display: none;">
                 <h3><?php esc_html_e('Generated Sitemap', 'craftedpath-toolkit'); ?></h3>
-                <p><?php esc_html_e('Select which pages you want to create, then click "Create WordPress Pages".', 'craftedpath-toolkit'); ?>
+                <p><?php esc_html_e('Select which pages you want to create, then click "Create Selected Pages".', 'craftedpath-toolkit'); ?>
                 </p>
                 <div class="sitemap-tree"></div>
                 <div class="cpt-actions">
-                    <button class="button button-secondary"
-                        id="save_sitemap"><?php esc_html_e('Save as JSON', 'craftedpath-toolkit'); ?></button>
-                    <button class="button button-secondary"
-                        id="export_sitemap"><?php esc_html_e('Export to CSV', 'craftedpath-toolkit'); ?></button>
+                    <!-- Buttons will be dynamically added here by JS -->
                 </div>
             </div>
 

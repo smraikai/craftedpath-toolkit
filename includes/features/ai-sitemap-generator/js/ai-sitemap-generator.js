@@ -22,32 +22,25 @@
      */
     function initSitemapGenerator() {
         const $generateBtn = $('#generate_sitemap');
+        const $sitemapResultsContainer = $('#sitemap_results'); // Static container for delegation
+
         if (!$generateBtn.length) return;
 
+        // Generate button click
         $generateBtn.on('click', function (e) {
             e.preventDefault();
             generateSitemap();
         });
 
-        // Save button handler
-        $('#save_sitemap').on('click', function () {
-            saveSitemapAsJson();
-        });
-
-        // Export button handler
-        $('#export_sitemap').on('click', function () {
-            exportSitemapToCsv();
-        });
-
-        // Create Pages button handler
-        $('#create_pages').on('click', function () {
+        // Use event delegation for dynamically added elements
+        $sitemapResultsContainer.on('click', '#create_pages', function () {
             createWordPressPages();
         });
 
-        // Select/Deselect All checkbox handler
-        $('#select_all_pages').on('change', function () {
+        $sitemapResultsContainer.on('change', '#select_all_pages', function () {
             const isChecked = $(this).prop('checked');
-            $('.page-checkbox').prop('checked', isChecked);
+            // Find checkboxes within the sitemap tree relative to the container
+            $sitemapResultsContainer.find('.page-checkbox').prop('checked', isChecked);
         });
     }
 
@@ -93,6 +86,8 @@
         $error.hide();
         $results.hide();
         $loading.show();
+        // Clear previous success messages
+        $('.notice-success').remove();
 
         // Prepare data
         const data = {
@@ -199,11 +194,16 @@
         // Build the tree recursively
         function buildTree(items, $parent, parentPath = '') {
             items.forEach(function (item, index) {
+                // Use a more robust ID generation (e.g., based on path and index)
+                const uniqueIdPart = parentPath.replace(/[^a-zA-Z0-9]/g, '_') + '_' + index;
+                const pageId = 'page_' + uniqueIdPart;
                 const itemPath = item.path || '';
-                const pageId = 'page_' + parentPath.replace(/\//g, '_') + '_' + index;
 
                 const $item = $('<li></li>');
-                const $checkbox = $('<input type="checkbox" class="page-checkbox" id="' + pageId + '" checked data-path="' + itemPath + '" data-parent="' + parentPath + '">');
+                // Pass the unique ID to the checkbox and store item data correctly
+                const $checkbox = $('<input type="checkbox" class="page-checkbox" id="' + pageId + '" checked>');
+                // Use .data() to store the object, avoiding JSON stringify issues in attributes
+                $checkbox.data('item', item);
                 const $label = $('<label for="' + pageId + '"></label>');
 
                 $label.append('<span class="sitemap-page-title">' + item.title + '</span>');
@@ -217,7 +217,8 @@
 
                 if (item.children && item.children.length) {
                     const $subList = $('<ul></ul>');
-                    buildTree(item.children, $subList, itemPath);
+                    // Pass the generated unique pageId as the parent identifier for children
+                    buildTree(item.children, $subList, pageId);
                     $item.append($subList);
                 }
 
@@ -231,9 +232,9 @@
             $container.append($tree);
         }
 
-        // Add Create Pages button if not already there
+        // Ensure Create Pages button exists in the actions area
         if ($('#create_pages').length === 0) {
-            $('.cpt-actions').prepend('<button class="button button-primary" id="create_pages">Create WordPress Pages</button>');
+            $('#sitemap_results .cpt-actions').prepend('<button class="button button-primary" id="create_pages">Create Selected Pages</button>');
         }
     }
 
@@ -267,56 +268,6 @@
             buildMenu(data, $menuList);
             $container.append($menuList);
         }
-    }
-
-    /**
-     * Save the sitemap data as a JSON file
-     */
-    function saveSitemapAsJson() {
-        if (!window.sitemapData) return;
-
-        const dataStr = JSON.stringify(window.sitemapData, null, 2);
-        const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
-
-        const exportLink = document.createElement('a');
-        exportLink.setAttribute('href', dataUri);
-        exportLink.setAttribute('download', 'sitemap.json');
-        exportLink.click();
-    }
-
-    /**
-     * Export the sitemap data as a CSV file
-     */
-    function exportSitemapToCsv() {
-        if (!window.sitemapData) return;
-
-        let csvContent = 'Page Title,URL Path,Description,Level\n';
-
-        // Flatten the tree structure
-        function processItems(items, level) {
-            items.forEach(function (item) {
-                const path = item.path || '';
-                const desc = item.description || '';
-
-                // Escape quotes in CSV
-                const title = item.title.replace(/"/g, '""');
-                const description = desc.replace(/"/g, '""');
-
-                csvContent += `"${title}","${path}","${description}",${level}\n`;
-
-                if (item.children && item.children.length) {
-                    processItems(item.children, level + 1);
-                }
-            });
-        }
-
-        processItems(window.sitemapData, 1);
-
-        const dataUri = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvContent);
-        const exportLink = document.createElement('a');
-        exportLink.setAttribute('href', dataUri);
-        exportLink.setAttribute('download', 'sitemap.csv');
-        exportLink.click();
     }
 
     /**
@@ -380,49 +331,25 @@
      * Create WordPress pages from the generated sitemap
      */
     function createWordPressPages() {
-        if (!window.sitemapData) return;
-
         const $error = $('#sitemap_error');
         const $loading = $('#sitemap_loading');
+        const $resultsContainer = $('#sitemap_results');
 
         // Reset UI and show loading
         $error.hide();
         $loading.show().find('p').text('Creating WordPress pages...');
+        $('.notice-success').remove(); // Clear previous success messages
 
-        // Get all checked pages
-        const checkedPages = [];
-
-        // Function to collect checked pages recursively
-        function collectCheckedPages(items, parentId = 0) {
-            const selectedItems = [];
-
-            items.forEach(function (item, index) {
-                const pageId = parentId === 0 ? 'page_' + index : 'page_' + parentId + '_' + index;
-                const $checkbox = $('#' + pageId.replace(/\//g, '_'));
-
-                if ($checkbox.is(':checked')) {
-                    // Clone the item to avoid reference issues
-                    const selectedItem = Object.assign({}, item);
-
-                    // Set parent ID
-                    selectedItem.parentId = parentId;
-
-                    // If it has children, process them recursively
-                    if (item.children && item.children.length) {
-                        selectedItem.children = collectCheckedPages(item.children, pageId);
-                    } else {
-                        selectedItem.children = [];
-                    }
-
-                    selectedItems.push(selectedItem);
-                }
-            });
-
-            return selectedItems;
-        }
-
-        // Collect all checked pages
-        const selectedPages = collectCheckedPages(window.sitemapData);
+        // Get all checked page data directly from checkboxes using .data()
+        const selectedPages = [];
+        $resultsContainer.find('.page-checkbox:checked').each(function () {
+            const itemData = $(this).data('item');
+            if (itemData) {
+                selectedPages.push(itemData);
+            } else {
+                console.warn("Could not retrieve item data for checkbox: ", this.id);
+            }
+        });
 
         // Check if any pages are selected
         if (selectedPages.length === 0) {
@@ -434,6 +361,7 @@
         // Prepare AJAX data
         const data = {
             action: 'cpt_create_wp_pages',
+            // Send the flat list of selected pages, hierarchy reconstruction will happen on the server
             pages_data: JSON.stringify(selectedPages),
             security: cptSitemapVars.nonce
         };
@@ -460,7 +388,8 @@
                         message.append(pagesList);
                     }
 
-                    $('.sitemap-tree').after(message);
+                    // Append message after the results container
+                    $resultsContainer.after(message);
                 } else {
                     $error.text(response.data).show();
                 }
