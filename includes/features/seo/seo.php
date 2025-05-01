@@ -20,6 +20,8 @@ function setup()
     add_action('init', __NAMESPACE__ . '\\register_meta_fields');
     add_action('admin_init', __NAMESPACE__ . '\\register_settings');
     add_action('wp_head', __NAMESPACE__ . '\\output_meta_tags', 1); // Use priority 1 to run early
+    add_action('admin_enqueue_scripts', __NAMESPACE__ . '\\enqueue_admin_scripts');
+    add_action('wp_ajax_update_social_image_preview', __NAMESPACE__ . '\\handle_social_image_preview');
 }
 
 /**
@@ -68,7 +70,7 @@ function register_settings()
     add_settings_section(
         'craftedpath_seo_general_section',
         __('General SEO Settings', 'craftedpath-toolkit'),
-        null, // No description callback needed for this section
+        null,
         'craftedpath-seo-settings'
     );
 
@@ -89,9 +91,17 @@ function register_settings()
     );
 
     add_settings_field(
-        'social_share_image',
-        __('Default Social Share Image', 'craftedpath-toolkit'),
-        __NAMESPACE__ . '\\render_social_image_field',
+        'social_share_logo',
+        __('Social Share Logo', 'craftedpath-toolkit'),
+        __NAMESPACE__ . '\\render_social_share_logo_field',
+        'craftedpath-seo-settings',
+        'craftedpath_seo_general_section'
+    );
+
+    add_settings_field(
+        'social_share_settings',
+        __('Social Share Image Layout', 'craftedpath-toolkit'),
+        __NAMESPACE__ . '\\render_social_share_settings',
         'craftedpath-seo-settings',
         'craftedpath_seo_general_section'
     );
@@ -183,32 +193,126 @@ function render_meta_divider_field()
 }
 
 /**
- * Render the Social Share Image field.
- * Needs WP Media Uploader JS.
+ * Render the Social Share Logo field.
  */
-function render_social_image_field()
+function render_social_share_logo_field()
 {
-    // We'll add the media uploader logic later with JavaScript.
     $options = get_option('craftedpath_seo_settings', []);
-    $image_id = $options['social_share_image_id'] ?? 0;
-    $image_url = $image_id ? wp_get_attachment_image_url($image_id, 'medium') : '';
+    $logo_id = isset($options['social_share_logo_id']) ? absint($options['social_share_logo_id']) : 0;
+    $logo_url = $logo_id ? wp_get_attachment_image_url($logo_id, 'medium') : '';
     ?>
-    <div class="craftedpath-image-uploader">
-        <input type="hidden" name="craftedpath_seo_settings[social_share_image_id]"
-            value="<?php echo esc_attr($image_id); ?>" class="image-id">
+    <div class="craftedpath-image-uploader social-logo-uploader">
+        <input type="hidden" name="craftedpath_seo_settings[social_share_logo_id]" value="<?php echo esc_attr($logo_id); ?>"
+            class="image-id">
         <button type="button"
-            class="button upload-button"><?php esc_html_e('Upload/Select Image', 'craftedpath-toolkit'); ?></button>
+            class="button upload-button"><?php esc_html_e('Upload/Select Logo', 'craftedpath-toolkit'); ?></button>
         <button type="button" class="button remove-button"
-            style="<?php echo $image_id ? '' : 'display:none;'; ?>"><?php esc_html_e('Remove Image', 'craftedpath-toolkit'); ?></button>
-        <div class="image-preview" style="margin-top: 10px;">
-            <?php if ($image_url): ?>
-                <img src="<?php echo esc_url($image_url); ?>" style="max-width: 200px; height: auto;" />
+            style="<?php echo $logo_id ? '' : 'display:none;'; ?>"><?php esc_html_e('Remove Logo', 'craftedpath-toolkit'); ?></button>
+        <div class="image-preview"
+            style="margin-top: 10px; background: #f0f0f1; padding: 10px; min-height: 50px; max-width: 200px; display: inline-block; vertical-align: top;">
+            <?php if ($logo_url): ?>
+                <img src="<?php echo esc_url($logo_url); ?>" style="max-width: 100%; height: auto; display: block;" />
+            <?php else: ?>
+                <span class="description"><?php esc_html_e('No logo selected.', 'craftedpath-toolkit'); ?></span>
             <?php endif; ?>
         </div>
     </div>
     <p class="description">
-        <?php esc_html_e('Default image used for social sharing (e.g., Facebook, Twitter).', 'craftedpath-toolkit'); ?>
+        <?php esc_html_e('Upload or select the logo to use for social share images. If empty, the Site Logo from the Customizer will be used.', 'craftedpath-toolkit'); ?>
     </p>
+    <?php
+}
+
+/**
+ * Render social share settings field.
+ */
+function render_social_share_settings()
+{
+    $options = get_option('craftedpath_seo_settings', []);
+    $style = isset($options['social_image_style']) ? $options['social_image_style'] : 'style1';
+    $bg_color = isset($options['social_image_bg_color']) ? $options['social_image_bg_color'] : 'primary';
+    $text_color = isset($options['social_image_text_color']) ? $options['social_image_text_color'] : 'white';
+
+    // Generate a preview image
+    $preview_url = generate_social_share_image_preview(); // Use preview function
+    ?>
+    <div class="social-share-settings">
+        <div class="auto-generate-preview" style="margin-bottom: 20px;">
+            <h3><?php esc_html_e('Preview', 'craftedpath-toolkit'); ?></h3>
+            <p class="description">
+                <?php esc_html_e('This is how your social share images will look:', 'craftedpath-toolkit'); ?>
+            </p>
+            <div class="preview-image" style="margin-top: 10px; max-width: 600px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <img src="<?php echo esc_url($preview_url); ?>" style="width: 100%; height: auto;" />
+            </div>
+        </div>
+
+        <table class="form-table">
+            <tr>
+                <th scope="row"><?php esc_html_e('Layout Style', 'craftedpath-toolkit'); ?></th>
+                <td>
+                    <select name="craftedpath_seo_settings[social_image_style]">
+                        <option value="style1" <?php selected($style, 'style1'); ?>>
+                            <?php esc_html_e('Logo Focus', 'craftedpath-toolkit'); ?>
+                        </option>
+                        <option value="style2" <?php selected($style, 'style2'); ?>>
+                            <?php esc_html_e('Split Layout (Logo/Title)', 'craftedpath-toolkit'); ?>
+                        </option>
+                        <option value="style3" <?php selected($style, 'style3'); ?>>
+                            <?php esc_html_e('Logo Overlay', 'craftedpath-toolkit'); ?>
+                        </option>
+                    </select>
+                    <p class="description">
+                        <?php esc_html_e('Choose the layout style for your social share images.', 'craftedpath-toolkit'); ?>
+                    </p>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row"><?php esc_html_e('Background Color', 'craftedpath-toolkit'); ?></th>
+                <td>
+                    <select name="craftedpath_seo_settings[social_image_bg_color]">
+                        <option value="primary" <?php selected($bg_color, 'primary'); ?>>
+                            <?php esc_html_e('Primary', 'craftedpath-toolkit'); ?>
+                        </option>
+                        <option value="black" <?php selected($bg_color, 'black'); ?>>
+                            <?php esc_html_e('Black', 'craftedpath-toolkit'); ?>
+                        </option>
+                        <option value="white" <?php selected($bg_color, 'white'); ?>>
+                            <?php esc_html_e('White', 'craftedpath-toolkit'); ?>
+                        </option>
+                        <option value="alt" <?php selected($bg_color, 'alt'); ?>>
+                            <?php esc_html_e('Alternative', 'craftedpath-toolkit'); ?>
+                        </option>
+                    </select>
+                    <p class="description">
+                        <?php esc_html_e('Select the background color from your theme presets.', 'craftedpath-toolkit'); ?>
+                    </p>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row"><?php esc_html_e('Text/Overlay Color', 'craftedpath-toolkit'); ?></th>
+                <td>
+                    <select name="craftedpath_seo_settings[social_image_text_color]">
+                        <option value="primary" <?php selected($text_color, 'primary'); ?>>
+                            <?php esc_html_e('Primary', 'craftedpath-toolkit'); ?>
+                        </option>
+                        <option value="black" <?php selected($text_color, 'black'); ?>>
+                            <?php esc_html_e('Black', 'craftedpath-toolkit'); ?>
+                        </option>
+                        <option value="white" <?php selected($text_color, 'white'); ?>>
+                            <?php esc_html_e('White', 'craftedpath-toolkit'); ?>
+                        </option>
+                        <option value="alt" <?php selected($text_color, 'alt'); ?>>
+                            <?php esc_html_e('Alternative', 'craftedpath-toolkit'); ?>
+                        </option>
+                    </select>
+                    <p class="description">
+                        <?php esc_html_e('Select the text and overlay color from your theme presets.', 'craftedpath-toolkit'); ?>
+                    </p>
+                </td>
+            </tr>
+        </table>
+    </div>
     <?php
 }
 
@@ -227,13 +331,21 @@ function sanitize_settings($input)
     }
     if (isset($input['meta_divider'])) {
         $allowed_dividers = ['|', '-', '—', '•', '·', '»', '>'];
-        // Allow only specific dividers or default to '|'
         $output['meta_divider'] = in_array($input['meta_divider'], $allowed_dividers, true) ? $input['meta_divider'] : '|';
     }
-    if (isset($input['social_share_image_id'])) {
-        $output['social_share_image_id'] = absint($input['social_share_image_id']);
+
+    // Sanitize social share logo
+    if (isset($input['social_share_logo_id'])) {
+        $output['social_share_logo_id'] = absint($input['social_share_logo_id']);
     }
 
+    // Sanitize social image layout settings
+    $allowed_styles = ['style1', 'style2', 'style3'];
+    $output['social_image_style'] = isset($input['social_image_style']) && in_array($input['social_image_style'], $allowed_styles, true) ? $input['social_image_style'] : 'style1';
+
+    $allowed_colors = ['primary', 'black', 'white', 'alt', 'hover'];
+    $output['social_image_bg_color'] = isset($input['social_image_bg_color']) && in_array($input['social_image_bg_color'], $allowed_colors, true) ? $input['social_image_bg_color'] : 'primary';
+    $output['social_image_text_color'] = isset($input['social_image_text_color']) && in_array($input['social_image_text_color'], $allowed_colors, true) ? $input['social_image_text_color'] : 'white';
 
     return $output;
 }
@@ -243,23 +355,31 @@ function sanitize_settings($input)
  */
 function enqueue_admin_scripts($hook_suffix)
 {
+    // Define the target hook for our settings page - Use the correct one found via logging
+    $target_hook = 'craftedpath_page_craftedpath-seo-settings';
+
     // Only load on our settings page.
-    if ('settings_page_craftedpath-seo-settings' !== $hook_suffix) {
+    if ($target_hook !== $hook_suffix) {
         return;
     }
 
-    wp_enqueue_media(); // Enqueue WP media assets
+    // Enqueue WP media assets (still needed for wp.media object)
+    wp_enqueue_media();
 
-    // Enqueue the admin settings script
+    // Enqueue the admin settings script - simplified
+    // Update path to be relative to this file now
+    $script_path_relative = 'js/admin-seo-settings.js';
+    $script_url = plugin_dir_url(__FILE__) . $script_path_relative;
+    // error_log('[CraftedPath SEO] Enqueuing script URL: ' . $script_url);
+
     wp_enqueue_script(
         'craftedpath-seo-settings-js',
-        plugin_dir_url(dirname(__FILE__, 3)) . 'assets/js/admin-seo-settings.js',
-        ['jquery', 'wp-mediaelement'], // Dependencies
-        defined('CPT_VERSION') ? CPT_VERSION : '1.0', // Use defined() check for safety
+        $script_url,
+        array(), // Keep dependencies empty
+        defined('CPT_VERSION') ? CPT_VERSION : '1.0',
         true // Load in footer
     );
 }
-add_action('admin_enqueue_scripts', __NAMESPACE__ . '\\enqueue_admin_scripts');
 
 /**
  * Output SEO meta tags in the <head>.
@@ -292,28 +412,19 @@ function output_meta_tags()
         $final_title = $post_title . $divider . $site_name;
     }
 
-    // Output Title Tag (WP handles the <title> tag itself via theme support, but we can filter it)
-    // Instead, let's focus on description and potentially Open Graph tags later.
-    // If you need to force the title, you might need to remove default WP title actions/filters.
-
     // Output Meta Description
     if (!empty($seo_description)) {
         echo '<meta name="description" content="' . esc_attr($seo_description) . '" />' . "\n";
     }
 
-    // --- Open Graph Tags (Basic) ---
-    $og_title = $final_title; // Use the same final title for OG
-    $og_description = $seo_description;
-    $og_url = get_permalink($post_id);
-    $og_type = is_front_page() ? 'website' : 'article';
-    $og_image_id = $options['social_share_image_id'] ?? 0;
-    $og_image_url = $og_image_id ? wp_get_attachment_image_url($og_image_id, 'large') : ''; // Use large size for social
+    // Get social image URL
+    $og_image_url = get_social_share_image_url($post_id);
 
-    // Allow themes/plugins to override OG data via filters if needed
-    $og_title = apply_filters('craftedpath_og_title', $og_title, $post_id);
-    $og_description = apply_filters('craftedpath_og_description', $og_description, $post_id);
-    $og_url = apply_filters('craftedpath_og_url', $og_url, $post_id);
-    $og_image_url = apply_filters('craftedpath_og_image', $og_image_url, $post_id);
+    // --- Open Graph Tags ---
+    $og_title = apply_filters('craftedpath_og_title', $final_title, $post_id);
+    $og_description = apply_filters('craftedpath_og_description', $seo_description, $post_id);
+    $og_url = apply_filters('craftedpath_og_url', get_permalink($post_id), $post_id);
+    $og_type = is_front_page() ? 'website' : 'article';
     $og_type = apply_filters('craftedpath_og_type', $og_type, $post_id);
 
     echo '<meta property="og:title" content="' . esc_attr($og_title) . '" />' . "\n";
@@ -324,34 +435,592 @@ function output_meta_tags()
     }
     if (!empty($og_image_url)) {
         echo '<meta property="og:image" content="' . esc_url($og_image_url) . '" />' . "\n";
-        // Output image dimensions if possible (improves sharing)
-        if ($og_image_id) {
-            $image_meta = wp_get_attachment_metadata($og_image_id);
-            if ($image_meta && isset($image_meta['sizes']['large'])) {
-                echo '<meta property="og:image:width" content="' . esc_attr($image_meta['sizes']['large']['width']) . '" />' . "\n";
-                echo '<meta property="og:image:height" content="' . esc_attr($image_meta['sizes']['large']['height']) . '" />' . "\n";
-            } elseif ($image_meta && isset($image_meta['width'])) {
-                echo '<meta property="og:image:width" content="' . esc_attr($image_meta['width']) . '" />' . "\n";
-                echo '<meta property="og:image:height" content="' . esc_attr($image_meta['height']) . '" />' . "\n";
-            }
+        // Add image dimensions if we can get them
+        list($width, $height) = @getimagesize($og_image_url);
+        if ($width && $height) {
+            echo '<meta property="og:image:width" content="' . esc_attr($width) . '" />' . "\n";
+            echo '<meta property="og:image:height" content="' . esc_attr($height) . '" />' . "\n";
         }
     }
     echo '<meta property="og:site_name" content="' . esc_attr($site_name) . '" />' . "\n";
 
-    // --- Twitter Card Tags (Basic) ---
-    // You might want a setting for card type (summary, summary_large_image)
-    echo '<meta name="twitter:card" content="summary_large_image" />' . "\n"; // Assume large image for now
-    echo '<meta name="twitter:title" content="' . esc_attr($og_title) . '" />' . "\n"; // Use OG title
+    // --- Twitter Card Tags ---
+    echo '<meta name="twitter:card" content="summary_large_image" />' . "\n";
+    echo '<meta name="twitter:title" content="' . esc_attr($og_title) . '" />' . "\n";
     if (!empty($og_description)) {
-        echo '<meta name="twitter:description" content="' . esc_attr($og_description) . '" />' . "\n"; // Use OG description
+        echo '<meta name="twitter:description" content="' . esc_attr($og_description) . '" />' . "\n";
     }
     if (!empty($og_image_url)) {
-        echo '<meta name="twitter:image" content="' . esc_url($og_image_url) . '" />' . "\n"; // Use OG image
+        echo '<meta name="twitter:image" content="' . esc_url($og_image_url) . '" />' . "\n";
     }
-    // Optional: Add Twitter site/creator handle via settings if desired
-    // echo '<meta name="twitter:site" content="@YourTwitterHandle" />' . "\n";
-    // echo '<meta name="twitter:creator" content="@AuthorTwitterHandle" />' . "\n";
+}
 
+/**
+ * Get the social share image URL for a post.
+ * 
+ * @param int $post_id Post ID.
+ * @return string Image URL.
+ */
+function get_social_share_image_url($post_id = null)
+{
+    if (!$post_id) {
+        $post_id = get_queried_object_id();
+    }
+
+    // Check for post-specific social image first
+    $post_image_id = get_post_meta($post_id, '_craftedpath_social_image_id', true);
+    if ($post_image_id) {
+        $image_url = wp_get_attachment_image_url($post_image_id, 'full');
+        if ($image_url) {
+            return $image_url;
+        }
+    }
+
+    // Get global settings
+    $options = get_option('craftedpath_seo_settings', []);
+    $use_custom = isset($options['use_custom_social_image']) ? $options['use_custom_social_image'] : false;
+
+    if ($use_custom && !empty($options['social_share_image_id'])) {
+        $image_url = wp_get_attachment_image_url($options['social_share_image_id'], 'full');
+        if ($image_url) {
+            return $image_url;
+        }
+    }
+
+    // If no custom image is set or custom images are disabled, generate one
+    return generate_social_share_image($post_id);
+}
+
+/**
+ * Generate a social share image for a post.
+ * 
+ * @param int $post_id Post ID.
+ * @return string Generated image URL.
+ */
+function generate_social_share_image($post_id)
+{
+    // Get post data
+    $post = get_post($post_id);
+    $title = $post_id ? get_the_title($post_id) : get_bloginfo('name');
+    $site_name = get_bloginfo('name');
+
+    // Get settings
+    $options = get_option('craftedpath_seo_settings', []);
+    $style = isset($options['social_image_style']) ? $options['social_image_style'] : 'style1';
+    $bg_color_key = isset($options['social_image_bg_color']) ? $options['social_image_bg_color'] : 'primary';
+    $text_color_key = isset($options['social_image_text_color']) ? $options['social_image_text_color'] : 'white';
+
+    // Get color values
+    $bg_color = get_color_value($bg_color_key);
+    $text_color = get_color_value($text_color_key);
+
+    // Get font path (always Open Sans now)
+    $font_path = get_font_path();
+
+    // Get site logo - Prioritize plugin setting, fallback to theme mod
+    $plugin_logo_id = isset($options['social_share_logo_id']) ? absint($options['social_share_logo_id']) : 0;
+    $logo_id = $plugin_logo_id ?: get_theme_mod('custom_logo'); // Use plugin logo if set, else theme logo
+    $logo_url = $logo_id ? wp_get_attachment_image_url($logo_id, 'full') : '';
+
+    $logo_img_resource = null;
+    if ($logo_url) {
+        // Try fetching with https first, then http if needed
+        $logo_data = @file_get_contents($logo_url);
+        if (!$logo_data && strpos($logo_url, 'https://') === 0) {
+            $logo_data = @file_get_contents(str_replace('https://', 'http://', $logo_url));
+        }
+        if ($logo_data) {
+            $logo_img_resource = @imagecreatefromstring($logo_data);
+        }
+    }
+
+    // Generate unique filename based on post ID and settings
+    $filename_base = 'social-image-' . ($post_id ?: 'home') . '-' . md5(json_encode($options));
+    $filename = $filename_base . '.jpg';
+    $upload_dir = wp_upload_dir();
+    $file_path = $upload_dir['path'] . '/' . $filename;
+
+    // Check if image already exists and return it
+    if (file_exists($file_path)) {
+        $image_url = $upload_dir['url'] . '/' . $filename;
+        if (is_ssl()) {
+            $image_url = str_replace('http://', 'https://', $image_url);
+        }
+        // Destroy logo resource if created
+        if ($logo_img_resource)
+            imagedestroy($logo_img_resource);
+        return $image_url;
+    }
+
+    // Create image using GD
+    $width = 1200;
+    $height = 630;
+    $padding = 80;
+    $image = imagecreatetruecolor($width, $height);
+
+    // Convert hex colors to RGB
+    list($bg_r, $bg_g, $bg_b) = sscanf($bg_color, "#%02x%02x%02x");
+    list($text_r, $text_g, $text_b) = sscanf($text_color, "#%02x%02x%02x");
+
+    // Set background color
+    $bg = imagecolorallocate($image, $bg_r, $bg_g, $bg_b);
+    imagefill($image, 0, 0, $bg);
+
+    // Set text color
+    $text_color_gd = imagecolorallocate($image, $text_r, $text_g, $text_b);
+
+    // Add logo and text based on style
+    switch ($style) {
+        case 'style2': // Split Layout (Logo Left / Title Right)
+            $logo_area_width = $width * 0.4; // 40% for logo
+            $text_area_x = $logo_area_width + $padding;
+            $text_area_width = $width - $text_area_x - $padding;
+
+            // Draw Logo centered vertically in left area
+            if ($logo_img_resource) {
+                $logo_w = imagesx($logo_img_resource);
+                $logo_h = imagesy($logo_img_resource);
+                $max_logo_w = $logo_area_width - ($padding * 1.5);
+                $max_logo_h = $height - ($padding * 2);
+
+                $ratio = min($max_logo_w / $logo_w, $max_logo_h / $logo_h);
+                $new_w = $logo_w * $ratio;
+                $new_h = $logo_h * $ratio;
+                $logo_x = ($logo_area_width - $new_w) / 2;
+                $logo_y = ($height - $new_h) / 2;
+                imagecopyresampled($image, $logo_img_resource, $logo_x, $logo_y, 0, 0, $new_w, $new_h, $logo_w, $logo_h);
+            } else {
+                // Placeholder if no logo?
+            }
+
+            // Draw Title in right area
+            $font_size = 48;
+            $title_lines = wrap_text($font_size, 0, $font_path, $title, $text_area_width);
+            $line_height = $font_size * 1.4;
+            $text_block_height = count($title_lines) * $line_height;
+            $title_start_y = ($height - $text_block_height) / 2 + ($font_size * 0.3); // Center vertically
+
+            foreach ($title_lines as $index => $line) {
+                imagettftext($image, $font_size, 0, $text_area_x, $title_start_y + ($index * $line_height), $text_color_gd, $font_path, $line);
+            }
+
+            // Draw site name at bottom right
+            $site_name_size = 20;
+            $text_box = imagettfbbox($site_name_size, 0, $font_path, $site_name);
+            $site_name_width = abs($text_box[4] - $text_box[0]);
+            imagettftext($image, $site_name_size, 0, $width - $padding - $site_name_width, $height - $padding + 10, $text_color_gd, $font_path, $site_name);
+            break;
+
+        case 'style3': // Logo Overlay
+            // Draw slightly dimmed background color
+            $dimmed_bg = imagecolorallocatealpha($image, $bg_r, $bg_g, $bg_b, 30); // Adjust alpha for dimming
+            imagefilledrectangle($image, 0, 0, $width, $height, $dimmed_bg);
+
+            // Draw Logo centered and large
+            if ($logo_img_resource) {
+                $logo_w = imagesx($logo_img_resource);
+                $logo_h = imagesy($logo_img_resource);
+                // Scale to fit within padding
+                $max_w = $width - ($padding * 3);
+                $max_h = $height - ($padding * 3);
+                $ratio = min($max_w / $logo_w, $max_h / $logo_h);
+                $new_w = $logo_w * $ratio;
+                $new_h = $logo_h * $ratio;
+                $logo_x = ($width - $new_w) / 2;
+                $logo_y = ($height - $new_h) / 2;
+                imagecopyresampled($image, $logo_img_resource, $logo_x, $logo_y, 0, 0, $new_w, $new_h, $logo_w, $logo_h);
+            } else {
+                // Draw Site Name if no logo
+                $font_size = 80;
+                $lines = wrap_text($font_size, 0, $font_path, $site_name, $width - $padding * 2);
+                $line_height = $font_size * 1.3;
+                $text_h = count($lines) * $line_height;
+                $start_y = ($height - $text_h) / 2 + ($font_size / 2);
+                foreach ($lines as $index => $line) {
+                    $t_box = imagettfbbox($font_size, 0, $font_path, $line);
+                    $t_width = abs($t_box[4] - $t_box[0]);
+                    $text_x = (int) (($width - $t_width) / 2);
+                    $text_y = (int) ($start_y + ($index * $line_height));
+                    imagettftext($image, $font_size, 0, $text_x, $text_y, $text_color_gd, $font_path, $line);
+                }
+            }
+
+            // Add Overlay Color wash
+            $overlay_color = get_color_value($text_color_key); // Use text color as overlay
+            list($overlay_r, $overlay_g, $overlay_b) = sscanf($overlay_color, "#%02x%02x%02x");
+            $overlay_gd = imagecolorallocatealpha($image, $overlay_r, $overlay_g, $overlay_b, 90); // Adjust alpha for intensity
+            imagefilledrectangle($image, 0, 0, $width, $height, $overlay_gd);
+
+            // Draw Title centered over everything
+            $font_size = 52;
+            $title_lines = wrap_text($font_size, 0, $font_path, $title, $width - $padding * 2.5);
+            $line_height = $font_size * 1.4;
+            $text_height = count($title_lines) * $line_height;
+            $start_y = ($height - $text_height) / 2 + ($font_size / 2);
+            foreach ($title_lines as $index => $line) {
+                $text_box = imagettfbbox($font_size, 0, $font_path, $line);
+                $text_width = abs($text_box[4] - $text_box[0]);
+                $text_x = ($width - $text_width) / 2;
+                // Add slight shadow to text for contrast
+                $shadow_color = imagecolorallocatealpha($image, 0, 0, 0, 50);
+                imagettftext($image, $font_size, 0, $text_x + 2, $start_y + ($index * $line_height) + 2, $shadow_color, $font_path, $line);
+                imagettftext($image, $font_size, 0, $text_x, $start_y + ($index * $line_height), $text_color_gd, $font_path, $line);
+            }
+            break;
+
+        default: // style1 - Logo Focus
+            // Draw Logo centered and large
+            if ($logo_img_resource) {
+                $logo_w = imagesx($logo_img_resource);
+                $logo_h = imagesy($logo_img_resource);
+                $max_logo_w = $width * 0.6; // Allow logo to be quite large
+                $max_logo_h = $height * 0.6;
+
+                $ratio = min($max_logo_w / $logo_w, $max_logo_h / $logo_h);
+                $new_w = $logo_w * $ratio;
+                $new_h = $logo_h * $ratio;
+                $logo_x = ($width - $new_w) / 2;
+                $logo_y = ($height - $new_h) / 2 - 30; // Shift up slightly
+                imagecopyresampled($image, $logo_img_resource, $logo_x, $logo_y, 0, 0, $new_w, $new_h, $logo_w, $logo_h);
+
+                // Draw site name below logo
+                $site_name_size = 24;
+                $text_box = imagettfbbox($site_name_size, 0, $font_path, $site_name);
+                $site_name_width = abs($text_box[4] - $text_box[0]);
+                imagettftext($image, $site_name_size, 0, ($width - $site_name_width) / 2, $logo_y + $new_h + 40, $text_color_gd, $font_path, $site_name);
+
+            } else {
+                // Draw Site Name large if no logo
+                $font_size = 80;
+                $lines = wrap_text($font_size, 0, $font_path, $site_name, $width - $padding * 2);
+                $line_height = $font_size * 1.3;
+                $text_h = count($lines) * $line_height;
+                $start_y = ($height - $text_h) / 2 + ($font_size / 2);
+                foreach ($lines as $index => $line) {
+                    $t_box = imagettfbbox($font_size, 0, $font_path, $line);
+                    $t_width = abs($t_box[4] - $t_box[0]);
+                    $text_x = (int) (($width - $t_width) / 2);
+                    $text_y = (int) ($start_y + ($index * $line_height));
+                    imagettftext($image, $font_size, 0, $text_x, $text_y, $text_color_gd, $font_path, $line);
+                }
+            }
+            break;
+    }
+
+    // Destroy logo resource if created
+    if ($logo_img_resource)
+        imagedestroy($logo_img_resource);
+
+    // Save image
+    imagejpeg($image, $file_path, 90);
+    imagedestroy($image);
+
+    // Get URL for the generated image
+    $image_url = $upload_dir['url'] . '/' . $filename;
+
+    // Ensure correct protocol
+    if (is_ssl()) {
+        $image_url = str_replace('http://', 'https://', $image_url);
+    }
+
+    return $image_url;
+}
+
+/**
+ * Get color value from preset key.
+ * 
+ * @param string $key Color key (primary, black, white, alt, hover).
+ * @return string Hex color value.
+ */
+function get_color_value($key)
+{
+    switch ($key) {
+        case 'primary':
+            return '#f55f4b'; // --primary
+        case 'black':
+            return '#1f2937'; // --dark
+        case 'white':
+            return '#ffffff'; // --white
+        case 'alt':
+            return '#6b7280'; // --secondary
+        case 'hover':
+            return '#e14b37'; // --primary-hover
+        default:
+            return '#f55f4b'; // Default to primary
+    }
+}
+
+/**
+ * Get the path to the default font file.
+ * 
+ * @return string Font file path.
+ */
+function get_font_path()
+{
+    return plugin_dir_path(dirname(__FILE__, 3)) . 'assets/fonts/OpenSans-Bold.ttf';
+}
+
+/**
+ * Wrap text to fit within a given width.
+ * 
+ * @param float $fontSize The font size.
+ * @param float $angle The angle.
+ * @param string $fontFile The font file path.
+ * @param string $text The text string.
+ * @param float $maxWidth The maximum width.
+ * @return array Lines of text.
+ */
+function wrap_text($fontSize, $angle, $fontFile, $text, $maxWidth)
+{
+    $words = explode(' ', $text);
+    $lines = [];
+    $currentLine = '';
+
+    foreach ($words as $word) {
+        $testLine = $currentLine . ($currentLine ? ' ' : '') . $word;
+        $testBox = imagettfbbox($fontSize, $angle, $fontFile, $testLine);
+        $testWidth = abs($testBox[4] - $testBox[0]);
+
+        if ($testWidth <= $maxWidth) {
+            $currentLine = $testLine;
+        } else {
+            if ($currentLine) {
+                $lines[] = $currentLine;
+            }
+            $currentLine = $word;
+            // Handle case where a single word is too long
+            $wordBox = imagettfbbox($fontSize, $angle, $fontFile, $word);
+            if (abs($wordBox[4] - $wordBox[0]) > $maxWidth) {
+                // Simple truncation for very long words (can be improved)
+                while (abs($wordBox[4] - $wordBox[0]) > $maxWidth) {
+                    $word = mb_substr($word, 0, -1);
+                    $wordBox = imagettfbbox($fontSize, $angle, $fontFile, $word . '…');
+                }
+                $currentLine = $word . '…';
+            }
+        }
+    }
+    $lines[] = $currentLine;
+
+    return $lines;
+}
+
+/**
+ * AJAX handler for updating social image preview.
+ */
+function handle_social_image_preview()
+{
+    check_ajax_referer('update_social_image_preview', 'nonce');
+
+    $style = isset($_POST['style']) ? sanitize_text_field($_POST['style']) : 'style1';
+    $bg_color = isset($_POST['bg_color']) ? sanitize_text_field($_POST['bg_color']) : 'primary';
+    $text_color = isset($_POST['text_color']) ? sanitize_text_field($_POST['text_color']) : 'white';
+    // Removed font_family retrieval
+
+    // Update temporary settings for preview generation
+    $options = get_option('craftedpath_seo_preview_settings', []); // Get temporary if exists
+    if (!is_array($options))
+        $options = []; // Ensure it's an array
+    $options['social_image_style'] = $style;
+    $options['social_image_bg_color'] = $bg_color;
+    $options['social_image_text_color'] = $text_color;
+    // Removed font_family update
+    update_option('craftedpath_seo_preview_settings', $options, false);
+
+    // Generate new preview using temporary settings
+    $preview_url = generate_social_share_image_preview();
+
+    // Clean up temporary option
+    delete_option('craftedpath_seo_preview_settings');
+
+    wp_send_json_success(['preview_url' => $preview_url]);
+}
+
+/**
+ * Generate a social share image preview using temporary settings.
+ * This function is similar to generate_social_share_image but uses 
+ * the temporary 'craftedpath_seo_preview_settings' option.
+ * 
+ * @return string Generated image URL.
+ */
+function generate_social_share_image_preview()
+{
+    // Use homepage ID for preview context
+    $post_id = get_option('page_on_front');
+
+    // Get post data
+    $title = $post_id ? get_the_title($post_id) : get_bloginfo('name');
+    $site_name = get_bloginfo('name');
+
+    // Get temporary settings
+    $options = get_option('craftedpath_seo_preview_settings', []);
+    $style = isset($options['social_image_style']) ? $options['social_image_style'] : 'style1';
+    $bg_color_key = isset($options['social_image_bg_color']) ? $options['social_image_bg_color'] : 'primary';
+    $text_color_key = isset($options['social_image_text_color']) ? $options['social_image_text_color'] : 'white';
+
+    // Get color values
+    $bg_color = get_color_value($bg_color_key);
+    $text_color = get_color_value($text_color_key);
+
+    // Get font path (always Open Sans)
+    $font_path = get_font_path();
+
+    // Get site logo - Prioritize plugin setting, fallback to theme mod
+    $plugin_logo_id = isset($options['social_share_logo_id']) ? absint($options['social_share_logo_id']) : 0;
+    $logo_id = $plugin_logo_id ?: get_theme_mod('custom_logo'); // Use plugin logo if set, else theme logo
+    $logo_url = $logo_id ? wp_get_attachment_image_url($logo_id, 'full') : '';
+
+    $logo_img_resource = null;
+    if ($logo_url) {
+        // Try fetching with https first, then http if needed
+        $logo_data = @file_get_contents($logo_url);
+        if (!$logo_data && strpos($logo_url, 'https://') === 0) {
+            $logo_data = @file_get_contents(str_replace('https://', 'http://', $logo_url));
+        }
+        if ($logo_data) {
+            $logo_img_resource = @imagecreatefromstring($logo_data);
+        }
+    }
+
+    // Generate unique filename for preview
+    $filename = 'social-image-preview-' . md5(json_encode($options) . time()) . '.jpg';
+    $upload_dir = wp_upload_dir();
+    $file_path = $upload_dir['path'] . '/' . $filename;
+
+    // Create image
+    $width = 1200;
+    $height = 630;
+    $padding = 80;
+    $image = imagecreatetruecolor($width, $height);
+    list($bg_r, $bg_g, $bg_b) = sscanf($bg_color, "#%02x%02x%02x");
+    list($text_r, $text_g, $text_b) = sscanf($text_color, "#%02x%02x%02x");
+    $bg = imagecolorallocate($image, $bg_r, $bg_g, $bg_b);
+    imagefill($image, 0, 0, $bg);
+    $text_color_gd = imagecolorallocate($image, $text_r, $text_g, $text_b);
+
+    // --- Logic mirrors generate_social_share_image() --- 
+    switch ($style) {
+        case 'style2': // Split Layout (Logo Left / Title Right)
+            $logo_area_width = $width * 0.4;
+            $text_area_x = $logo_area_width + $padding;
+            $text_area_width = $width - $text_area_x - $padding;
+            if ($logo_img_resource) {
+                $logo_w = imagesx($logo_img_resource);
+                $logo_h = imagesy($logo_img_resource);
+                $max_logo_w = $logo_area_width - ($padding * 1.5);
+                $max_logo_h = $height - ($padding * 2);
+                $ratio = min($max_logo_w / $logo_w, $max_logo_h / $logo_h);
+                $new_w = $logo_w * $ratio;
+                $new_h = $logo_h * $ratio;
+                $logo_x = ($logo_area_width - $new_w) / 2;
+                $logo_y = ($height - $new_h) / 2;
+                imagecopyresampled($image, $logo_img_resource, $logo_x, $logo_y, 0, 0, $new_w, $new_h, $logo_w, $logo_h);
+            }
+            $font_size = 48;
+            $title_lines = wrap_text($font_size, 0, $font_path, $title, $text_area_width);
+            $line_height = $font_size * 1.4;
+            $text_block_height = count($title_lines) * $line_height;
+            $title_start_y = ($height - $text_block_height) / 2 + ($font_size * 0.3);
+            foreach ($title_lines as $index => $line) {
+                imagettftext($image, $font_size, 0, $text_area_x, $title_start_y + ($index * $line_height), $text_color_gd, $font_path, $line);
+            }
+            $site_name_size = 20;
+            $text_box = imagettfbbox($site_name_size, 0, $font_path, $site_name);
+            $site_name_width = abs($text_box[4] - $text_box[0]);
+            imagettftext($image, $site_name_size, 0, $width - $padding - $site_name_width, $height - $padding + 10, $text_color_gd, $font_path, $site_name);
+            break;
+        case 'style3': // Logo Overlay
+            $dimmed_bg = imagecolorallocatealpha($image, $bg_r, $bg_g, $bg_b, 30);
+            imagefilledrectangle($image, 0, 0, $width, $height, $dimmed_bg);
+            if ($logo_img_resource) {
+                $logo_w = imagesx($logo_img_resource);
+                $logo_h = imagesy($logo_img_resource);
+                $max_w = $width - ($padding * 3);
+                $max_h = $height - ($padding * 3);
+                $ratio = min($max_w / $logo_w, $max_h / $logo_h);
+                $new_w = $logo_w * $ratio;
+                $new_h = $logo_h * $ratio;
+                $logo_x = ($width - $new_w) / 2;
+                $logo_y = ($height - $new_h) / 2;
+                imagecopyresampled($image, $logo_img_resource, $logo_x, $logo_y, 0, 0, $new_w, $new_h, $logo_w, $logo_h);
+            } else {
+                $font_size = 80;
+                $lines = wrap_text($font_size, 0, $font_path, $site_name, $width - $padding * 2);
+                $line_height = $font_size * 1.3;
+                $text_h = count($lines) * $line_height;
+                $start_y = ($height - $text_h) / 2 + ($font_size / 2);
+                foreach ($lines as $index => $line) {
+                    $t_box = imagettfbbox($font_size, 0, $font_path, $line);
+                    $t_width = abs($t_box[4] - $t_box[0]);
+                    $text_x = (int) (($width - $t_width) / 2);
+                    $text_y = (int) ($start_y + ($index * $line_height));
+                    imagettftext($image, $font_size, 0, $text_x, $text_y, $text_color_gd, $font_path, $line);
+                }
+            }
+            $overlay_color = get_color_value($text_color_key);
+            list($overlay_r, $overlay_g, $overlay_b) = sscanf($overlay_color, "#%02x%02x%02x");
+            $overlay_gd = imagecolorallocatealpha($image, $overlay_r, $overlay_g, $overlay_b, 90);
+            imagefilledrectangle($image, 0, 0, $width, $height, $overlay_gd);
+            $font_size = 52;
+            $title_lines = wrap_text($font_size, 0, $font_path, $title, $width - $padding * 2.5);
+            $line_height = $font_size * 1.4;
+            $text_height = count($title_lines) * $line_height;
+            $start_y = ($height - $text_height) / 2 + ($font_size / 2);
+            foreach ($title_lines as $index => $line) {
+                $text_box = imagettfbbox($font_size, 0, $font_path, $line);
+                $text_width = abs($text_box[4] - $text_box[0]);
+                $text_x = ($width - $text_width) / 2;
+                $shadow_color = imagecolorallocatealpha($image, 0, 0, 0, 50);
+                imagettftext($image, $font_size, 0, $text_x + 2, $start_y + ($index * $line_height) + 2, $shadow_color, $font_path, $line);
+                imagettftext($image, $font_size, 0, $text_x, $start_y + ($index * $line_height), $text_color_gd, $font_path, $line);
+            }
+            break;
+        default: // style1 - Logo Focus
+            if ($logo_img_resource) {
+                $logo_w = imagesx($logo_img_resource);
+                $logo_h = imagesy($logo_img_resource);
+                $max_logo_w = $width * 0.6;
+                $max_logo_h = $height * 0.6;
+                $ratio = min($max_logo_w / $logo_w, $max_logo_h / $logo_h);
+                $new_w = $logo_w * $ratio;
+                $new_h = $logo_h * $ratio;
+                $logo_x = ($width - $new_w) / 2;
+                $logo_y = ($height - $new_h) / 2 - 30;
+                imagecopyresampled($image, $logo_img_resource, $logo_x, $logo_y, 0, 0, $new_w, $new_h, $logo_w, $logo_h);
+                $site_name_size = 24;
+                $text_box = imagettfbbox($site_name_size, 0, $font_path, $site_name);
+                $site_name_width = abs($text_box[4] - $text_box[0]);
+                imagettftext($image, $site_name_size, 0, ($width - $site_name_width) / 2, $logo_y + $new_h + 40, $text_color_gd, $font_path, $site_name);
+            } else {
+                $font_size = 80;
+                $lines = wrap_text($font_size, 0, $font_path, $site_name, $width - $padding * 2);
+                $line_height = $font_size * 1.3;
+                $text_h = count($lines) * $line_height;
+                $start_y = ($height - $text_h) / 2 + ($font_size / 2);
+                foreach ($lines as $index => $line) {
+                    $t_box = imagettfbbox($font_size, 0, $font_path, $line);
+                    $t_width = abs($t_box[4] - $t_box[0]);
+                    $text_x = (int) (($width - $t_width) / 2);
+                    $text_y = (int) ($start_y + ($index * $line_height));
+                    imagettftext($image, $font_size, 0, $text_x, $text_y, $text_color_gd, $font_path, $line);
+                }
+            }
+            break;
+    }
+    // --- End of mirrored logic --- 
+
+    // Destroy logo resource if created
+    if ($logo_img_resource)
+        imagedestroy($logo_img_resource);
+
+    imagejpeg($image, $file_path, 90);
+    imagedestroy($image);
+
+    $image_url = $upload_dir['url'] . '/' . $filename;
+    if (is_ssl()) {
+        $image_url = str_replace('http://', 'https://', $image_url);
+    }
+    return $image_url;
 }
 
 // TODO: Add output_meta_tags function
