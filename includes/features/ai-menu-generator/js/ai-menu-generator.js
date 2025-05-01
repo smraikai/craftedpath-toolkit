@@ -34,7 +34,6 @@
     function initMenuGenerator() {
         const $generateBtn = $('#cpt-generate-menu-btn'); // Use ID from PHP view
         const $createBtn = $('#create_wp_menu'); // Use ID from PHP view
-        const $copyBtn = $('#copy_menu_json'); // Use ID from PHP view
         const $resultsContainer = $('#menu_results'); // Added for delegation
         const $menuStructureContainer = $('.menu-structure'); // Added for delegation
 
@@ -48,11 +47,6 @@
         // Create WP Menu button handler
         $createBtn.on('click', function () {
             createWordPressMenu();
-        });
-
-        // Copy JSON button handler (replaces Export)
-        $copyBtn.on('click', function () {
-            copyMenuJson();
         });
 
         // Event delegation for potential future actions within the tree
@@ -104,19 +98,16 @@
                     $results.show();
                     // Enable buttons
                     $('#create_wp_menu').prop('disabled', false);
-                    $('#copy_menu_json').prop('disabled', false);
                 } else {
                     const errorMessage = response.data ? (typeof response.data === 'string' ? response.data : 'Invalid menu structure data received.') : 'Invalid response from server.';
                     $error.text('Error generating menu: ' + errorMessage).show();
                     $('#create_wp_menu').prop('disabled', true);
-                    $('#copy_menu_json').prop('disabled', true);
                 }
             },
             error: function (jqXHR, textStatus, errorThrown) {
                 $loading.hide();
                 $error.text('AJAX Error: ' + textStatus + ' - ' + errorThrown).show();
                 $('#create_wp_menu').prop('disabled', true);
-                $('#copy_menu_json').prop('disabled', true);
             }
         });
     }
@@ -220,28 +211,6 @@
         }
         // Ensure buttons are still enabled/disabled correctly
         $('#create_wp_menu').prop('disabled', !generatedMenuStructure || !generatedMenuStructure.items || generatedMenuStructure.items.length === 0);
-        $('#copy_menu_json').prop('disabled', !generatedMenuStructure || !generatedMenuStructure.items || generatedMenuStructure.items.length === 0);
-    }
-
-    /**
-     * Copy the menu data as a JSON string
-     */
-    function copyMenuJson() {
-        updateStructureFromUI(); // Ensure we copy the latest structure
-
-        if (!generatedMenuStructure) {
-            showToast('No menu structure available to copy.', 'error');
-            return;
-        }
-
-        const jsonString = JSON.stringify(generatedMenuStructure, null, 2); // Pretty print
-
-        navigator.clipboard.writeText(jsonString).then(function () {
-            showToast('Menu structure JSON copied to clipboard!', 'success');
-        }, function (err) {
-            showToast('Failed to copy JSON: ' + err, 'error');
-            console.error('Async: Could not copy text: ', err);
-        });
     }
 
     /**

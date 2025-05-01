@@ -159,10 +159,8 @@ class CPT_AI_Menu_Generator
                 </p>
                 <div class="menu-structure interactive-menu-list"></div>
                 <div class="cpt-actions">
-                    <button class="button button-secondary"
-                        id="create_wp_menu"><?php esc_html_e('Create WordPress Menu', 'craftedpath-toolkit'); ?></button>
-                    <button class="button button-secondary"
-                        id="copy_menu_json"><?php esc_html_e('Copy JSON', 'craftedpath-toolkit'); ?></button>
+                    <button class="button button-secondary" id="create_wp_menu" disabled>
+                        <?php esc_html_e('Create WordPress Menu', 'craftedpath-toolkit'); ?></button>
                 </div>
             </div>
 
