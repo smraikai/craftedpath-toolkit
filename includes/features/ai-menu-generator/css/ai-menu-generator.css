@@ -227,48 +227,78 @@
     font-weight: 500;
 }
 
-/* Append CSS for interactive menu list */
-
-.interactive-menu-list ul {
+/* Styles for SortableJS - MODERN UI Refresh */
+.interactive-menu-list ul.menu-tree-list,
+.interactive-menu-list ul.menu-tree-children {
     list-style: none;
-    padding-left: 25px;
-    margin-top: 8px;
-    border-left: 2px solid #e0e0e0;
+    padding-left: 28px;
+    /* Consistent, slightly larger indent */
+    margin-top: 0;
+    /* Remove top margin for tighter nesting */
+    border-left: 1px solid #e0e0e0;
+    /* Lighter, thinner guide line */
 }
 
 .interactive-menu-list li.menu-tree-item {
     background-color: #ffffff;
-    border: 1px solid #e5e5e5;
-    margin-bottom: 6px;
-    padding: 8px 10px;
-    border-radius: 4px;
+    border: 1px solid #e0e0e0;
+    margin-bottom: 8px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    position: relative;
+    cursor: grab;
+}
+
+.interactive-menu-list li.menu-tree-item:active {
+    cursor: grabbing;
+}
+
+.interactive-menu-list li.menu-tree-item:hover {
+    background-color: #f7f7f7;
+    border-color: #d1d1d1;
 }
 
 .menu-item-content {
     display: flex;
     align-items: center;
+    gap: 8px;
+    /* Add gap between handle and title */
 }
 
-.menu-item-handle {
-    cursor: grab;
-    color: #888;
-    margin-right: 8px;
-    padding: 3px;
-}
+/* Remove Dashicon specific content property if it existed */
+/* .menu-item-handle::before { content: none; } */
 
-.menu-item-handle:active {
-    cursor: grabbing;
-}
-
-/* Styles for SortableJS */
+/* Placeholder style */
 .interactive-menu-list .menu-tree-item.sortable-ghost {
-    background-color: #eaf2fa;
-    border: 1px dashed #a0c4e8;
-    opacity: 0.7;
+    background-color: #eef7ff;
+    /* Lighter blue background */
+    border: 1px dashed #90caf9;
+    /* Dashed blue border */
+    opacity: 0.8;
+    border-radius: 6px;
 }
 
+/* Remove content from placeholder for cleaner look */
+.interactive-menu-list .menu-tree-item.sortable-ghost * {
+    visibility: hidden;
+}
+
+/* Dragged item style */
 .interactive-menu-list .menu-tree-item.sortable-chosen,
 .interactive-menu-list .menu-tree-item.sortable-drag {
-    opacity: 0.85;
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+    opacity: 0.9;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    background-color: #ffffff;
+    /* Ensure background stays white */
+    border-color: #c0c0c0;
+}
+
+/* Remove any conflicting older styles if they exist */
+/* Ensure the .menu-item-controls styles are removed or updated if not used */
+.menu-item-controls {
+    /* display: none; */
+    /* Hide if not used */
+    margin-left: auto;
+    padding-left: 10px;
 }

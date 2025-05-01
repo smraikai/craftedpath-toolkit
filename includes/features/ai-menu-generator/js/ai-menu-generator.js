@@ -144,12 +144,12 @@
                 const $listItem = $('<li class="menu-tree-item"></li>');
                 $listItem.data('menuItemData', item); // Store original data
 
-                // Item Content (Handle + Title + Controls)
+                // Item Content (Title only - handle removed)
                 const $itemContent = $('<div class="menu-item-content"></div>');
-                $itemContent.append('<span class="dashicons dashicons-menu-alt3 menu-item-handle" title="Drag to reorder"></span>');
+                // REMOVED Handle Element: $itemContent.append('<i class="iconoir-drag menu-item-handle" title="Drag to reorder"></i>'); 
                 $itemContent.append('<span class="menu-item-title"></span>').find('.menu-item-title').text(item.title); // Use .text() for safety
-                // Add delete button (optional)
-                // $itemContent.append('<span class="menu-item-controls"> <button class="button button-small delete-menu-item" title="Remove"><span class="dashicons dashicons-trash"></span></button></span>');
+                // Optional: Add back controls if needed
+                // $itemContent.append('<span class="menu-item-controls"> ... </span>');
 
                 $listItem.append($itemContent);
 
@@ -174,7 +174,7 @@
             animation: 150, // Animation speed
             fallbackOnBody: true,
             swapThreshold: 0.65,
-            handle: '.menu-item-handle', // Specify drag handle
+            // handle: '.menu-item-handle', // REMOVED Handle option - entire item is draggable
             ghostClass: 'sortable-ghost',  // Class for drop placeholder
             chosenClass: 'sortable-chosen', // Class for the element being dragged
             dragClass: 'sortable-drag', // Class for the mirror element during drag

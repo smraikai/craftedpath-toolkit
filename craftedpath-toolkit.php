@@ -75,6 +75,15 @@ final class CraftedPath_Toolkit
             CPT_VERSION
         );
 
+        // Enqueue Iconoir CSS from CDN
+        wp_enqueue_style(
+            'iconoir-css',
+            'https://cdn.jsdelivr.net/gh/iconoir-icons/iconoir@main/css/iconoir.css',
+            array(), // No dependencies
+            null // No specific version needed when using @main
+            // 'all' // Media type (optional)
+        );
+
         // Enqueue Toast JS
         wp_enqueue_script(
             'cpt-toast-script',
