@@ -177,7 +177,7 @@
 
         // Add Create Pages button (original logic)
         if (pagesArray && pagesArray.length > 0) {
-            $actionsContainer.prepend('<button class="button button-primary" id="create_pages">Create Selected Pages</button>'); // Original ID
+            $actionsContainer.prepend('<button class="button button-secondary" id="create_pages">Create Selected Pages</button>'); // Original ID
         }
     }
 

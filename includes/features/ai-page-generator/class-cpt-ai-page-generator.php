@@ -144,7 +144,7 @@ class CPT_AI_Page_Generator
                 </p>
                 <div class="sitemap-tree"></div>
                 <div class="cpt-actions">
-                    <button class="button button-primary" id="create_wp_pages"
+                    <button class="button button-secondary" id="create_wp_pages"
                         disabled><?php esc_html_e('Create Selected Pages', 'craftedpath-toolkit'); ?></button>
                     <button class="button button-secondary"
                         id="copy_page_structure_json"><?php esc_html_e('Copy JSON', 'craftedpath-toolkit'); ?></button>
