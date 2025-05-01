@@ -169,17 +169,13 @@
 
         listElements.forEach(function (listEl) {
             new Sortable(listEl, { // Use native initialization
-                group: 'nested', // Allow dragging between lists with the same group name
-                animation: 150, // Animation speed
-                fallbackOnBody: true,
-                swapThreshold: 0.65,
-                forceFallback: true,
-                ghostClass: 'sortable-ghost',  // Class for drop placeholder
-                chosenClass: 'sortable-chosen', // Class for the element being dragged
-                dragClass: 'sortable-drag', // Class for the mirror element during drag
-                // Event when an item is dropped
+                group: 'nested',
+                animation: 150,
+                invertSwap: true,
+                ghostClass: 'sortable-ghost',
+                chosenClass: 'sortable-chosen',
+                dragClass: 'sortable-drag',
                 onEnd: function (/**Event*/evt) {
-                    // Update the generatedMenuStructure JS variable after drop
                     updateStructureFromUI();
                 },
             });

@@ -239,6 +239,16 @@
     /* Lighter, thinner guide line */
 }
 
+.interactive-menu-list ul.menu-tree-list:first-of-type {
+    list-style: none;
+    padding-left: 0px;
+    /* Consistent, slightly larger indent */
+    margin-top: 0;
+    /* Remove top margin for tighter nesting */
+    border-left: none;
+    /* Lighter, thinner guide line */
+}
+
 .interactive-menu-list li.menu-tree-item {
     background-color: #ffffff;
     border: 1px solid #e0e0e0;
@@ -248,6 +258,7 @@
     transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
     position: relative;
     cursor: grab;
+    list-style: none;
 }
 
 .interactive-menu-list li.menu-tree-item:active {
@@ -271,29 +282,49 @@
 
 /* Placeholder style */
 .interactive-menu-list .menu-tree-item.sortable-ghost {
-    background-color: #eef7ff;
-    /* Lighter blue background */
-    border: 1px dashed #90caf9;
-    /* Dashed blue border */
-    opacity: 0.8;
+    background: #f0f7ff;
+    /* Light blue background */
+    border: 1px dashed #a0c4e8;
     border-radius: 6px;
+    opacity: 0.6;
+    /* Ensure placeholder takes up space */
+    min-height: 40px;
+    /* Match approx item height */
+    box-sizing: border-box;
 }
 
-/* Remove content from placeholder for cleaner look */
+/* Hide content within the ghost placeholder */
 .interactive-menu-list .menu-tree-item.sortable-ghost * {
-    visibility: hidden;
+    display: none;
 }
 
-/* Dragged item style */
-.interactive-menu-list .menu-tree-item.sortable-chosen,
+/* Dragged item style (Simplify - rely on clone) */
 .interactive-menu-list .menu-tree-item.sortable-drag {
-    opacity: 0.9;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    background-color: #ffffff;
-    /* Ensure background stays white */
-    border-color: #c0c0c0;
+    opacity: 0.85;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
     list-style: none !important;
+    /* Keep just in case */
+    /* Removed explicit background, border, padding, radius - rely on clone */
 }
+
+/* REMOVED explicit styling for content *inside* the drag clone */
+/* 
+.interactive-menu-list .menu-tree-item.sortable-drag .menu-item-content {
+    ...
+}
+.interactive-menu-list .menu-tree-item.sortable-drag .menu-item-title {
+    ...
+}
+*/
+
+/* REMOVED pseudo-element overrides for drag clone (may not be needed with clone) */
+/* 
+.interactive-menu-list .menu-tree-item.sortable-drag::before,
+.interactive-menu-list .menu-tree-item.sortable-drag::after {
+    content: none !important;
+    display: none !important;
+}
+*/
 
 /* Remove any conflicting older styles if they exist */
 /* Ensure the .menu-item-controls styles are removed or updated if not used */
