@@ -104,6 +104,13 @@ class CPT_Settings_Manager
                 'default' => true,
                 'section' => 'AI Tools'
             ),
+            'ai_auto_tag' => array(
+                'name' => 'AI Auto Tag Posts',
+                'description' => 'Adds a button to the AI Tools sidebar to automatically tag posts using AI.',
+                'class' => 'CPT_AI_Auto_Tag',
+                'default' => true,
+                'section' => 'AI Tools'
+            ),
             // Section: UI Enhancements
             'admin_refresh_ui' => array(
                 'name' => 'Admin Refresh UI',

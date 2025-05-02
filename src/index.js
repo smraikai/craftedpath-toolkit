@@ -17,6 +17,7 @@ import { registerPlugin } from '@wordpress/plugins';
 // import './features/seo/store'; // Existing SEO Store - COMMENTED OUT due to build error
 import './components/ai-tools-sidebar'; // Import to register the main AI Tools sidebar
 import AutoCategorizePanel from './features/ai-auto-categorize/panel'; // Import the specific tool panel
+import AutoTagPanel from './features/ai-auto-tag/panel'; // Import the Auto Tag panel
 
 
 // --- SEO Document Setting Panel --- (REMOVED - Assume handled by ./seo-panel)
@@ -57,6 +58,15 @@ if (window.cptAiAutoCategorizeData && window.cptAiAutoCategorizeData.is_enabled)
         icon: null // No icon needed for a Fill component registration
     });
     console.log('AI Auto Categorize Panel Loaded');
+}
+
+// --- Register AI Auto Tag Panel --- (New Code)
+if (window.cptAiAutoTagData && window.cptAiAutoTagData.is_enabled) {
+    registerPlugin('craftedpath-ai-auto-tag-panel-loader', {
+        render: AutoTagPanel,
+        icon: null
+    });
+    console.log('AI Auto Tag Panel Loaded');
 }
 
 // You could add more plugin registrations or component initializations here. 

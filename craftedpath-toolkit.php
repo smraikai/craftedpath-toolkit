@@ -204,6 +204,21 @@ final class CraftedPath_Toolkit
             }
         }
 
+        // Load AI Auto Tag
+        if ($settings_manager->is_feature_enabled('ai_auto_tag')) {
+            $auto_tag_file = CPT_PLUGIN_DIR . 'includes/features/ai-auto-tag/class-cpt-ai-auto-tag.php';
+            if (file_exists($auto_tag_file)) {
+                require_once $auto_tag_file;
+                if (class_exists('CPT_AI_Auto_Tag')) {
+                    CPT_AI_Auto_Tag::instance();
+                } else {
+                    error_log("CraftedPath Toolkit Error: CPT_AI_Auto_Tag class not found after requiring file.");
+                }
+            } else {
+                error_log("CraftedPath Toolkit Error: CPT_AI_Auto_Tag class file not found at: " . $auto_tag_file);
+            }
+        }
+
         // Load Admin Refresh UI
         if ($settings_manager->is_feature_enabled('admin_refresh_ui')) {
             if (class_exists('CPT_Admin_Refresh_UI')) {
