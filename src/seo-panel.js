@@ -3,7 +3,7 @@
  */
 import { __ } from '@wordpress/i18n';
 import { PluginDocumentSettingPanel } from '@wordpress/edit-post';
-import { TextControl, TextareaControl, PanelRow, RangeControl, Notice } from '@wordpress/components';
+import { TextControl, TextareaControl, PanelRow, RangeControl, Notice, CheckboxControl } from '@wordpress/components';
 import { useSelect, useDispatch } from '@wordpress/data';
 import { store as coreStore } from '@wordpress/core-data';
 import { store as editorStore } from '@wordpress/editor';
@@ -15,7 +15,7 @@ const SeoPanel = () => {
     const divider = window.cptSeoData?.divider || '|'; // Provide fallback
 
     // Get post data
-    const { postTitle, seoTitle, seoDescription } = useSelect(
+    const { postTitle, seoTitle, seoDescription, seoNoIndex } = useSelect(
         (select) => {
             const { getEditedPostAttribute } = select(editorStore);
             const meta = getEditedPostAttribute('meta') || {};
@@ -23,6 +23,7 @@ const SeoPanel = () => {
                 postTitle: getEditedPostAttribute('title'),
                 seoTitle: meta?._craftedpath_seo_title || '',
                 seoDescription: meta?._craftedpath_seo_description || '',
+                seoNoIndex: meta?._craftedpath_seo_noindex || false,
             };
         },
         []
@@ -87,7 +88,8 @@ const SeoPanel = () => {
             title={__('SEO Settings', 'craftedpath-toolkit')}
             className="craftedpath-seo-panel"
         >
-            <PanelRow>
+            {/* Grouping div for Title section */}
+            <div style={{ marginBottom: '16px' }}>
                 <TextControl
                     label={__('SEO Title', 'craftedpath-toolkit')}
                     value={currentSeoTitle}
@@ -95,22 +97,40 @@ const SeoPanel = () => {
                     placeholder={defaultSeoTitle}
                     onChange={(value) => updateMeta('_craftedpath_seo_title', value)}
                     help={`${titleLength} / ${titleRecommendedMax} ${__('characters', 'craftedpath-toolkit')}`}
-                    style={{ flexGrow: 1, marginBottom: '4px' }}
+                    style={{ marginBottom: '4px' }} // Space before progress bar
                 />
-            </PanelRow>
-            <ProgressBar value={titleLength} max={titleRecommendedMax} status={titleStatus} />
+                <ProgressBar value={titleLength} max={titleRecommendedMax} status={titleStatus} />
+            </div>
 
-            <PanelRow>
+            {/* Grouping div for Description section */}
+            <div style={{ marginBottom: '16px' }}>
                 <TextareaControl
                     label={__('Meta Description', 'craftedpath-toolkit')}
                     value={currentSeoDescription}
                     hideLabelFromVision={false}
                     help={`${descriptionLength} / ${descriptionRecommendedMax} ${__('characters', 'craftedpath-toolkit')}. ${__('Recommended:', 'craftedpath-toolkit')} ${descriptionRecommendedMin}-${descriptionRecommendedMax}`}
                     onChange={(value) => updateMeta('_craftedpath_seo_description', value)}
-                    style={{ width: '100%', marginBottom: '4px' }}
+                    style={{ width: '100%', marginBottom: '4px' }} // Space before progress bar
                 />
-            </PanelRow>
-            <ProgressBar value={descriptionLength} max={descriptionRecommendedMax} status={descriptionStatus} />
+                <ProgressBar value={descriptionLength} max={descriptionRecommendedMax} status={descriptionStatus} />
+            </div>
+
+            {/* No Index Checkbox section (already styled like a card) */}
+            <div style={{
+                marginTop: '16px', // Keep space above this section
+                padding: '12px 16px', // Adjusted padding slightly
+                border: '1px solid #e0e0e0',
+                borderRadius: '4px'
+            }}>
+                {/* No PanelRow needed inside here either */}
+                <CheckboxControl
+                    label={__("Noindex this page", 'craftedpath-toolkit')}
+                    checked={seoNoIndex}
+                    onChange={(isChecked) => updateMeta('_craftedpath_seo_noindex', isChecked)}
+                // Remove help prop if previously added
+                />
+            </div>
+
         </PluginDocumentSettingPanel>
     );
 };

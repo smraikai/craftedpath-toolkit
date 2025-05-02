@@ -62,6 +62,21 @@ function register_meta_fields()
                 }
             )
         );
+
+        // Register the new noindex meta field
+        register_post_meta(
+            $post_type,
+            '_craftedpath_seo_noindex', // Meta key for the noindex setting
+            array(
+                'show_in_rest' => true,
+                'single' => true,
+                'type' => 'boolean', // Store as boolean (true/false)
+                'default' => false, // Default to false (allow indexing)
+                'auth_callback' => function () {
+                    return current_user_can('edit_posts');
+                }
+            )
+        );
     }
 }
 
@@ -589,6 +604,7 @@ function output_meta_tags()
     // Get post-specific meta
     $seo_title = get_post_meta($post_id, '_craftedpath_seo_title', true);
     $seo_description = get_post_meta($post_id, '_craftedpath_seo_description', true);
+    $seo_noindex = get_post_meta($post_id, '_craftedpath_seo_noindex', true);
 
     // Determine the final title
     $final_title = $seo_title; // Use custom title if set
@@ -599,6 +615,13 @@ function output_meta_tags()
 
     // Start Comment
     echo "\n<!-- CraftedPath Toolkit SEO Meta Tags Start -->\n";
+
+    // Handle Robots Meta Tag
+    if ($seo_noindex) { // Value is true
+        // Remove default WordPress robots tag filter before outputting ours
+        remove_filter('wp_robots', 'wp_robots_max_image_preview_large');
+        echo '<meta name="robots" content="noindex, follow" />' . "\n";
+    } // If false, let WordPress handle the default output (usually max-image-preview:large)
 
     // Output Meta Description
     if (!empty($seo_description)) {
