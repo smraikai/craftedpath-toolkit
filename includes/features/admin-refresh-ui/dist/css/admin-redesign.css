@@ -12,13 +12,13 @@
 }
 
 body.admin-color-modern {
-	--admin-redesign-action-primary: var(--primary);
+	--admin-redesign-action-primary: var(--primary, #2b71db);
 }
 
 body.admin-color-fresh {
 	--admin-redesign-surface-dark-primary: #1d2327;
 	--admin-redesign-surface-dark-secondary: #2c3338;
-	--admin-redesign-action-primary: var(--primary);
+	--admin-redesign-action-primary: var(--primary, #2b71db);
 }
 
 body.admin-color-light {

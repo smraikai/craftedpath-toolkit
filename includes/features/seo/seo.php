@@ -27,6 +27,14 @@ function setup()
     add_action('wp_ajax_update_social_image_preview', __NAMESPACE__ . '\\handle_social_image_preview');
     // Filter the document title
     add_filter('document_title_parts', __NAMESPACE__ . '\\filter_document_title_parts');
+
+    // Add columns to post/page tables
+    add_filter('manage_post_posts_columns', __NAMESPACE__ . '\\add_seo_status_column');
+    add_filter('manage_page_posts_columns', __NAMESPACE__ . '\\add_seo_status_column');
+
+    // Populate columns for post/page tables
+    add_action('manage_post_posts_custom_column', __NAMESPACE__ . '\\display_seo_status_column', 10, 2);
+    add_action('manage_page_posts_custom_column', __NAMESPACE__ . '\\display_seo_status_column', 10, 2);
 }
 
 /**
@@ -537,48 +545,88 @@ function sanitize_settings($input)
  */
 function enqueue_admin_scripts($hook_suffix)
 {
-    // Define the target hook for our settings page - Use the correct one found via logging
-    $target_hook = 'craftedpath_page_craftedpath-seo-settings';
+    // Check if we are on a post edit screen or the settings page
+    $screen = get_current_screen();
+    $is_post_edit = ($hook_suffix == 'post.php' || $hook_suffix == 'post-new.php');
+    $is_settings_page = ($screen && $screen->id === 'toplevel_page_craftedpath-toolkit'); // Check for main settings page ID
+    $is_seo_sub_page = ($screen && strpos($screen->id, 'craftedpath-seo-settings') !== false); // Check for SEO subpage ID
 
-    // Only load on our settings page.
-    if ($target_hook !== $hook_suffix) {
-        return;
+    // Check if we are on the posts or pages list table
+    $is_post_list = ($hook_suffix == 'edit.php' && isset($_GET['post_type']) && $_GET['post_type'] == 'post');
+    $is_page_list = ($hook_suffix == 'edit.php' && isset($_GET['post_type']) && $_GET['post_type'] == 'page');
+    // If it's edit.php without post_type, it's likely posts
+    $is_default_post_list = ($hook_suffix == 'edit.php' && !isset($_GET['post_type']));
+
+    // Enqueue CSS for the SEO status dots on post/page list tables
+    if ($is_post_list || $is_page_list || $is_default_post_list) {
+        $css = '
+        /* General styles for the SEO column content */
+        .column-seo_status span {
+            display: inline-flex; /* Align icon and text nicely */
+            align-items: center;
+        }
+        .column-seo_status i {
+            font-size: 1.2em; /* Adjust icon size */
+            margin-right: 4px;
+            vertical-align: text-bottom;
+            line-height: 1;
+        }
+        .column-seo_status .seo-status-set {
+            color: #16A34A; /* Tailwind green-600 */
+            font-weight: 500; /* Slightly bolder */
+        }
+        .column-seo_status .seo-status-unset {
+            color: #999; /* Gray color for unset status */
+            font-style: italic;
+        }
+        .column-seo_status .seo-status-noindex {
+            color: #E65100; /* Orange/Warning color for noindex */
+            font-size: 0.9em;
+            margin-left: 5px;
+            font-weight: 500;
+            font-style: normal; /* Override italic if unset */
+        }
+        ';
+        wp_add_inline_style('wp-admin', $css); // Add inline style to core admin CSS
     }
 
-    // Enqueue WP media assets (still needed for wp.media object)
-    wp_enqueue_media();
+    // Only enqueue the main script for edit screens and the specific settings page
+    if ($is_post_edit || $is_settings_page || $is_seo_sub_page) {
+        // Enqueue WP media assets (still needed for wp.media object)
+        wp_enqueue_media();
 
-    // Enqueue WordPress color picker
-    wp_enqueue_style('wp-color-picker');
-    wp_enqueue_script('wp-color-picker');
+        // Enqueue WordPress color picker
+        wp_enqueue_style('wp-color-picker');
+        wp_enqueue_script('wp-color-picker');
 
-    // Enqueue the main admin settings script (even if empty for now)
-    $main_script_path_relative = 'js/admin-seo-settings.js';
-    $main_script_url = plugin_dir_url(__FILE__) . $main_script_path_relative;
-    wp_enqueue_script(
-        'craftedpath-seo-settings-js',
-        $main_script_url,
-        array('jquery'), // Dependency on jQuery only for the main script
-        defined('CPT_VERSION') ? CPT_VERSION : '1.0',
-        true // Load in footer
-    );
+        // Enqueue the main admin settings script (even if empty for now)
+        $main_script_path_relative = 'js/admin-seo-settings.js';
+        $main_script_url = plugin_dir_url(__FILE__) . $main_script_path_relative;
+        wp_enqueue_script(
+            'craftedpath-seo-settings-js',
+            $main_script_url,
+            array('jquery'), // Dependency on jQuery only for the main script
+            defined('CPT_VERSION') ? CPT_VERSION : '1.0',
+            true // Load in footer
+        );
 
-    // Enqueue the social share settings script
-    $social_script_path_relative = 'js/admin-social-settings.js';
-    $social_script_url = plugin_dir_url(__FILE__) . $social_script_path_relative;
-    wp_enqueue_script(
-        'craftedpath-seo-social-settings-js', // New handle
-        $social_script_url,
-        array('jquery', 'wp-color-picker', 'wp-mediaelement'), // Add dependencies 
-        defined('CPT_VERSION') ? CPT_VERSION : '1.0',
-        true // Load in footer
-    );
+        // Enqueue the social share settings script
+        $social_script_path_relative = 'js/admin-social-settings.js';
+        $social_script_url = plugin_dir_url(__FILE__) . $social_script_path_relative;
+        wp_enqueue_script(
+            'craftedpath-seo-social-settings-js', // New handle
+            $social_script_url,
+            array('jquery', 'wp-color-picker', 'wp-mediaelement'), // Add dependencies 
+            defined('CPT_VERSION') ? CPT_VERSION : '1.0',
+            true // Load in footer
+        );
 
-    // Pass settings to JavaScript (can be accessed by both scripts if needed)
-    // Attaching to the main script handle for consistency
-    wp_localize_script('craftedpath-seo-settings-js', 'cptkSettings', array(
-        'tagline' => get_bloginfo('description')
-    ));
+        // Pass settings to JavaScript (can be accessed by both scripts if needed)
+        // Attaching to the main script handle for consistency
+        wp_localize_script('craftedpath-seo-settings-js', 'cptkSettings', array(
+            'tagline' => get_bloginfo('description')
+        ));
+    }
 }
 
 /**
@@ -875,6 +923,65 @@ function filter_document_title_parts($title_parts)
 
     return $title_parts;
 }
+
+// === SEO Admin Columns ===
+
+/**
+ * Add the SEO Status column to the posts/pages list table.
+ *
+ * @param array $columns Existing columns.
+ * @return array Modified columns.
+ */
+function add_seo_status_column($columns)
+{
+    // Add the column before the 'date' column if possible
+    $new_columns = array();
+    foreach ($columns as $key => $title) {
+        if ($key == 'date') {
+            $new_columns['seo_status'] = __('SEO', 'craftedpath-toolkit');
+        }
+        $new_columns[$key] = $title;
+    }
+    // If 'date' column wasn't found, add it at the end
+    if (!isset($new_columns['seo_status'])) {
+        $new_columns['seo_status'] = __('SEO', 'craftedpath-toolkit');
+    }
+    return $new_columns;
+}
+
+/**
+ * Display the content for the SEO Status column.
+ *
+ * @param string $column_name The name of the column.
+ * @param int    $post_id     The ID of the current post.
+ */
+function display_seo_status_column($column_name, $post_id)
+{
+    if ($column_name == 'seo_status') {
+        $seo_title = get_post_meta($post_id, '_craftedpath_seo_title', true);
+        $seo_description = get_post_meta($post_id, '_craftedpath_seo_description', true);
+        $noindex_status = get_post_meta($post_id, '_craftedpath_seo_noindex', true);
+
+        // Check if both title and description are non-empty
+        $is_set = !empty(trim($seo_title)) && !empty(trim($seo_description));
+
+        $status_text = $is_set ? __('Set', 'craftedpath-toolkit') : __('Unset', 'craftedpath-toolkit');
+        $status_css_class = $is_set ? 'seo-status-set' : 'seo-status-unset'; // Add class for set status too if needed later
+        $icon_class = $is_set ? 'iconoir-check-circle' : 'iconoir-circle';
+
+        $output = '<span class="' . esc_attr($status_css_class) . '">';
+        $output .= '<i class="' . esc_attr($icon_class) . '"></i>'; // Iconoir class
+        $output .= esc_html($status_text);
+        if ($noindex_status) {
+            $output .= ' <span class="seo-status-noindex">(' . esc_html__('noindex', 'craftedpath-toolkit') . ')</span>';
+        }
+        $output .= '</span>';
+
+        echo $output;
+    }
+}
+
+// === /SEO Admin Columns ===
 
 // TODO: Add output_meta_tags function
 // TODO: Add enqueue_admin_scripts action and create JS file
