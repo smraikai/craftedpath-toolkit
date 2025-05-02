@@ -262,13 +262,11 @@ function render_social_share_settings()
         <?php // Add nonce field for AJAX preview updates ?>
         <?php wp_nonce_field('update_social_image_preview', 'craftedpath_update_social_preview_nonce'); ?>
 
-        <div class="auto-generate-preview" style="margin-bottom: 20px;">
-            <h3><?php esc_html_e('Preview', 'craftedpath-toolkit'); ?></h3>
-            <p class="description">
-                <?php esc_html_e('This is how your social share images will look:', 'craftedpath-toolkit'); ?>
-            </p>
-            <div class="preview-image" style="margin-top: 10px; max-width: 600px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <img src="<?php echo esc_url($preview_url); ?>" style="width: 100%; height: auto;" />
+        <div class="auto-generate-preview" style="margin-bottom: 25px;">
+            <h3 style="margin-bottom: 10px; margin-top: 0px;"><?php esc_html_e('Preview', 'craftedpath-toolkit'); ?></h3>
+            <div class="preview-image"
+                style="max-width: 520px; border: 1px solid #ddd; box-shadow: 0 1px 3px rgba(0,0,0,0.05); line-height: 0;">
+                <img src="<?php echo esc_url($preview_url); ?>" style="width: 100%; height: auto; display: block;" />
             </div>
         </div>
 
