@@ -264,7 +264,8 @@ function render_social_share_settings()
         <?php wp_nonce_field('update_social_image_preview', 'craftedpath_update_social_preview_nonce'); ?>
 
         <div class="auto-generate-preview" style="margin-bottom: 25px;">
-            <h3 style="margin-bottom: 10px; margin-top: 0px;"><?php esc_html_e('Preview', 'craftedpath-toolkit'); ?></h3>
+            <p style="margin-bottom: 10px; margin-top: 0px; font-weight: 700;">
+                <?php esc_html_e('Preview', 'craftedpath-toolkit'); ?></>
             <div class="social-card-mockup"
                 style="max-width: 520px; border: 1px solid #ddd; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-radius: 4px; overflow: hidden;">
                 <div class="preview-image" style="line-height: 0;">
