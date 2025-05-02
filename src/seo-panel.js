@@ -75,7 +75,7 @@ const SeoPanel = () => {
         const percentage = Math.min(100, (value / max) * 100);
         const color = getStatusColor(status);
         return (
-            <div style={{ height: '8px', background: '#e0e0e0', borderRadius: '4px', marginTop: '4px' }}>
+            <div style={{ height: '8px', background: '#e0e0e0', borderRadius: '4px' }}>
                 <div style={{ height: '100%', width: `${percentage}%`, background: color, borderRadius: '4px' }}></div>
             </div>
         );
@@ -95,18 +95,10 @@ const SeoPanel = () => {
                     placeholder={defaultSeoTitle}
                     onChange={(value) => updateMeta('_craftedpath_seo_title', value)}
                     help={`${titleLength} / ${titleRecommendedMax} ${__('characters', 'craftedpath-toolkit')}`}
-                    style={{ flexGrow: 1, marginBottom: 0 }}
+                    style={{ flexGrow: 1, marginBottom: '4px' }}
                 />
             </PanelRow>
-            <PanelRow style={{ marginTop: '-10px', marginBottom: '10px' }}>
-                <ProgressBar value={titleLength} max={titleRecommendedMax} status={titleStatus} />
-            </PanelRow>
-            {titleStatus === 'warning' && titleLength > 0 && (
-                <Notice status="warning" isDismissible={false}>{__('Title is a bit short.', 'craftedpath-toolkit')}</Notice>
-            )}
-            {titleStatus === 'error' && (
-                <Notice status="error" isDismissible={false}>{__('Title is too long.', 'craftedpath-toolkit')}</Notice>
-            )}
+            <ProgressBar value={titleLength} max={titleRecommendedMax} status={titleStatus} />
 
             <PanelRow>
                 <TextareaControl
@@ -115,18 +107,10 @@ const SeoPanel = () => {
                     hideLabelFromVision={false}
                     help={`${descriptionLength} / ${descriptionRecommendedMax} ${__('characters', 'craftedpath-toolkit')}. ${__('Recommended:', 'craftedpath-toolkit')} ${descriptionRecommendedMin}-${descriptionRecommendedMax}`}
                     onChange={(value) => updateMeta('_craftedpath_seo_description', value)}
-                    style={{ width: '100%', marginBottom: 0 }}
+                    style={{ width: '100%', marginBottom: '4px' }}
                 />
             </PanelRow>
-            <PanelRow style={{ marginTop: '-10px', marginBottom: '10px' }}>
-                <ProgressBar value={descriptionLength} max={descriptionRecommendedMax} status={descriptionStatus} />
-            </PanelRow>
-            {descriptionStatus === 'warning' && descriptionLength > 0 && (
-                <Notice status="warning" isDismissible={false}>{__('Description is a bit short.', 'craftedpath-toolkit')}</Notice>
-            )}
-            {descriptionStatus === 'error' && (
-                <Notice status="error" isDismissible={false}>{__('Description is too long.', 'craftedpath-toolkit')}</Notice>
-            )}
+            <ProgressBar value={descriptionLength} max={descriptionRecommendedMax} status={descriptionStatus} />
         </PluginDocumentSettingPanel>
     );
 };
