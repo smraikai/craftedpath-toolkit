@@ -97,6 +97,13 @@ class CPT_Settings_Manager
                 'default' => true,
                 'section' => 'AI Tools'
             ),
+            'ai_auto_categorize' => array(
+                'name' => 'AI Auto Categorize Posts',
+                'description' => 'Adds a button to the post editor to automatically categorize posts using AI.',
+                'class' => 'CPT_AI_Auto_Categorize',
+                'default' => true,
+                'section' => 'AI Tools'
+            ),
             // Section: UI Enhancements
             'admin_refresh_ui' => array(
                 'name' => 'Admin Refresh UI',

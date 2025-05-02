@@ -188,6 +188,22 @@ final class CraftedPath_Toolkit
             }
         }
 
+        // Load AI Auto Categorize
+        if ($settings_manager->is_feature_enabled('ai_auto_categorize')) {
+            // Ensure the class file is loaded before checking existence
+            $auto_cat_file = CPT_PLUGIN_DIR . 'includes/features/ai-auto-categorize/class-cpt-ai-auto-categorize.php';
+            if (file_exists($auto_cat_file)) {
+                require_once $auto_cat_file;
+                if (class_exists('CPT_AI_Auto_Categorize')) {
+                    CPT_AI_Auto_Categorize::instance();
+                } else {
+                    error_log("CraftedPath Toolkit Error: CPT_AI_Auto_Categorize class not found after requiring file.");
+                }
+            } else {
+                error_log("CraftedPath Toolkit Error: CPT_AI_Auto_Categorize class file not found at: " . $auto_cat_file);
+            }
+        }
+
         // Load Admin Refresh UI
         if ($settings_manager->is_feature_enabled('admin_refresh_ui')) {
             if (class_exists('CPT_Admin_Refresh_UI')) {
