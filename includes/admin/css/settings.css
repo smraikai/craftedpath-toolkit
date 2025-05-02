@@ -617,6 +617,29 @@ input:checked+.craftedpath-toggle-slider:before {
     background-color: var(--gray-50);
 }
 
+/* Styles for disabled CPT items */
+.cpt-list-item.is-disabled .cpt-list-item-primary,
+.cpt-list-item.is-disabled .cpt-list-item-secondary {
+    color: var(--gray-400);
+    opacity: 0.8;
+}
+
+/* Ensure the toggle slider also looks disabled */
+.cpt-list-item.is-disabled .craftedpath-toggle-slider {
+    background-color: var(--gray-200);
+    cursor: not-allowed;
+}
+
+.cpt-list-item.is-disabled .craftedpath-toggle-slider:before {
+    background-color: var(--gray-400);
+}
+
+/* Prevent hover effect on disabled items */
+.cpt-list-item.is-disabled:hover {
+    background-color: transparent;
+    /* Or var(--white) */
+}
+
 /* === END NEW Material UI Inspired List Styles === */
 
 /* Add styles for accordion controls container */
