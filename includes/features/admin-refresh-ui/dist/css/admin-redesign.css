@@ -2,11 +2,11 @@
   !*** css ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[4].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[4].use[2]!./assets/css/admin-redesign.css ***!
   \***********************************************************************************************************************************************************************************/
 :root {
-	--admin-redesign-surface-dark-primary: var(--gray-900, #111827);
-	--admin-redesign-surface-dark-secondary: var(--gray-800, #1f2937);
-	--admin-redesign-surface-light-primary: var(--white, #ffffff);
-	--admin-redesign-surface-light-secondary: var(--gray-50, #f9fafb);
-	--admin-redesign-surface-light-tertiary: var(--gray-200, #e5e7eb);
+	--admin-redesign-surface-dark-primary: var(--gray-900);
+	--admin-redesign-surface-dark-secondary: var(--gray-800);
+	--admin-redesign-surface-light-primary: var(--white);
+	--admin-redesign-surface-light-secondary: var(--gray-50);
+	--admin-redesign-surface-light-tertiary: var(--gray-200);
 	--admin-redesign-border: var(--gray-200, #e5e7eb);
 	--admin-redesign-action-primary: var(--primary);
 }
