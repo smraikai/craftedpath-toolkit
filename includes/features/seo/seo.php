@@ -133,24 +133,79 @@ function render_settings_page()
         <?php cptk_render_header_card(); ?>
 
         <div class="craftedpath-content">
-            <form action="options.php" method="post">
-                <?php
-                // Prepare footer content (Submit button)
-                ob_start();
-                submit_button(__('Save SEO Settings', 'craftedpath-toolkit'), 'primary', 'submit-seo', false);
-                $footer_html = ob_get_clean();
+            <form action="options.php" method="post" id="craftedpath-seo-settings-form">
+                <?php settings_fields('craftedpath_seo_options'); // Group name for SEO settings ?>
 
-                // Use Iconoir icon
-                $icon_html = '<i class="iconoir-input-search" style="vertical-align: text-bottom; margin-right: 5px;"></i>';
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6"> <?php // Tailwind-inspired grid layout ?>
 
-                // Render the card
-                cptk_render_card(
-                    __('Search Engine Optimization', 'craftedpath-toolkit'),
-                    $icon_html, // Pass the Iconoir HTML
-                    __NAMESPACE__ . '\\render_seo_settings_form_content',
-                    $footer_html
-                );
-                ?>
+                    <?php // Column 1: General Settings ?>
+                    <div class="lg:col-span-1 space-y-6"> <?php // Takes 1/3 width on large screens ?>
+                        <?php
+                        // General Settings Card
+                        ob_start();
+                        ?>
+                        <table class="form-table">
+                            <?php
+                            // Only Site Name and Divider remain here
+                            ?>
+                            <tr>
+                                <th scope="row">
+                                    <label for="cptk-site-name"><span class="cpt-feature-accordion-title"><?php esc_html_e('Site Name', 'craftedpath-toolkit'); ?></span></label>
+                                </th>
+                                <td>
+                                    <?php render_site_name_field(); // Keep ID for label ?>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th scope="row">
+                                    <label for="cptk-meta-divider"><span class="cpt-feature-accordion-title"><?php esc_html_e('Meta Title Divider', 'craftedpath-toolkit'); ?></span></label>
+                                </th>
+                                <td>
+                                    <?php render_meta_divider_field(); // Keep ID for label ?>
+                                </td>
+                            </tr>
+                        </table>
+                        <?php
+                        $general_content_html = ob_get_clean();
+
+                        // Prepare footer content (Submit button)
+                        ob_start();
+                        submit_button(__('Save Settings', 'craftedpath-toolkit'), 'primary', 'submit-seo-main', false);
+                        $footer_html = ob_get_clean();
+
+                        cptk_render_card(
+                            __('General Settings', 'craftedpath-toolkit'),
+                            '<i class="iconoir-settings" style="vertical-align: text-bottom; margin-right: 5px;"></i>',
+                            function () use ($general_content_html) {
+                                echo $general_content_html; // Use the captured HTML
+                            },
+                            $footer_html // Add submit button to this card's footer
+                        );
+                        ?>
+                    </div> <?php // End Column 1 ?>
+
+                    <?php // Column 2: Social Share Image Layout Settings & Preview ?>
+                    <div class="lg:col-span-2 space-y-6"> <?php // Takes 2/3 width on large screens ?>
+                        <?php
+                        // Social Share Image Card
+                        ob_start();
+                        // Pass nonce for AJAX preview
+                        wp_nonce_field('update_social_image_preview', 'craftedpath_update_social_preview_nonce');
+                        render_social_share_settings(); // Render the settings content
+                        $social_settings_html = ob_get_clean();
+
+                        cptk_render_card(
+                            __('Social Share Image', 'craftedpath-toolkit'), // Simplified title
+                            '<i class="iconoir-media-image" style="vertical-align: text-bottom; margin-right: 5px;"></i>',
+                            function () use ($social_settings_html) {
+                                echo $social_settings_html;
+                            },
+                            null // No separate submit button for this card
+                        );
+                        ?>
+                    </div> <?php // End Column 2 ?>
+
+                </div> <?php // End Grid ?>
             </form>
         </div>
     </div>
@@ -165,8 +220,8 @@ function render_site_name_field()
     $options = get_option('craftedpath_seo_settings', []);
     $site_name = $options['site_name'] ?? get_bloginfo('name');
     ?>
-    <input type="text" name="craftedpath_seo_settings[site_name]" value="<?php echo esc_attr($site_name); ?>"
-        class="regular-text" />
+    <input type="text" id="cptk-site-name" name="craftedpath_seo_settings[site_name]"
+        value="<?php echo esc_attr($site_name); ?>" class="regular-text" />
     <p class="description">
         <?php esc_html_e('Defaults to the WordPress Site Title if left empty.', 'craftedpath-toolkit'); ?>
     </p>
@@ -182,7 +237,7 @@ function render_meta_divider_field()
     $divider = $options['meta_divider'] ?? '|';
     $dividers = ['|', '-', '—', '•', '·', '»', '>'];
     ?>
-    <select name="craftedpath_seo_settings[meta_divider]">
+    <select id="cptk-meta-divider" name="craftedpath_seo_settings[meta_divider]">
         <?php foreach ($dividers as $div): ?>
             <option value="<?php echo esc_attr($div); ?>" <?php selected($divider, $div); ?>>
                 <?php echo esc_html($div); ?>
@@ -205,38 +260,34 @@ function render_social_share_logo_field()
     $logo_url = $logo_id ? wp_get_attachment_image_url($logo_id, 'medium') : '';
     ?>
     <div class="craftedpath-image-uploader social-logo-uploader"
-        style="display: flex; flex-wrap: wrap; align-items: flex-start; gap: 15px;">
+        style="display: flex; align-items: center; gap: 15px; flex-wrap: nowrap;">
         <input type="hidden" name="craftedpath_seo_settings[social_share_logo_id]" value="<?php echo esc_attr($logo_id); ?>"
             class="image-id">
 
         <div class="image-preview"
-            style="border: 1px solid #ccd0d4; padding: 5px; background: #f0f0f1; min-height: 100px; width: 150px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; text-align: center;">
+            style="border: 1px solid #ccd0d4; padding: 5px; background: #f0f0f1; height: 80px; width: 80px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; text-align: center; flex-shrink: 0;">
             <?php if ($logo_url): ?>
                 <img src="<?php echo esc_url($logo_url); ?>"
-                    style="max-width: 100%; max-height: 150px; height: auto; display: block;" />
+                    style="max-width: 100%; max-height: 100%; height: auto; display: block;" />
             <?php else: ?>
-                <span class="description"
-                    style="margin: 0;"><?php esc_html_e('No logo selected.', 'craftedpath-toolkit'); ?></span>
+                <span class="dashicons dashicons-format-image" style="font-size: 30px; color: #a0a5aa;"></span>
             <?php endif; ?>
         </div>
 
-        <div class="uploader-buttons" style="display: flex; flex-direction: column; gap: 5px;">
+        <div class="uploader-controls" style="display: flex; flex-direction: column; gap: 5px; align-items: flex-start;">
             <button type="button" class="button upload-button">
-                <?php echo $logo_id ? esc_html__('Change Logo', 'craftedpath-toolkit') : esc_html__('Upload/Select Logo', 'craftedpath-toolkit'); ?>
+                <?php echo $logo_id ? esc_html__('Change Logo', 'craftedpath-toolkit') : esc_html__('Select Logo', 'craftedpath-toolkit'); ?>
             </button>
             <button type="button" class="button remove-button" style="<?php echo $logo_id ? '' : 'display:none;'; ?>">
                 <?php esc_html_e('Remove Logo', 'craftedpath-toolkit'); ?>
             </button>
         </div>
     </div>
-    <p class="description" style="margin-top: 10px;">
-        <?php esc_html_e('Upload or select the logo to use for social share images. If empty, the Site Logo from the Customizer will be used (if available). Recommended size: At least 300x300 pixels.', 'craftedpath-toolkit'); ?>
-    </p>
     <?php
 }
 
 /**
- * Render social share settings field.
+ * Render social share settings field - Refactored Layout.
  */
 function render_social_share_settings()
 {
@@ -245,72 +296,51 @@ function render_social_share_settings()
     $custom_bg_color = $options['social_image_bg_color'] ?? '#ffffff';
     $bg_opacity = isset($options['social_image_bg_opacity']) ? $options['social_image_bg_opacity'] : '100';
     $bg_image_id = isset($options['social_image_bg_image_id']) ? $options['social_image_bg_image_id'] : 0;
+    $bg_image_url = $bg_image_id ? wp_get_attachment_image_url($bg_image_id, 'medium') : ''; // Use 'medium' for bg preview
 
-    // Get background image URL if exists
-    $bg_image_url = $bg_image_id ? wp_get_attachment_image_url($bg_image_id, 'full') : '';
-
-    // Generate a preview image URL using the current saved settings
+    // Get preview URL
     $stored_hash = $options['social_share_base_image_hash'] ?? null;
     $preview_result = \CraftedPath\Toolkit\SEO\SocialImage\generate_image($options, null, 'preview', $stored_hash);
     $preview_url = is_string($preview_result) ? $preview_result : null;
-
-    // Fallback if generation fails or returns unexpected result
     if (!$preview_url) {
         $preview_url = plugin_dir_url(dirname(__FILE__, 3)) . 'assets/images/default-social-share.jpg';
     }
     ?>
-    <div class="social-share-settings">
-        <?php // Add nonce field for AJAX preview updates ?>
-        <?php wp_nonce_field('update_social_image_preview', 'craftedpath_update_social_preview_nonce'); ?>
+    <?php // Use flexbox for two-column layout (controls left, preview right) ?>
+    <div class="social-share-settings-wrapper" style="display: flex; align-items: flex-start; flex-wrap: wrap; gap: 30px;">
 
-        <div class="auto-generate-preview" style="margin-bottom: 25px;">
-            <p style="margin-bottom: 10px; margin-top: 0px; font-weight: 700;">
-                <?php esc_html_e('Preview', 'craftedpath-toolkit'); ?></>
-            <div class="social-card-mockup"
-                style="max-width: 520px; border: 1px solid #ddd; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-radius: 4px; overflow: hidden;">
-                <div class="preview-image" style="line-height: 0;">
-                    <img src="<?php echo esc_url($preview_url); ?>"
-                        style="width: 100%; height: auto; display: block; border-bottom: 1px solid #ddd;" />
-                </div>
-                <div class="mockup-text-content" style="padding: 10px 12px; background-color: #f9f9f9;">
-                    <div class="mockup-url"
-                        style="font-size: 11px; color: #60676e; margin-bottom: 3px; text-transform: uppercase;">
-                        <?php echo esc_html(preg_replace('(^https?://)', '', get_bloginfo('url'))); ?>
-                    </div>
-                    <div class="mockup-title"
-                        style="font-size: 14px; font-weight: 500; color: #1d2129; margin-bottom: 4px; line-height: 1.3;">
-                        <?php echo esc_html($site_name); ?>
-                    </div>
-                    <div class="mockup-description" style="font-size: 12px; color: #60676e; line-height: 1.4;">
-                        <?php esc_html_e('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.', 'craftedpath-toolkit'); ?>
-                    </div>
-                </div>
+        <?php // Left Column: Controls - 50% width ?>
+        <div class="social-controls-section space-y-6" style="flex: 0 0 calc(50% - 15px); box-sizing: border-box;">
+
+            <?php // Logo Section ?>
+            <div class="logo-settings-group space-y-2" style="margin-bottom: 30px;">
+                 <h3><span class="cpt-feature-accordion-title"><?php esc_html_e('Logo', 'craftedpath-toolkit'); ?></span></h3>
+                 <?php render_social_share_logo_field(); // The function itself contains the uploader ?>
             </div>
-        </div>
 
-        <table class="form-table">
-            <tr>
-                <th scope="row"><?php esc_html_e('Background Image', 'craftedpath-toolkit'); ?></th>
-                <td>
+            <?php // Background Section ?>
+            <div class="background-settings-group space-y-4">
+                <h3><span class="cpt-feature-accordion-title"><?php esc_html_e('Background', 'craftedpath-toolkit'); ?></span></h3>
+
+                <?php // Background Image Field ?>
+                <div class="setting-group">
                     <div class="craftedpath-image-uploader social-bg-uploader"
-                        style="display: flex; flex-wrap: wrap; align-items: flex-start; gap: 15px;">
+                        style="display: flex; align-items: center; gap: 15px; flex-wrap: nowrap;">
                         <input type="hidden" name="craftedpath_seo_settings[social_image_bg_image_id]"
                             value="<?php echo esc_attr($bg_image_id); ?>" class="image-id">
-
                         <div class="image-preview"
-                            style="border: 1px solid #ccd0d4; padding: 5px; background: #f0f0f1; min-height: 100px; width: 150px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; text-align: center;">
+                            style="border: 1px solid #ccd0d4; padding: 5px; background: #f0f0f1; height: 80px; width: 120px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; text-align: center; flex-shrink: 0;">
                             <?php if ($bg_image_url): ?>
                                 <img src="<?php echo esc_url($bg_image_url); ?>"
-                                    style="max-width: 100%; height: auto; display: block;" />
+                                    style="max-width: 100%; max-height: 100%; height: auto; display: block;" />
                             <?php else: ?>
-                                <span class="description"
-                                    style="margin: 0;"><?php esc_html_e('No image selected.', 'craftedpath-toolkit'); ?></span>
+                                <span class="dashicons dashicons-format-image" style="font-size: 30px; color: #a0a5aa;"></span>
                             <?php endif; ?>
                         </div>
-
-                        <div class="uploader-buttons" style="display: flex; flex-direction: column; gap: 5px;">
+                        <div class="uploader-controls"
+                            style="display: flex; flex-direction: column; gap: 5px; align-items: flex-start;">
                             <button type="button" class="button upload-button">
-                                <?php echo $bg_image_id ? esc_html__('Change Image', 'craftedpath-toolkit') : esc_html__('Upload/Select Image', 'craftedpath-toolkit'); ?>
+                                <?php echo $bg_image_id ? esc_html__('Change Image', 'craftedpath-toolkit') : esc_html__('Select Image', 'craftedpath-toolkit'); ?>
                             </button>
                             <button type="button" class="button remove-button"
                                 style="<?php echo $bg_image_id ? '' : 'display:none;'; ?>">
@@ -318,34 +348,59 @@ function render_social_share_settings()
                             </button>
                         </div>
                     </div>
-                    <p class="description" style="margin-top: 10px;">
-                        <?php esc_html_e('Upload or select a background image for your social share images.', 'craftedpath-toolkit'); ?>
-                    </p>
-                </td>
-            </tr>
-            <tr>
-                <th scope="row"><?php esc_html_e('Background Color', 'craftedpath-toolkit'); ?></th>
-                <td>
+                </div>
+
+                <?php // Background Color & Opacity Card ?>
+                <div class="setting-group"
+                    style="margin-top: 20px; border: 1px solid #dcdcde; padding: 15px; background-color: #fff; border-radius: 4px;">
+                    <?php // Combined card styles ?>
+                    <label for="social-bg-color" class="block text-sm font-medium text-gray-700 mb-1"
+                        style="margin-bottom: 8px;"><?php esc_html_e('Color Overlay', 'craftedpath-toolkit'); ?></label>
                     <input type="text" name="craftedpath_seo_settings[social_image_bg_color]" id="social-bg-color"
-                        value="<?php echo esc_attr($custom_bg_color); ?>" class="color-picker"
-                        data-default-color="#ffffff" />
-                    <p class="description">
-                        <?php esc_html_e('Select the background color overlay for your social share images.', 'craftedpath-toolkit'); ?>
-                    </p>
-                </td>
-            </tr>
-            <tr>
-                <th scope="row"><?php esc_html_e('Color Opacity', 'craftedpath-toolkit'); ?></th>
-                <td>
-                    <input type="range" name="craftedpath_seo_settings[social_image_bg_opacity]" id="social-bg-opacity"
-                        min="0" max="100" step="1" value="<?php echo esc_attr($bg_opacity); ?>" />
-                    <span id="social-bg-opacity-value"><?php echo esc_html($bg_opacity); ?>%</span>
-                    <p class="description">
-                        <?php esc_html_e('Adjust the opacity of the background color overlay.', 'craftedpath-toolkit'); ?>
-                    </p>
-                </td>
-            </tr>
-        </table>
+                        value="<?php echo esc_attr($custom_bg_color); ?>" class="color-picker" data-default-color="#ffffff"
+                        style="max-width: 150px;" />
+
+                    <?php // Opacity controls moved inside this card ?>
+                    <label for="social-bg-opacity" class="block text-sm font-medium text-gray-700 mb-1"
+                        style="margin-top: 15px; margin-bottom: 8px;"><?php esc_html_e('Color Opacity', 'craftedpath-toolkit'); ?></label>
+                    <?php // Added margin-top ?>
+                    <div style="display: flex; align-items: center; gap: 10px; max-width: 300px;">
+                        <input type="range" name="craftedpath_seo_settings[social_image_bg_opacity]" id="social-bg-opacity"
+                            min="0" max="100" step="1" value="<?php echo esc_attr($bg_opacity); ?>" style="flex-grow: 1;" />
+                        <span id="social-bg-opacity-value"
+                            style="font-weight: 500; min-width: 40px; text-align: right;"><?php echo esc_html($bg_opacity); ?>%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <?php // Right Column: Preview - 50% width ?>
+        <div class="social-preview-section" style="flex: 0 0 calc(50% - 15px); box-sizing: border-box;">
+            <h3><span class="cpt-feature-accordion-title"><?php esc_html_e('Preview', 'craftedpath-toolkit'); ?></span></h3>
+            <div class="social-card-mockup" style="max-width: 100%; border: 1px solid #ddd; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-radius: 4px; overflow: hidden; background-color: #fff;">
+                <div class="preview-image" style="line-height: 0;">
+                    <?php // Note: Consider adding a loading spinner overlay during AJAX updates ?>
+                    <img src="<?php echo esc_url($preview_url); ?>"
+                        style="width: 100%; height: auto; display: block; border-bottom: 1px solid #ddd;"
+                        alt="<?php esc_attr_e('Social Share Preview', 'craftedpath-toolkit'); ?>" />
+                </div>
+                <div class="mockup-text-content" style="padding: 10px 12px; background-color: #f9f9f9;">
+                    <div class="mockup-url"
+                        style="font-size: 11px; color: #60676e; margin-bottom: 3px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        <?php echo esc_html(str_replace(['http://', 'https://'], '', get_bloginfo('url'))); ?>
+                    </div>
+                    <div class="mockup-title"
+                        style="font-size: 14px; font-weight: 500; color: #1d2129; margin-bottom: 4px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        <?php echo esc_html($site_name); // Use site name from options for preview consistency ?>
+                    </div>
+                    <div class="mockup-description"
+                        style="font-size: 12px; color: #60676e; line-height: 1.4; max-height: 3.8em; overflow: hidden;">
+                        <?php esc_html_e('Example description text showing how content might appear when shared.', 'craftedpath-toolkit'); // Shortened example text ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
     <?php
 }
