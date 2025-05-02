@@ -116,7 +116,7 @@ const SeoPanel = () => {
             {/* --- Add No Index Toggle --- */}
             <div style={{
                 marginTop: '16px',              // Space above the section
-                padding: '16px',              // Internal padding
+                padding: '16px 16px 8px 16px',              // Internal padding
                 backgroundColor: '#f9fafb',  // Light background (like gray-50)
                 border: '1px solid #e5e7eb', // Lighter border (like gray-200)
                 borderRadius: '6px'            // Slightly more rounded corners
