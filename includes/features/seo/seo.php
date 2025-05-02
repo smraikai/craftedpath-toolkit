@@ -25,6 +25,8 @@ function setup()
     add_action('wp_head', __NAMESPACE__ . '\\output_meta_tags', 1); // Use priority 1 to run early
     add_action('admin_enqueue_scripts', __NAMESPACE__ . '\\enqueue_admin_scripts');
     add_action('wp_ajax_update_social_image_preview', __NAMESPACE__ . '\\handle_social_image_preview');
+    // Filter the document title
+    add_filter('document_title_parts', __NAMESPACE__ . '\\filter_document_title_parts');
 }
 
 /**
@@ -785,6 +787,64 @@ function generate_social_share_image_preview()
     }
 
     return $preview_url;
+}
+
+/**
+ * Filters the document title parts based on SEO settings.
+ *
+ * @param array $title_parts The parts of the document title.
+ * @return array Modified title parts.
+ */
+function filter_document_title_parts($title_parts)
+{
+    // Only modify on singular pages/posts
+    if (!is_singular()) {
+        return $title_parts;
+    }
+
+    $post_id = get_queried_object_id();
+    if (!$post_id) {
+        return $title_parts;
+    }
+
+    // Get SEO settings
+    $options = get_option('craftedpath_seo_settings', []);
+    $site_name = !empty($options['site_name']) ? $options['site_name'] : get_bloginfo('name');
+    $divider = !empty($options['meta_divider']) ? ' ' . trim($options['meta_divider']) . ' ' : ' | ';
+
+    // Get post-specific meta
+    $seo_title = get_post_meta($post_id, '_craftedpath_seo_title', true);
+
+    // Determine the final title (same logic as output_meta_tags)
+    $final_title = $seo_title; // Use custom title if set
+    if (empty($final_title)) {
+        $post_title = get_the_title($post_id);
+        // Check if it's the front page, and use Site Name only if no specific title set
+        if (is_front_page() && empty($post_title)) {
+            $final_title = $site_name;
+        } elseif ($post_title) {
+            $final_title = $post_title . $divider . $site_name;
+        } else {
+            // Fallback if somehow no title exists (should rarely happen)
+            $final_title = $site_name;
+        }
+    }
+
+    // If we have a final title determined by our logic, use it
+    if (!empty($final_title)) {
+        $title_parts['title'] = $final_title;
+
+        // Remove other parts to avoid duplication (e.g., site name, tagline)
+        // Check if they exist before unsetting
+        if (isset($title_parts['site'])) {
+            unset($title_parts['site']);
+        }
+        if (isset($title_parts['tagline'])) {
+            unset($title_parts['tagline']);
+        }
+    }
+
+    return $title_parts;
 }
 
 // TODO: Add output_meta_tags function
