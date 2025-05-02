@@ -22,22 +22,29 @@ jQuery(document).ready(function ($) {
 
     // --- Server-Side Preview Update Trigger --- 
     const triggerServerSidePreviewUpdate = debounce(function (triggerSource) {
-        console.log(`[SEO Social Settings] Triggering server-side preview update from: ${triggerSource}`); // Changed log prefix
-        const $previewContainer = $('.social-share-settings .auto-generate-preview .preview-image');
-        const $previewImage = $previewContainer.find('img');
-        // Add inline styles for absolute centering over the container
-        const $loadingSpinner = $('<span class="spinner is-active" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10; background-color: rgba(255,255,255,0.6); border-radius: 50%; padding: 5px;"></span>');
+        console.log(`[SEO Social Settings] Triggering server-side preview update from: ${triggerSource}`);
+        const $previewImage = $('#social-preview-image');
+        const $loader = $('.preview-loader');
 
-        if (!$previewContainer.length) return;
-
-        // Ensure container has relative positioning for absolute child
-        $previewContainer.css('position', 'relative');
+        if (!$previewImage.length) {
+            console.error('[SEO Social Settings] Preview image element (#social-preview-image) not found.');
+            return;
+        }
+        if (!$loader.length) {
+            console.warn('[SEO Social Settings] Preview loader element (.preview-loader) not found.');
+        }
+        if (!updatePreviewNonce) {
+            console.error('[SEO Social Settings] Update preview nonce is missing.');
+            return;
+        }
 
         // Show loading state
+        $loader.show();
         $previewImage.css('opacity', 0.5);
-        $previewContainer.append($loadingSpinner); // Append spinner to container
 
         // Gather data
+        const siteNameVal = $('#cptk-site-name').val() || '';
+
         const data = {
             action: 'update_social_image_preview',
             nonce: updatePreviewNonce,
@@ -45,37 +52,34 @@ jQuery(document).ready(function ($) {
             bg_opacity: $('#social-bg-opacity').val(),
             logo_id: $('.social-logo-uploader .image-id').val(),
             bg_image_id: $('.social-bg-uploader .image-id').val(),
-            site_name: $('input[name="craftedpath_seo_settings[site_name]"]').val()
-            // text_color: removed
+            site_name: siteNameVal
         };
 
         // Perform AJAX request
-        console.log('[SEO Social Settings] Sending AJAX data:', data); // Changed log prefix
+        console.log('[SEO Social Settings] Sending AJAX data:', data);
         $.post(ajaxurl, data, function (response) {
-            console.log('[SEO Social Settings] AJAX Response: ', response); // Changed log prefix
-            $loadingSpinner.remove(); // Remove spinner regardless of outcome
+            console.log('[SEO Social Settings] AJAX Response: ', response);
+            $loader.hide();
             $previewImage.css('opacity', 1);
 
             if (response.success && response.data.preview_url) {
                 // Update preview image source
-                $previewImage.attr('src', response.data.preview_url);
-                console.log(`[SEO Social Settings] Preview image src updated to: ${response.data.preview_url}`); // Changed log prefix
-                console.log('[SEO Social Settings] Preview updated successfully.'); // Changed log prefix
+                $previewImage.attr('src', response.data.preview_url + '?t=' + Date.now());
+                console.log(`[SEO Social Settings] Preview image src updated to: ${response.data.preview_url}`);
+                console.log('[SEO Social Settings] Preview updated successfully.');
             } else {
-                // Handle error - maybe show a message?
-                console.error('[SEO Social Settings] Failed to update preview.', response.data); // Changed log prefix
-                // Optionally revert to a default or show the fallback URL if provided
+                // Handle error
+                console.error('[SEO Social Settings] Failed to update preview.', response.data || 'No data returned');
                 if (response.data && response.data.fallback_url) {
-                    $previewImage.attr('src', response.data.fallback_url);
+                    $previewImage.attr('src', response.data.fallback_url + '?t=' + Date.now());
                 }
-                // Consider adding a user-visible error message here
+                // Optional: Display user-facing error via toast/alert
             }
         }).fail(function (jqXHR, textStatus, errorThrown) {
-            console.error('[SEO Social Settings] AJAX request failed: ', textStatus, errorThrown); // Changed log prefix
-            $loadingSpinner.remove();
+            console.error('[SEO Social Settings] AJAX request failed: ', textStatus, errorThrown);
+            $loader.hide();
             $previewImage.css('opacity', 1);
-            // Handle AJAX failure - show generic error?
-            console.error('[SEO Social Settings] AJAX request failed.'); // Changed log prefix
+            // Optional: Display user-facing error via toast/alert
         });
 
     }, 500); // Debounce for 500ms

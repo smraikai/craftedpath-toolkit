@@ -388,9 +388,13 @@ function render_social_share_settings()
             <h3><span class="cpt-feature-accordion-title"><?php esc_html_e('Preview', 'craftedpath-toolkit'); ?></span></h3>
             <div class="social-card-mockup"
                 style="max-width: 100%; border: 1px solid #ddd; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-radius: 4px; overflow: hidden; background-color: #fff;">
-                <div class="preview-image" style="line-height: 0;">
-                    <?php // Note: Consider adding a loading spinner overlay during AJAX updates ?>
-                    <img src="<?php echo esc_url($preview_url); ?>"
+                <div class="preview-image" style="line-height: 0; position: relative;">
+                    <?php // Loader placeholder - centered using top/left/transform ?>
+                    <div class="preview-loader"
+                        style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: none; z-index: 10;">
+                        <span class="spinner is-active"></span>
+                    </div> <?php // Updated centering style ?>
+                    <img src="<?php echo esc_url($preview_url); ?>" id="social-preview-image"
                         style="width: 100%; height: auto; display: block; border-bottom: 1px solid #ddd;"
                         alt="<?php esc_attr_e('Social Share Preview', 'craftedpath-toolkit'); ?>" />
                 </div>
