@@ -58,6 +58,12 @@ final class CraftedPath_Toolkit
 
         // SEO functionality is now loaded conditionally in load_features()
         // require_once CPT_PLUGIN_DIR . 'includes/seo.php';
+
+        // Load CPT classes (if feature enabled later)
+        require_once CPT_PLUGIN_DIR . 'includes/features/custom-post-types/class-cpt-testimonials.php';
+        require_once CPT_PLUGIN_DIR . 'includes/features/custom-post-types/class-cpt-faqs.php';
+        require_once CPT_PLUGIN_DIR . 'includes/features/custom-post-types/class-cpt-staff.php';
+        require_once CPT_PLUGIN_DIR . 'includes/features/custom-post-types/class-cpt-events.php';
     }
 
     private function init_hooks()
@@ -238,6 +244,38 @@ final class CraftedPath_Toolkit
                 }
             } else {
                 error_log("CraftedPath Toolkit Error: includes/features/seo/seo.php file not found.");
+            }
+        }
+
+        // Load Custom Post Types (Only if Meta Box is active)
+        if (function_exists('rwmb_meta')) {
+            if ($settings_manager->is_feature_enabled('cpt_testimonials')) {
+                if (class_exists('CPT_Testimonials')) {
+                    new CPT_Testimonials();
+                } else {
+                    error_log("CraftedPath Toolkit Error: CPT_Testimonials class not found.");
+                }
+            }
+            if ($settings_manager->is_feature_enabled('cpt_faqs')) {
+                if (class_exists('CPT_FAQs')) {
+                    new CPT_FAQs();
+                } else {
+                    error_log("CraftedPath Toolkit Error: CPT_FAQs class not found.");
+                }
+            }
+            if ($settings_manager->is_feature_enabled('cpt_staff')) {
+                if (class_exists('CPT_Staff')) {
+                    new CPT_Staff();
+                } else {
+                    error_log("CraftedPath Toolkit Error: CPT_Staff class not found.");
+                }
+            }
+            if ($settings_manager->is_feature_enabled('cpt_events')) {
+                if (class_exists('CPT_Events')) {
+                    new CPT_Events();
+                } else {
+                    error_log("CraftedPath Toolkit Error: CPT_Events class not found.");
+                }
             }
         }
 

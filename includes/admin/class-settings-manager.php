@@ -127,6 +127,35 @@ class CPT_Settings_Manager
                 'default' => true, // Enable by default?
                 'section' => 'SEO Tools' // New section
             ),
+            // Section: Custom Post Types
+            'cpt_testimonials' => array(
+                'name' => 'Testimonials',
+                'description' => 'Registers a "Testimonials" Custom Post Type.',
+                'class' => 'CPT_Testimonials',
+                'default' => false,
+                'section' => 'Custom Post Types'
+            ),
+            'cpt_faqs' => array(
+                'name' => 'FAQs',
+                'description' => 'Registers a "FAQs" Custom Post Type.',
+                'class' => 'CPT_FAQs',
+                'default' => false,
+                'section' => 'Custom Post Types'
+            ),
+            'cpt_staff' => array(
+                'name' => 'Staff',
+                'description' => 'Registers a "Staff" Custom Post Type with a Department taxonomy.',
+                'class' => 'CPT_Staff',
+                'default' => false,
+                'section' => 'Custom Post Types'
+            ),
+            'cpt_events' => array(
+                'name' => 'Events',
+                'description' => 'Registers an "Events" Custom Post Type with an Event Category taxonomy.',
+                'class' => 'CPT_Events',
+                'default' => false,
+                'section' => 'Custom Post Types'
+            ),
             // Add more features here as they are developed
         );
     }
@@ -390,6 +419,7 @@ class CPT_Settings_Manager
             __('AI Tools', 'craftedpath-toolkit'),
             __('UI Enhancements', 'craftedpath-toolkit'),
             __('SEO Tools', 'craftedpath-toolkit'),
+            __('Custom Post Types', 'craftedpath-toolkit'),
             __('Other', 'craftedpath-toolkit')
         ];
 
@@ -480,9 +510,16 @@ class CPT_Settings_Manager
         $enabled = isset($options['features'][$feature_id])
             ? (bool) $options['features'][$feature_id] // Cast to bool
             : (bool) $feature['default']; // Cast to bool
+
+        // Check if Meta Box is required and inactive for CPTs
+        $is_cpt_feature = isset($feature['section']) && $feature['section'] === 'Custom Post Types';
+        $is_metabox_active = function_exists('rwmb_meta');
+        $disable_toggle = $is_cpt_feature && !$is_metabox_active;
+        $tooltip = $disable_toggle ? 'title="Requires Metabox to be active and installed"' : '';
+
         ?>
         <?php // Use a structure inspired by Material UI ListItem ?>
-        <div class="cpt-list-item">
+        <div class="cpt-list-item <?php echo $disable_toggle ? 'is-disabled' : ''; ?>">
             <div class="cpt-feature-info"> <?php // Represents ListItemText ?>
                 <span class="cpt-list-item-primary">
                     <?php // Use span for primary text (label) ?>
@@ -493,12 +530,12 @@ class CPT_Settings_Manager
                     <?php echo esc_html($feature['description']); ?>
                 </span>
             </div>
-            <div class="craftedpath-toggle-field"> <?php // Represents SecondaryAction ?>
+            <div class="craftedpath-toggle-field" <?php echo $tooltip; ?>> <?php // Represents SecondaryAction ?>
                 <?php // Keep existing toggle structure inside ?>
                 <label class="craftedpath-toggle">
                     <input type="checkbox" id="feature-<?php echo esc_attr($feature_id); ?>"
                         name="<?php echo esc_attr(self::OPTION_NAME); ?>[features][<?php echo esc_attr($feature_id); ?>]"
-                        value="1" <?php checked($enabled, true); ?>>
+                        value="1" <?php checked($enabled, true); ?>         <?php disabled($disable_toggle, true); ?>>
                     <span class="craftedpath-toggle-slider"></span>
                 </label>
             </div>
@@ -544,6 +581,7 @@ class CPT_Settings_Manager
     {
         $sanitized = array();
         $sanitized['features'] = array();
+        $is_metabox_active = function_exists('rwmb_meta'); // Check once
 
         // Debug the input - Removed for cleaner code, add back if needed
         // error_log('Input received for feature settings: ' . print_r($input, true));
@@ -552,6 +590,13 @@ class CPT_Settings_Manager
         foreach ($this->features as $feature_id => $feature) {
             // Checkbox value is '1' if checked, not present otherwise.
             $is_enabled = isset($input['features'][$feature_id]) && $input['features'][$feature_id] === '1';
+
+            // If it's a CPT feature and Meta Box is NOT active, force disable it
+            $is_cpt_feature = isset($feature['section']) && $feature['section'] === 'Custom Post Types';
+            if ($is_cpt_feature && !$is_metabox_active) {
+                $is_enabled = false;
+            }
+
             $sanitized['features'][$feature_id] = $is_enabled;
 
             // Debug each feature's state - Removed for cleaner code
