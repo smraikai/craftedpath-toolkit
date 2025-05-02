@@ -88,17 +88,15 @@ const SeoPanel = () => {
             title={__('SEO Settings', 'craftedpath-toolkit')}
             className="craftedpath-seo-panel"
         >
-            <PanelRow>
-                <TextControl
-                    label={__('SEO Title', 'craftedpath-toolkit')}
-                    value={currentSeoTitle}
-                    hideLabelFromVision={false}
-                    placeholder={defaultSeoTitle}
-                    onChange={(value) => updateMeta('_craftedpath_seo_title', value)}
-                    help={`${titleLength} / ${titleRecommendedMax} ${__('characters', 'craftedpath-toolkit')}`}
-                    style={{ flexGrow: 1, marginBottom: '4px' }}
-                />
-            </PanelRow>
+            <TextControl
+                label={__('SEO Title', 'craftedpath-toolkit')}
+                value={currentSeoTitle}
+                hideLabelFromVision={false}
+                placeholder={defaultSeoTitle}
+                onChange={(value) => updateMeta('_craftedpath_seo_title', value)}
+                help={`${titleLength} / ${titleRecommendedMax} ${__('characters', 'craftedpath-toolkit')}`}
+                style={{ width: '100%', marginBottom: '4px' }}
+            />
             <ProgressBar value={titleLength} max={titleRecommendedMax} status={titleStatus} />
 
             <PanelRow>
