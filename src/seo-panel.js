@@ -99,17 +99,18 @@ const SeoPanel = () => {
             />
             <ProgressBar value={titleLength} max={titleRecommendedMax} status={titleStatus} />
 
-            <PanelRow>
+            {/* Wrap Description and Progress bar for spacing */}
+            <div style={{ marginTop: '16px' }}>
                 <TextareaControl
                     label={__('Meta Description', 'craftedpath-toolkit')}
                     value={currentSeoDescription}
                     hideLabelFromVision={false}
-                    help={`${descriptionLength} / ${descriptionRecommendedMax} ${__('characters', 'craftedpath-toolkit')}. ${__('Recommended:', 'craftedpath-toolkit')} ${descriptionRecommendedMin}-${descriptionRecommendedMax}`}
+                    help={`${descriptionLength} / ${descriptionRecommendedMax} ${__('characters', 'craftedpath-toolkit')}`}
                     onChange={(value) => updateMeta('_craftedpath_seo_description', value)}
                     style={{ width: '100%', marginBottom: '4px' }}
                 />
-            </PanelRow>
-            <ProgressBar value={descriptionLength} max={descriptionRecommendedMax} status={descriptionStatus} />
+                <ProgressBar value={descriptionLength} max={descriptionRecommendedMax} status={descriptionStatus} />
+            </div>
 
             {/* --- Add No Index Toggle --- */}
             <div style={{
