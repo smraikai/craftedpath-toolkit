@@ -130,6 +130,7 @@ const AutoCategorizePanel = () => {
                     onClick={handleAutoCategorize}
                     isBusy={isLoading}
                     disabled={isLoading}
+                    style={{ marginBottom: '1em' }}
                 >
                     {isLoading ? i18n.loadingText || 'Categorizing...' : i18n.buttonText || 'Auto Categorize'}
                 </Button>
