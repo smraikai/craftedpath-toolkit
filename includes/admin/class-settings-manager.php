@@ -404,15 +404,13 @@ class CPT_Settings_Manager
                     <div class="cpt-feature-accordion-content" role="region"
                         aria-labelledby="accordion-header-<?php echo esc_attr($section_slug); ?>"
                         id="accordion-content-<?php echo esc_attr($section_slug); ?>" <?php echo !$is_open ? 'hidden' : ''; ?>>
-                        <table class="form-table" role="presentation">
-                            <tbody>
-                                <?php
-                                foreach ($grouped_features[$section_name] as $feature_id => $feature) {
-                                    $this->render_feature_row($feature_id, $feature);
-                                }
-                                ?>
-                            </tbody>
-                        </table>
+                        <div class="cpt-features-list">
+                            <?php
+                            foreach ($grouped_features[$section_name] as $feature_id => $feature) {
+                                $this->render_feature_row($feature_id, $feature);
+                            }
+                            ?>
+                        </div>
                     </div>
                 </div>
                 <?php
@@ -437,15 +435,13 @@ class CPT_Settings_Manager
                     <div class="cpt-feature-accordion-content" role="region"
                         aria-labelledby="accordion-header-<?php echo esc_attr($section_slug); ?>"
                         id="accordion-content-<?php echo esc_attr($section_slug); ?>" <?php echo !$is_open ? 'hidden' : ''; ?>>
-                        <table class="form-table" role="presentation">
-                            <tbody>
-                                <?php
-                                foreach ($features_in_section as $feature_id => $feature) {
-                                    $this->render_feature_row($feature_id, $feature);
-                                }
-                                ?>
-                            </tbody>
-                        </table>
+                        <div class="cpt-features-list">
+                            <?php
+                            foreach ($features_in_section as $feature_id => $feature) {
+                                $this->render_feature_row($feature_id, $feature);
+                            }
+                            ?>
+                        </div>
                     </div>
                 </div>
                 <?php
@@ -471,26 +467,28 @@ class CPT_Settings_Manager
             ? (bool) $options['features'][$feature_id] // Cast to bool
             : (bool) $feature['default']; // Cast to bool
         ?>
-        <tr>
-            <th scope="row">
-                <label for="feature-<?php echo esc_attr($feature_id); ?>">
+        <?php // Use a structure inspired by Material UI ListItem ?>
+        <div class="cpt-list-item">
+            <div class="cpt-feature-info"> <?php // Represents ListItemText ?>
+                <span class="cpt-list-item-primary">
+                    <?php // Use span for primary text (label) ?>
                     <?php echo esc_html($feature['name']); ?>
+                </span>
+                <span class="cpt-list-item-secondary">
+                    <?php // Use span for secondary text (description) ?>
+                    <?php echo esc_html($feature['description']); ?>
+                </span>
+            </div>
+            <div class="craftedpath-toggle-field"> <?php // Represents SecondaryAction ?>
+                <?php // Keep existing toggle structure inside ?>
+                <label class="craftedpath-toggle">
+                    <input type="checkbox" id="feature-<?php echo esc_attr($feature_id); ?>"
+                        name="<?php echo esc_attr(self::OPTION_NAME); ?>[features][<?php echo esc_attr($feature_id); ?>]"
+                        value="1" <?php checked($enabled, true); ?>>
+                    <span class="craftedpath-toggle-slider"></span>
                 </label>
-            </th>
-            <td>
-                <div class="craftedpath-toggle-field">
-                    <label class="craftedpath-toggle">
-                        <input type="checkbox" id="feature-<?php echo esc_attr($feature_id); ?>"
-                            name="<?php echo esc_attr(self::OPTION_NAME); ?>[features][<?php echo esc_attr($feature_id); ?>]"
-                            value="1" <?php checked($enabled, true); ?>>
-                        <span class="craftedpath-toggle-slider"></span>
-                    </label>
-                    <span class="craftedpath-feature-description">
-                        <?php echo esc_html($feature['description']); ?>
-                    </span>
-                </div>
-            </td>
-        </tr>
+            </div>
+        </div>
         <?php
     }
 

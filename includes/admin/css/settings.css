@@ -212,8 +212,8 @@
 .craftedpath-toggle {
     position: relative;
     display: inline-block;
-    width: 56px;
-    height: 28px;
+    width: 36px;
+    height: 18px;
     margin-right: 15px;
 }
 
@@ -232,16 +232,16 @@
     bottom: 0;
     background-color: var(--gray-300);
     transition: .4s;
-    border-radius: 28px;
+    border-radius: 18px;
 }
 
 .craftedpath-toggle-slider:before {
     position: absolute;
     content: "";
-    height: 22px;
-    width: 22px;
-    left: 3px;
-    bottom: 3px;
+    height: 14px;
+    width: 14px;
+    left: 2px;
+    bottom: 2px;
     background-color: var(--white);
     transition: .4s;
     border-radius: 50%;
@@ -257,7 +257,7 @@ input:focus+.craftedpath-toggle-slider {
 }
 
 input:checked+.craftedpath-toggle-slider:before {
-    transform: translateX(28px);
+    transform: translateX(18px);
 }
 
 .craftedpath-feature-description {
@@ -524,14 +524,92 @@ input:checked+.craftedpath-toggle-slider:before {
     display: none;
 }
 
-/* Adjust table style within accordion */
+/* Adjust table style within accordion - REMOVED TABLE SPECIFIC */
 .cpt-feature-accordion-content .form-table {
-    margin-top: 0;
+    /* margin-top: 0; */
+    /* Removed */
 }
 
 .cpt-feature-accordion-content .form-table tr:last-child {
+    /* border-bottom: none; */
+    /* Removed */
+}
+
+/* === NEW Material UI Inspired List Styles === */
+
+.cpt-features-list {
+    /* No special styling needed for the list container itself */
+    /* We style each item individually */
+}
+
+.cpt-list-item {
+    display: flex;
+    align-items: center;
+    /* Vertically center content */
+    justify-content: space-between;
+    /* Push toggle to the right */
+    padding: 12px 0;
+    /* Typical Material UI list item padding */
+    border-bottom: 1px solid var(--gray-200);
+    position: relative;
+    /* Needed if using absolute positioning for toggle, optional for flex */
+    min-height: 64px;
+    /* Suggest minimum height */
+}
+
+.cpt-features-list .cpt-list-item:last-child {
     border-bottom: none;
 }
+
+.cpt-feature-info {
+    /* Represents ListItemText */
+    flex-grow: 1;
+    margin-right: 16px;
+    /* Space before the toggle action */
+    /* No padding needed here, handled by .cpt-list-item */
+}
+
+.cpt-list-item-primary {
+    display: block;
+    /* Ensure it takes its own line */
+    font-size: 16px;
+    /* Material primary text size */
+    font-weight: 500;
+    /* Slightly bolder */
+    color: var(--gray-800);
+    line-height: 1.5;
+}
+
+.cpt-list-item-secondary {
+    display: block;
+    /* Ensure it takes its own line */
+    font-size: 14px;
+    /* Material secondary text size */
+    color: var(--gray-600);
+    line-height: 1.4;
+    margin-top: 2px;
+    /* Small space between primary and secondary */
+}
+
+.craftedpath-toggle-field {
+    /* Represents SecondaryAction */
+    flex-shrink: 0;
+    /* Prevent shrinking */
+    /* Ensure flex alignment works */
+    display: flex;
+    align-items: center;
+}
+
+.craftedpath-toggle {
+    /* No change needed to the toggle itself */
+}
+
+/* Optional: Add hover effect */
+.cpt-list-item:hover {
+    background-color: var(--gray-50);
+}
+
+/* === END NEW Material UI Inspired List Styles === */
 
 /* Add styles for accordion controls container */
 .cpt-accordion-controls {
