@@ -591,9 +591,9 @@ input:checked+.craftedpath-toggle-slider:before {
 .cpt-list-item-secondary {
     display: block;
     /* Ensure it takes its own line */
-    font-size: 14px;
+    font-size: 13px;
     /* Material secondary text size */
-    color: var(--gray-600);
+    color: var(--gray-500);
     line-height: 1.4;
     margin-top: 2px;
     /* Small space between primary and secondary */
