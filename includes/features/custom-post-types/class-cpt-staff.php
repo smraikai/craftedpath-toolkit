@@ -16,6 +16,9 @@ class CPT_Staff
         add_action('init', array($this, 'register_post_type'));
         add_action('init', array($this, 'register_taxonomy'));
         add_filter('rwmb_meta_boxes', array($this, 'register_meta_boxes'));
+
+        // Add link to taxonomy on Staff list page
+        add_filter('views_edit-staff', array($this, 'add_department_link_to_views'));
     }
 
     public function register_post_type()
@@ -32,13 +35,12 @@ class CPT_Staff
             'public' => true,
             'publicly_queryable' => true,
             'show_ui' => true,
-            'show_in_menu' => true,
+            'show_in_menu' => 'cptk-content-menu',
             'query_var' => true,
             'rewrite' => array('slug' => 'staff'),
             'capability_type' => 'post',
             'has_archive' => true, // Consider setting to false if no archive page needed
             'hierarchical' => false,
-            'menu_position' => null,
             'menu_icon' => 'dashicons-groups',
             'supports' => array('title', 'editor', 'thumbnail', 'custom-fields', 'excerpt'), // Add excerpt
             'show_in_rest' => true,
@@ -64,6 +66,31 @@ class CPT_Staff
             'show_in_rest' => true,
         );
         register_taxonomy('department', array('staff'), $args);
+    }
+
+    /**
+     * Add a link to the Department management page on the Staff list table.
+     *
+     * @param array $views Existing views (All, Published, etc.)
+     * @return array Modified views array.
+     */
+    public function add_department_link_to_views($views)
+    {
+        $taxonomy_slug = 'department';
+        $taxonomy_object = get_taxonomy($taxonomy_slug);
+
+        if (!$taxonomy_object || !current_user_can($taxonomy_object->cap->manage_terms)) {
+            return $views;
+        }
+
+        $url = admin_url('edit-tags.php?taxonomy=' . $taxonomy_slug);
+        $views['department'] = sprintf(
+            '<a href="%s">%s</a>',
+            esc_url($url),
+            esc_html($taxonomy_object->labels->name) // Use the registered taxonomy name
+        );
+
+        return $views;
     }
 
     public function register_meta_boxes($meta_boxes)

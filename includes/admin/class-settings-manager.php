@@ -232,6 +232,93 @@ class CPT_Settings_Manager
             'cptk_render_settings_page',              // Callback function (from settings-page.php)
             90                                        // Position (optional, place it after others)
         );
+
+        // Add "Content" Top-Level menu if any CPT is active and Meta Box exists
+        $this->add_content_parent_menu();
+    }
+
+    /**
+     * Adds the parent "Content" menu item if conditions are met.
+     */
+    private function add_content_parent_menu()
+    {
+        // Check if Meta Box is active
+        if (!function_exists('rwmb_meta')) {
+            return;
+        }
+
+        // Check if at least one CPT feature is enabled
+        $cpt_features = ['cpt_testimonials', 'cpt_faqs', 'cpt_staff', 'cpt_events'];
+        $any_cpt_enabled = false;
+        foreach ($cpt_features as $feature_id) {
+            if ($this->is_feature_enabled($feature_id)) {
+                $any_cpt_enabled = true;
+                break;
+            }
+        }
+
+        if (!$any_cpt_enabled) {
+            return;
+        }
+
+        // Add the top-level menu page
+        add_menu_page(
+            __('Content', 'craftedpath-toolkit'),     // Page title
+            __('Content', 'craftedpath-toolkit'),     // Menu title
+            'edit_posts',                         // Capability (allow editors etc. to see CPTs)
+            'cptk-content-menu',                  // Menu slug (used in show_in_menu for CPTs)
+            array($this, 'render_content_parent_page'), // Callback function for the parent page
+            'dashicons-archive',                  // Icon
+            26                                    // Position (after Comments)
+        );
+
+        // Taxonomy submenus are now handled via links on the CPT list tables
+        /*
+        // Manually add taxonomy submenus if their corresponding CPT is active
+        if ($this->is_feature_enabled('cpt_faqs')) {
+            add_submenu_page(
+                'cptk-content-menu',
+                __('FAQ Categories', 'craftedpath-toolkit'),
+                __('FAQ Categories', 'craftedpath-toolkit'),
+                'manage_categories', // Standard capability for categories
+                'edit-tags.php?taxonomy=faq_category'
+                // No callback needed, WordPress handles edit-tags.php
+            );
+        }
+
+        if ($this->is_feature_enabled('cpt_staff')) {
+            add_submenu_page(
+                'cptk-content-menu',
+                __('Departments', 'craftedpath-toolkit'),
+                __('Departments', 'craftedpath-toolkit'),
+                'manage_categories', // Standard capability
+                'edit-tags.php?taxonomy=department'
+            );
+        }
+
+        if ($this->is_feature_enabled('cpt_events')) {
+            add_submenu_page(
+                'cptk-content-menu',
+                __('Event Categories', 'craftedpath-toolkit'),
+                __('Event Categories', 'craftedpath-toolkit'),
+                'manage_categories', // Standard capability
+                'edit-tags.php?taxonomy=event_category'
+            );
+        }
+        */
+    }
+
+    /**
+     * Render a placeholder page for the "Content" parent menu.
+     * WordPress automatically redirects to the first submenu item,
+     * so this callback might not be strictly necessary unless all
+     * submenu items are hidden due to capabilities.
+     */
+    public function render_content_parent_page()
+    {
+        // This page likely won't be directly visible as WP redirects to the first submenu.
+        // We can add a placeholder if needed.
+        echo '<div class="wrap"><h1>' . esc_html__('Custom Content', 'craftedpath-toolkit') . '</h1><p>' . esc_html__('Select a content type from the submenu.', 'craftedpath-toolkit') . '</p></div>';
     }
 
     /**
@@ -609,29 +696,50 @@ class CPT_Settings_Manager
         $sanitized = array();
         $sanitized['features'] = array();
         $is_metabox_active = function_exists('rwmb_meta'); // Check once
+        $old_options = get_option(self::OPTION_NAME, array('features' => array())); // Get old settings
+        $flush_needed = false; // Flag to track if flush is needed
+        $cpt_feature_keys = ['cpt_testimonials', 'cpt_faqs', 'cpt_staff', 'cpt_events']; // Keys for CPT features
 
         // Debug the input - Removed for cleaner code, add back if needed
         // error_log('Input received for feature settings: ' . print_r($input, true));
 
         // Process all registered features
         foreach ($this->features as $feature_id => $feature) {
-            // Checkbox value is '1' if checked, not present otherwise.
-            $is_enabled = isset($input['features'][$feature_id]) && $input['features'][$feature_id] === '1';
+            // Determine old state
+            $old_enabled = isset($old_options['features'][$feature_id])
+                ? (bool) $old_options['features'][$feature_id]
+                : (bool) $feature['default'];
+
+            // Determine new state from input
+            $new_enabled = isset($input['features'][$feature_id]) && $input['features'][$feature_id] === '1';
 
             // If it's a CPT feature and Meta Box is NOT active, force disable it
             $is_cpt_feature = isset($feature['section']) && $feature['section'] === 'Custom Post Types';
             if ($is_cpt_feature && !$is_metabox_active) {
-                $is_enabled = false;
+                $new_enabled = false;
             }
 
-            $sanitized['features'][$feature_id] = $is_enabled;
+            // Store the sanitized new state
+            $sanitized['features'][$feature_id] = $new_enabled;
+
+            // Check if a CPT feature's state changed
+            if (in_array($feature_id, $cpt_feature_keys) && $new_enabled !== $old_enabled) {
+                $flush_needed = true;
+                // error_log("Flush needed because {$feature_id} changed state."); // Debugging
+            }
 
             // Debug each feature's state - Removed for cleaner code
-            // error_log("Sanitizing feature {$feature_id}: " . ($is_enabled ? 'enabled' : 'disabled'));
+            // error_log("Sanitizing feature {$feature_id}: " . ($new_enabled ? 'enabled' : 'disabled'));
         }
 
         // Debug the final sanitized settings - Removed for cleaner code
         // error_log('Final sanitized feature settings: ' . print_r($sanitized, true));
+
+        // Flush rewrite rules if a CPT status changed
+        if ($flush_needed) {
+            // error_log('Flushing rewrite rules due to CPT status change.'); // Debugging
+            flush_rewrite_rules();
+        }
 
         return $sanitized;
     }

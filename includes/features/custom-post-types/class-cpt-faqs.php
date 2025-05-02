@@ -16,6 +16,9 @@ class CPT_FAQs
         add_action('init', array($this, 'register_post_type'));
         add_action('init', array($this, 'register_taxonomy'));
         // No Meta Box fields needed by default for FAQ - title = question, editor = answer
+
+        // Add link to taxonomy on FAQ list page
+        add_filter('views_edit-faq', array($this, 'add_category_link_to_views'));
     }
 
     public function register_post_type()
@@ -32,13 +35,12 @@ class CPT_FAQs
             'public' => true,
             'publicly_queryable' => true,
             'show_ui' => true,
-            'show_in_menu' => true,
+            'show_in_menu' => 'cptk-content-menu',
             'query_var' => true,
             'rewrite' => array('slug' => 'faq'),
             'capability_type' => 'post',
             'has_archive' => true,
             'hierarchical' => false,
-            'menu_position' => null,
             'menu_icon' => 'dashicons-editor-help',
             'supports' => array('title', 'editor', 'custom-fields'), // Title is Question, Editor is Answer
             'show_in_rest' => true,
@@ -71,5 +73,30 @@ class CPT_FAQs
             'show_in_rest' => true, // Important for Gutenberg
         );
         register_taxonomy('faq_category', array('faq'), $args); // Associate with 'faq' post type
+    }
+
+    /**
+     * Add a link to the FAQ Category management page on the FAQ list table.
+     *
+     * @param array $views Existing views (All, Published, etc.)
+     * @return array Modified views array.
+     */
+    public function add_category_link_to_views($views)
+    {
+        $taxonomy_slug = 'faq_category';
+        $taxonomy_object = get_taxonomy($taxonomy_slug);
+
+        if (!$taxonomy_object || !current_user_can($taxonomy_object->cap->manage_terms)) {
+            return $views;
+        }
+
+        $url = admin_url('edit-tags.php?taxonomy=' . $taxonomy_slug);
+        $views['faq_category'] = sprintf(
+            '<a href="%s">%s</a>',
+            esc_url($url),
+            esc_html($taxonomy_object->labels->name) // Use the registered taxonomy name
+        );
+
+        return $views;
     }
 }

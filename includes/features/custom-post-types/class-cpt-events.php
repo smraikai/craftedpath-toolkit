@@ -16,6 +16,9 @@ class CPT_Events
         add_action('init', array($this, 'register_post_type'));
         add_action('init', array($this, 'register_taxonomy'));
         add_filter('rwmb_meta_boxes', array($this, 'register_meta_boxes'));
+
+        // Add link to taxonomy on Event list page
+        add_filter('views_edit-event', array($this, 'add_category_link_to_views'));
     }
 
     public function register_post_type()
@@ -32,13 +35,12 @@ class CPT_Events
             'public' => true,
             'publicly_queryable' => true,
             'show_ui' => true,
-            'show_in_menu' => true,
+            'show_in_menu' => 'cptk-content-menu',
             'query_var' => true,
             'rewrite' => array('slug' => 'event'),
             'capability_type' => 'post',
             'has_archive' => true,
             'hierarchical' => false,
-            'menu_position' => null,
             'menu_icon' => 'dashicons-calendar-alt',
             'supports' => array('title', 'editor', 'thumbnail', 'custom-fields', 'excerpt'),
             'show_in_rest' => true,
@@ -64,6 +66,31 @@ class CPT_Events
             'show_in_rest' => true,
         );
         register_taxonomy('event_category', array('event'), $args);
+    }
+
+    /**
+     * Add a link to the Event Category management page on the Event list table.
+     *
+     * @param array $views Existing views (All, Published, etc.)
+     * @return array Modified views array.
+     */
+    public function add_category_link_to_views($views)
+    {
+        $taxonomy_slug = 'event_category';
+        $taxonomy_object = get_taxonomy($taxonomy_slug);
+
+        if (!$taxonomy_object || !current_user_can($taxonomy_object->cap->manage_terms)) {
+            return $views;
+        }
+
+        $url = admin_url('edit-tags.php?taxonomy=' . $taxonomy_slug);
+        $views['event_category'] = sprintf(
+            '<a href="%s">%s</a>',
+            esc_url($url),
+            esc_html($taxonomy_object->labels->name) // Use the registered taxonomy name (e.g., "Event Categories")
+        );
+
+        return $views;
     }
 
     public function register_meta_boxes($meta_boxes)
