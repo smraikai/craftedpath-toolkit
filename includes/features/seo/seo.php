@@ -597,6 +597,9 @@ function output_meta_tags()
         $final_title = $post_title . $divider . $site_name;
     }
 
+    // Start Comment
+    echo "\n<!-- CraftedPath Toolkit SEO Meta Tags Start -->\n";
+
     // Output Meta Description
     if (!empty($seo_description)) {
         echo '<meta name="description" content="' . esc_attr($seo_description) . '" />' . "\n";
@@ -638,6 +641,9 @@ function output_meta_tags()
     if (!empty($og_image_url)) {
         echo '<meta name="twitter:image" content="' . esc_url($og_image_url) . '" />' . "\n";
     }
+
+    // End Comment
+    echo "<!-- CraftedPath Toolkit SEO Meta Tags End -->\n";
 }
 
 /**
