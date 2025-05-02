@@ -20,6 +20,10 @@ class CPT_Events
         // Add link to taxonomy on Event list page
         add_filter('views_edit-event', array($this, 'add_category_link_to_views'));
 
+        // Add Event Date column to admin list
+        add_filter('manage_event_posts_columns', array($this, 'add_event_date_column'));
+        add_action('manage_event_posts_custom_column', array($this, 'display_event_date_column'), 10, 2);
+
         // Fix admin menu highlighting for the taxonomy page
         add_filter('parent_file', array($this, 'fix_event_category_menu'));
         add_filter('submenu_file', array($this, 'fix_event_category_submenu'));
@@ -180,5 +184,57 @@ class CPT_Events
         );
 
         return $meta_boxes;
+    }
+
+    /**
+     * Add Event Date column to the admin list table.
+     *
+     * @param array $columns Existing columns.
+     * @return array Modified columns.
+     */
+    public function add_event_date_column($columns)
+    {
+        // Insert 'Event Date' column after the title
+        $new_columns = array();
+        foreach ($columns as $key => $title) {
+            $new_columns[$key] = $title;
+            if ($key == 'title') {
+                $new_columns['event_date'] = __('Event Date', 'craftedpath-toolkit');
+            }
+        }
+        // If title column wasn't found, add it near the end but before default date
+        if (!isset($new_columns['event_date'])) {
+            $date_column = $columns['date'] ?? null;
+            if ($date_column)
+                unset($columns['date']); // Temporarily remove date
+            $columns['event_date'] = __('Event Date', 'craftedpath-toolkit');
+            if ($date_column)
+                $columns['date'] = $date_column; // Add date back
+            return $columns;
+        } else {
+            return $new_columns;
+        }
+    }
+
+    /**
+     * Display the content for the Event Date column.
+     *
+     * @param string $column_name The name of the column.
+     * @param int    $post_id     The ID of the current post.
+     */
+    public function display_event_date_column($column_name, $post_id)
+    {
+        if ($column_name == 'event_date') {
+            $start_timestamp = rwmb_meta('cptk_event_start_datetime', [], $post_id);
+
+            if ($start_timestamp) {
+                // Format the timestamp using WordPress date/time settings
+                $date_format = get_option('date_format');
+                $time_format = get_option('time_format');
+                echo esc_html(date_i18n("{$date_format} \\@ {$time_format}", $start_timestamp));
+            } else {
+                echo '&mdash;'; // Output a dash if no date is set
+            }
+        }
     }
 }
