@@ -35,6 +35,11 @@ function setup()
     // Populate columns for post/page tables
     add_action('manage_post_posts_custom_column', __NAMESPACE__ . '\\display_seo_status_column', 10, 2);
     add_action('manage_page_posts_custom_column', __NAMESPACE__ . '\\display_seo_status_column', 10, 2);
+
+    // Add columns to event CPT table
+    add_filter('manage_event_posts_columns', __NAMESPACE__ . '\\add_seo_status_column');
+    // Populate columns for event CPT table
+    add_action('manage_event_posts_custom_column', __NAMESPACE__ . '\\display_seo_status_column', 10, 2);
 }
 
 /**
