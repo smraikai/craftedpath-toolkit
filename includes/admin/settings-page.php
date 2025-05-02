@@ -42,7 +42,7 @@ function cptk_render_settings_page()
             cptk_render_card(
                 __('General Settings', 'craftedpath-toolkit'),
                 '<i class="iconoir-settings" style="vertical-align: text-bottom; margin-right: 5px;"></i>', // Iconoir icon
-                'cptk_render_general_settings_content',
+                'cptk_render_settings_form_content',
                 $footer_html // Pass the footer content
             );
             ?>
