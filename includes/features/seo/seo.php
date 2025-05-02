@@ -276,28 +276,33 @@ function render_social_share_settings()
             <tr>
                 <th scope="row"><?php esc_html_e('Background Image', 'craftedpath-toolkit'); ?></th>
                 <td>
-                    <div class="craftedpath-image-uploader social-bg-uploader">
+                    <div class="craftedpath-image-uploader social-bg-uploader"
+                        style="display: flex; flex-wrap: wrap; align-items: flex-start; gap: 15px;">
                         <input type="hidden" name="craftedpath_seo_settings[social_image_bg_image_id]"
                             value="<?php echo esc_attr($bg_image_id); ?>" class="image-id">
-                        <button type="button" class="button upload-button">
-                            <?php esc_html_e('Upload/Select Image', 'craftedpath-toolkit'); ?>
-                        </button>
-                        <button type="button" class="button remove-button"
-                            style="<?php echo $bg_image_id ? '' : 'display:none;'; ?>">
-                            <?php esc_html_e('Remove Image', 'craftedpath-toolkit'); ?>
-                        </button>
+
                         <div class="image-preview"
-                            style="margin-top: 10px; background: #f0f0f1; padding: 10px; min-height: 50px; max-width: 200px; display: inline-block; vertical-align: top;">
+                            style="border: 1px solid #ccd0d4; padding: 5px; background: #f0f0f1; min-height: 100px; width: 150px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; text-align: center;">
                             <?php if ($bg_image_url): ?>
                                 <img src="<?php echo esc_url($bg_image_url); ?>"
                                     style="max-width: 100%; height: auto; display: block;" />
                             <?php else: ?>
-                                <span
-                                    class="description"><?php esc_html_e('No image selected.', 'craftedpath-toolkit'); ?></span>
+                                <span class="description"
+                                    style="margin: 0;"><?php esc_html_e('No image selected.', 'craftedpath-toolkit'); ?></span>
                             <?php endif; ?>
                         </div>
+
+                        <div class="uploader-buttons" style="display: flex; flex-direction: column; gap: 5px;">
+                            <button type="button" class="button upload-button">
+                                <?php echo $bg_image_id ? esc_html__('Change Image', 'craftedpath-toolkit') : esc_html__('Upload/Select Image', 'craftedpath-toolkit'); ?>
+                            </button>
+                            <button type="button" class="button remove-button"
+                                style="<?php echo $bg_image_id ? '' : 'display:none;'; ?>">
+                                <?php esc_html_e('Remove Image', 'craftedpath-toolkit'); ?>
+                            </button>
+                        </div>
                     </div>
-                    <p class="description">
+                    <p class="description" style="margin-top: 10px;">
                         <?php esc_html_e('Upload or select a background image for your social share images.', 'craftedpath-toolkit'); ?>
                     </p>
                 </td>
