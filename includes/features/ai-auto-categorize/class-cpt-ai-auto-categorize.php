@@ -350,20 +350,25 @@ if (!class_exists('CPT_AI_Auto_Categorize')) {
                     $category_id = $term->term_id;
                     $final_category_name = $term->name; // Use actual term name casing
                 } else {
-                    // AI suggested an existing category, but it wasn't found
-                    // Option 1: Treat as error (safer)
-                    error_log('[CPT AutoCategorize] AI suggested existing category, but not found: ' . $suggested_name);
-                    wp_send_json_error(['message' => sprintf(__('AI suggested category \'%s\', but it was not found.', 'craftedpath-toolkit'), esc_html($suggested_name))], 404);
-                    return;
-                    // Option 2: Try creating it anyway (could deviate from API intent)
-                    /*
+                    // AI suggested an existing category, but it wasn't found.
+                    error_log('[CPT AutoCategorize] AI suggested existing category (' . esc_html($suggested_name) . '), but it was not found. Attempting to create it as a fallback.');
+
+                    // Fallback: Assume API was mistaken about is_new flag, try creating it.
                     $term_result = wp_insert_term($suggested_name, 'category');
+
                     if (!is_wp_error($term_result)) {
+                        // Successfully created the term
                         $category_id = $term_result['term_id'];
+                        $final_category_name = $suggested_name; // Use the name we just created
+                        error_log('[CPT AutoCategorize] Successfully created category \'' . esc_html($final_category_name) . '\' (ID: ' . esc_html($category_id) . ') after API suggested existing but not found.');
                     } else {
-                        // Handle insert error here...
+                        // Failed to create the term after get_term_by also failed.
+                        // This could happen if there was a race condition or another issue.
+                        error_log('[CPT AutoCategorize] Error inserting term \'' . esc_html($suggested_name) . '\' after get_term_by failed: ' . $term_result->get_error_message());
+                        // Send error only if term creation failed *after* the initial check failed.
+                        wp_send_json_error(['message' => __('AI suggested an existing category that was not found, and then failed to create it.', 'craftedpath-toolkit')], 500);
+                        return;
                     }
-                    */
                 }
             }
 
