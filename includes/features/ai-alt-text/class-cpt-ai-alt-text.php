@@ -214,7 +214,7 @@ class CPT_AI_Alt_Text
                 'nonce' => wp_create_nonce(self::AJAX_ACTION . '_nonce'),
                 'ajax_action' => self::AJAX_ACTION,
                 'generating_text' => __('Generating...', 'craftedpath-toolkit'),
-                'generate_button_text' => __('Generate', 'craftedpath-toolkit')
+                'generate_button_text' => __('Generate Alt Text', 'craftedpath-toolkit')
             )
         );
     }
@@ -222,8 +222,9 @@ class CPT_AI_Alt_Text
     // Add custom column to Media Library
     public function add_alt_text_column($columns)
     {
-        // Use an icon for the header
-        $icon_header = '<span class="cptk-col-header-icon" title="' . esc_attr__('AI Generated Alt Text', 'craftedpath-toolkit') . '"><i class="iconoir-sparks"></i> Alt Text</span>';
+        // Use an icon and text for the header
+        $header_text = __('Alt Text', 'craftedpath-toolkit');
+        $icon_header = '<span class="cptk-col-header-icon" title="' . esc_attr__('AI Generated Alt Text', 'craftedpath-toolkit') . '" style="display:inline-flex; align-items:center; gap: 4px;"><i class="iconoir-sparks" style="vertical-align: text-bottom;"></i>' . esc_html($header_text) . '</span>';
 
         $new_columns = array();
         foreach ($columns as $key => $value) {
@@ -254,14 +255,23 @@ class CPT_AI_Alt_Text
                 echo '-';
                 return;
             }
+
             $alt = get_post_meta($attachment_id, '_wp_attachment_image_alt', true);
-            echo '<div class="cpt-alt-text-display">' . esc_html($alt) . '</div>';
+
+            echo '<div class="cpt-alt-text-container" style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">'; // Flex container
+            // Display area for the alt text
+            echo '<span class="cpt-alt-text-display" style="flex-grow: 1; word-break: break-all; min-height: 28px; display: inline-block; line-height: 28px;">' . esc_html($alt) . '</span>';
+
+            // Always show the same "Generate Alt Text" button
             printf(
-                '<button type="button" class="button button-secondary button-small cpt-generate-alt-button" data-attachment-id="%d" style="margin-top: 5px;">%s</button>',
+                '<button type="button" class="button button-secondary button-small cpt-generate-alt-button" data-attachment-id="%d" style="flex-shrink: 0;">%s</button>',
                 esc_attr($attachment_id),
-                __('Generate', 'craftedpath-toolkit')
+                __('Generate Alt Text', 'craftedpath-toolkit') // Use the new button text
             );
-            echo '<div class="cpt-alt-status spinner" style="float: none; display: none; visibility: visible; margin-left: 5px;"></div>';
+
+            // Status indicator
+            echo '<span class="cpt-alt-status spinner" style="display: none; visibility: visible; flex-shrink: 0;"></span>';
+            echo '</div>'; // Close flex container
         }
     }
 }
