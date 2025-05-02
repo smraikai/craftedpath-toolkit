@@ -129,7 +129,7 @@ class CPT_Settings_Manager
             'manage_options',
             'craftedpath-toolkit',
             array($this, 'render_settings_page'), // Callback for main page (Features)
-            '<i class="iconoir-tools" style="font-size: 20px; margin-top: 4px;"></i>',
+            'dashicons-buddicons-activity', // Use the specified Dashicon class
             100
         );
 
