@@ -150,7 +150,8 @@ function render_settings_page()
                             ?>
                             <tr>
                                 <th scope="row">
-                                    <label for="cptk-site-name"><span class="cpt-feature-accordion-title"><?php esc_html_e('Site Name', 'craftedpath-toolkit'); ?></span></label>
+                                    <label for="cptk-site-name"><span
+                                            class="cpt-feature-accordion-title"><?php esc_html_e('Site Name', 'craftedpath-toolkit'); ?></span></label>
                                 </th>
                                 <td>
                                     <?php render_site_name_field(); // Keep ID for label ?>
@@ -158,7 +159,8 @@ function render_settings_page()
                             </tr>
                             <tr>
                                 <th scope="row">
-                                    <label for="cptk-meta-divider"><span class="cpt-feature-accordion-title"><?php esc_html_e('Meta Title Divider', 'craftedpath-toolkit'); ?></span></label>
+                                    <label for="cptk-meta-divider"><span
+                                            class="cpt-feature-accordion-title"><?php esc_html_e('Meta Title Divider', 'craftedpath-toolkit'); ?></span></label>
                                 </th>
                                 <td>
                                     <?php render_meta_divider_field(); // Keep ID for label ?>
@@ -314,13 +316,16 @@ function render_social_share_settings()
 
             <?php // Logo Section ?>
             <div class="logo-settings-group space-y-2" style="margin-bottom: 30px;">
-                 <h3><span class="cpt-feature-accordion-title"><?php esc_html_e('Logo', 'craftedpath-toolkit'); ?></span></h3>
-                 <?php render_social_share_logo_field(); // The function itself contains the uploader ?>
+                <h3><span class="cpt-feature-accordion-title"><?php esc_html_e('Logo', 'craftedpath-toolkit'); ?></span>
+                </h3>
+                <?php render_social_share_logo_field(); // The function itself contains the uploader ?>
             </div>
 
             <?php // Background Section ?>
             <div class="background-settings-group space-y-4">
-                <h3><span class="cpt-feature-accordion-title"><?php esc_html_e('Background', 'craftedpath-toolkit'); ?></span></h3>
+                <h3><span
+                        class="cpt-feature-accordion-title"><?php esc_html_e('Background', 'craftedpath-toolkit'); ?></span>
+                </h3>
 
                 <?php // Background Image Field ?>
                 <div class="setting-group">
@@ -350,21 +355,25 @@ function render_social_share_settings()
                     </div>
                 </div>
 
-                <?php // Background Color & Opacity Card ?>
-                <div class="setting-group"
-                    style="margin-top: 20px; border: 1px solid #dcdcde; padding: 15px; background-color: #fff; border-radius: 4px;">
-                    <?php // Combined card styles ?>
-                    <label for="social-bg-color" class="block text-sm font-medium text-gray-700 mb-1"
-                        style="margin-bottom: 8px;"><?php esc_html_e('Color Overlay', 'craftedpath-toolkit'); ?></label>
-                    <input type="text" name="craftedpath_seo_settings[social_image_bg_color]" id="social-bg-color"
-                        value="<?php echo esc_attr($custom_bg_color); ?>" class="color-picker" data-default-color="#ffffff"
-                        style="max-width: 150px;" />
+                <?php // Color Overlay Section (no card) ?>
+                <div class="setting-group" style="margin-top: 20px;"> <?php // Add spacing before this section ?>
+                    <label for="social-bg-color"><span
+                            class="cpt-feature-accordion-title"><?php esc_html_e('Color Overlay', 'craftedpath-toolkit'); ?></span></label>
+                    <?php // Use styled span in label ?>
+                    <div style="margin-top: 8px;"> <?php // Add space below label ?>
+                        <input type="text" name="craftedpath_seo_settings[social_image_bg_color]" id="social-bg-color"
+                            value="<?php echo esc_attr($custom_bg_color); ?>" class="color-picker"
+                            data-default-color="#ffffff" style="max-width: 150px;" />
+                    </div>
+                </div>
 
-                    <?php // Opacity controls moved inside this card ?>
-                    <label for="social-bg-opacity" class="block text-sm font-medium text-gray-700 mb-1"
-                        style="margin-top: 15px; margin-bottom: 8px;"><?php esc_html_e('Color Opacity', 'craftedpath-toolkit'); ?></label>
-                    <?php // Added margin-top ?>
-                    <div style="display: flex; align-items: center; gap: 10px; max-width: 300px;">
+                <?php // Color Opacity Section (no card) ?>
+                <div class="setting-group" style="margin-top: 20px;"> <?php // Add spacing before this section ?>
+                    <label for="social-bg-opacity"><span
+                            class="cpt-feature-accordion-title"><?php esc_html_e('Color Opacity', 'craftedpath-toolkit'); ?></span></label>
+                    <?php // Use styled span in label ?>
+                    <div style="margin-top: 8px; display: flex; align-items: center; gap: 10px; max-width: 300px;">
+                        <?php // Add space below label, keep flex styles ?>
                         <input type="range" name="craftedpath_seo_settings[social_image_bg_opacity]" id="social-bg-opacity"
                             min="0" max="100" step="1" value="<?php echo esc_attr($bg_opacity); ?>" style="flex-grow: 1;" />
                         <span id="social-bg-opacity-value"
@@ -377,7 +386,8 @@ function render_social_share_settings()
         <?php // Right Column: Preview - 50% width ?>
         <div class="social-preview-section" style="flex: 0 0 calc(50% - 15px); box-sizing: border-box;">
             <h3><span class="cpt-feature-accordion-title"><?php esc_html_e('Preview', 'craftedpath-toolkit'); ?></span></h3>
-            <div class="social-card-mockup" style="max-width: 100%; border: 1px solid #ddd; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-radius: 4px; overflow: hidden; background-color: #fff;">
+            <div class="social-card-mockup"
+                style="max-width: 100%; border: 1px solid #ddd; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-radius: 4px; overflow: hidden; background-color: #fff;">
                 <div class="preview-image" style="line-height: 0;">
                     <?php // Note: Consider adding a loading spinner overlay during AJAX updates ?>
                     <img src="<?php echo esc_url($preview_url); ?>"
