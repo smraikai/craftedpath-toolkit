@@ -49,6 +49,7 @@ final class CraftedPath_Toolkit
         // require_once CPT_PLUGIN_DIR . 'includes/features/ai-sitemap-generator/class-cpt-ai-sitemap-generator.php'; // Deprecated
         require_once CPT_PLUGIN_DIR . 'includes/features/ai-page-generator/class-cpt-ai-page-generator.php';
         require_once CPT_PLUGIN_DIR . 'includes/features/ai-menu-generator/class-cpt-ai-menu-generator.php';
+        require_once CPT_PLUGIN_DIR . 'includes/features/ai-alt-text/class-cpt-ai-alt-text.php';
         // Include the Admin Refresh UI feature
         require_once CPT_PLUGIN_DIR . 'includes/features/admin-refresh-ui/class-admin-refresh-ui.php';
 
@@ -222,6 +223,15 @@ final class CraftedPath_Toolkit
                 }
             } else {
                 error_log("CraftedPath Toolkit Error: CPT_AI_Auto_Tag class file not found at: " . $auto_tag_file);
+            }
+        }
+
+        // Load AI Alt Text
+        if ($settings_manager->is_feature_enabled('ai_alt_text')) {
+            if (class_exists('CPT_AI_Alt_Text')) {
+                CPT_AI_Alt_Text::instance();
+            } else {
+                error_log("CraftedPath Toolkit Error: CPT_AI_Alt_Text class not found.");
             }
         }
 

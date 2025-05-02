@@ -84,31 +84,38 @@ class CPT_Settings_Manager
             ),
             // Section: AI Tools
             'ai_page_generator' => array(
-                'name' => 'AI Page Structure Generator',
+                'name' => 'Page Structure Generator',
                 'description' => 'Generates a hierarchical page structure (sitemap) using AI.',
                 'class' => 'CPT_AI_Page_Generator',
                 'default' => true,
                 'section' => 'AI Tools'
             ),
             'ai_menu_generator' => array(
-                'name' => 'AI Menu Generator',
+                'name' => 'Menu Generator',
                 'description' => 'Generates a navigation menu structure using AI, optionally based on page structure.',
                 'class' => 'CPT_AI_Menu_Generator',
                 'default' => true,
                 'section' => 'AI Tools'
             ),
             'ai_auto_categorize' => array(
-                'name' => 'AI Auto Categorize Posts',
+                'name' => 'Auto Categorize Posts',
                 'description' => 'Adds a button to the post editor to automatically categorize posts using AI.',
                 'class' => 'CPT_AI_Auto_Categorize',
                 'default' => true,
                 'section' => 'AI Tools'
             ),
             'ai_auto_tag' => array(
-                'name' => 'AI Auto Tag Posts',
+                'name' => 'Auto Tag Posts',
                 'description' => 'Adds a button to the AI Tools sidebar to automatically tag posts using AI.',
                 'class' => 'CPT_AI_Auto_Tag',
                 'default' => true,
+                'section' => 'AI Tools'
+            ),
+            'ai_alt_text' => array(
+                'name' => 'Alt Text Generation',
+                'description' => 'Generates alt text for images using AI.',
+                'class' => 'CPT_AI_Alt_Text',
+                'default' => false,
                 'section' => 'AI Tools'
             ),
             // Section: UI Enhancements
