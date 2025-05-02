@@ -41,7 +41,6 @@ jQuery(document).ready(function ($) {
         const data = {
             action: 'update_social_image_preview',
             nonce: updatePreviewNonce,
-            // style: ?? // Need to add style selector if we re-introduce it
             bg_color: $('#social-bg-color').val(),
             bg_opacity: $('#social-bg-opacity').val(),
             logo_id: $('.social-logo-uploader .image-id').val(),

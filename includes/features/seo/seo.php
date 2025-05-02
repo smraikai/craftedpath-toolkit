@@ -241,6 +241,7 @@ function render_social_share_logo_field()
 function render_social_share_settings()
 {
     $options = get_option('craftedpath_seo_settings', []);
+    $site_name = $options['site_name'] ?? get_bloginfo('name');
     $custom_bg_color = $options['social_image_bg_color'] ?? '#ffffff';
     $bg_opacity = isset($options['social_image_bg_opacity']) ? $options['social_image_bg_opacity'] : '100';
     $bg_image_id = isset($options['social_image_bg_image_id']) ? $options['social_image_bg_image_id'] : 0;
@@ -264,9 +265,25 @@ function render_social_share_settings()
 
         <div class="auto-generate-preview" style="margin-bottom: 25px;">
             <h3 style="margin-bottom: 10px; margin-top: 0px;"><?php esc_html_e('Preview', 'craftedpath-toolkit'); ?></h3>
-            <div class="preview-image"
-                style="max-width: 520px; border: 1px solid #ddd; box-shadow: 0 1px 3px rgba(0,0,0,0.05); line-height: 0;">
-                <img src="<?php echo esc_url($preview_url); ?>" style="width: 100%; height: auto; display: block;" />
+            <div class="social-card-mockup"
+                style="max-width: 520px; border: 1px solid #ddd; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-radius: 4px; overflow: hidden;">
+                <div class="preview-image" style="line-height: 0;">
+                    <img src="<?php echo esc_url($preview_url); ?>"
+                        style="width: 100%; height: auto; display: block; border-bottom: 1px solid #ddd;" />
+                </div>
+                <div class="mockup-text-content" style="padding: 10px 12px; background-color: #f9f9f9;">
+                    <div class="mockup-url"
+                        style="font-size: 11px; color: #60676e; margin-bottom: 3px; text-transform: uppercase;">
+                        <?php echo esc_html(preg_replace('(^https?://)', '', get_bloginfo('url'))); ?>
+                    </div>
+                    <div class="mockup-title"
+                        style="font-size: 14px; font-weight: 500; color: #1d2129; margin-bottom: 4px; line-height: 1.3;">
+                        <?php echo esc_html($site_name); ?>
+                    </div>
+                    <div class="mockup-description" style="font-size: 12px; color: #60676e; line-height: 1.4;">
+                        <?php esc_html_e('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.', 'craftedpath-toolkit'); ?>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -387,10 +404,6 @@ function sanitize_settings($input)
     if (isset($input['social_share_logo_id'])) {
         $output['social_share_logo_id'] = absint($input['social_share_logo_id']);
     }
-
-    // Sanitize social image layout settings
-    $allowed_styles = ['style1', 'style2', 'style3'];
-    $output['social_image_style'] = isset($input['social_image_style']) && in_array($input['social_image_style'], $allowed_styles, true) ? $input['social_image_style'] : 'style1';
 
     // Sanitize background color (now directly from color picker)
     if (isset($input['social_image_bg_color'])) {
@@ -663,7 +676,6 @@ function handle_social_image_preview()
 
     // Sanitize incoming post data
     $settings = [];
-    $settings['social_image_style'] = isset($_POST['style']) ? sanitize_text_field($_POST['style']) : 'style1';
     $settings['social_image_bg_color'] = isset($_POST['bg_color']) ? sanitize_hex_color($_POST['bg_color']) : '#ffffff';
     $settings['social_image_bg_opacity'] = isset($_POST['bg_opacity']) ? absint($_POST['bg_opacity']) : 100;
     $settings['social_share_logo_id'] = isset($_POST['logo_id']) ? absint($_POST['logo_id']) : 0;
