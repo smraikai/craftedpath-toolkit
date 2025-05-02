@@ -3,7 +3,7 @@
  */
 import { __ } from '@wordpress/i18n';
 import { PluginDocumentSettingPanel } from '@wordpress/edit-post';
-import { TextControl, TextareaControl, PanelRow, RangeControl, Notice, CheckboxControl } from '@wordpress/components';
+import { TextControl, TextareaControl, PanelRow, RangeControl, Notice, ToggleControl } from '@wordpress/components';
 import { useSelect, useDispatch } from '@wordpress/data';
 import { store as coreStore } from '@wordpress/core-data';
 import { store as editorStore } from '@wordpress/editor';
@@ -88,8 +88,7 @@ const SeoPanel = () => {
             title={__('SEO Settings', 'craftedpath-toolkit')}
             className="craftedpath-seo-panel"
         >
-            {/* Grouping div for Title section */}
-            <div style={{ marginBottom: '16px' }}>
+            <PanelRow>
                 <TextControl
                     label={__('SEO Title', 'craftedpath-toolkit')}
                     value={currentSeoTitle}
@@ -97,39 +96,39 @@ const SeoPanel = () => {
                     placeholder={defaultSeoTitle}
                     onChange={(value) => updateMeta('_craftedpath_seo_title', value)}
                     help={`${titleLength} / ${titleRecommendedMax} ${__('characters', 'craftedpath-toolkit')}`}
-                    style={{ marginBottom: '4px' }} // Space before progress bar
+                    style={{ flexGrow: 1, marginBottom: '4px' }}
                 />
-                <ProgressBar value={titleLength} max={titleRecommendedMax} status={titleStatus} />
-            </div>
+            </PanelRow>
+            <ProgressBar value={titleLength} max={titleRecommendedMax} status={titleStatus} />
 
-            {/* Grouping div for Description section */}
-            <div style={{ marginBottom: '16px' }}>
+            <PanelRow>
                 <TextareaControl
                     label={__('Meta Description', 'craftedpath-toolkit')}
                     value={currentSeoDescription}
                     hideLabelFromVision={false}
                     help={`${descriptionLength} / ${descriptionRecommendedMax} ${__('characters', 'craftedpath-toolkit')}. ${__('Recommended:', 'craftedpath-toolkit')} ${descriptionRecommendedMin}-${descriptionRecommendedMax}`}
                     onChange={(value) => updateMeta('_craftedpath_seo_description', value)}
-                    style={{ width: '100%', marginBottom: '4px' }} // Space before progress bar
+                    style={{ width: '100%', marginBottom: '4px' }}
                 />
-                <ProgressBar value={descriptionLength} max={descriptionRecommendedMax} status={descriptionStatus} />
-            </div>
+            </PanelRow>
+            <ProgressBar value={descriptionLength} max={descriptionRecommendedMax} status={descriptionStatus} />
 
-            {/* No Index Checkbox section (already styled like a card) */}
+            {/* --- Add No Index Toggle --- */}
             <div style={{
-                marginTop: '16px', // Keep space above this section
-                padding: '12px 16px', // Adjusted padding slightly
-                border: '1px solid #e0e0e0',
-                borderRadius: '4px'
+                marginTop: '16px',              // Space above the section
+                padding: '16px',              // Internal padding
+                backgroundColor: '#f9fafb',  // Light background (like gray-50)
+                border: '1px solid #e5e7eb', // Lighter border (like gray-200)
+                borderRadius: '6px'            // Slightly more rounded corners
             }}>
-                {/* No PanelRow needed inside here either */}
-                <CheckboxControl
-                    label={__("Noindex this page", 'craftedpath-toolkit')}
+                {/* Remove PanelRow, ToggleControl sits directly in padded div */}
+                <ToggleControl
+                    label={__("Discourage search engines from indexing this page", 'craftedpath-toolkit')}
                     checked={seoNoIndex}
                     onChange={(isChecked) => updateMeta('_craftedpath_seo_noindex', isChecked)}
-                // Remove help prop if previously added
                 />
             </div>
+            {/* --- End No Index Toggle --- */}
 
         </PluginDocumentSettingPanel>
     );

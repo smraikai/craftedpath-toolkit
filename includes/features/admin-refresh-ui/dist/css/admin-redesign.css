@@ -470,7 +470,7 @@ body:has(#admin-sidebar-resize-handle.active) #wpbody-content {
 	display: none;
 }
 
-:where(.wp-core-ui .button[class]):not(.bricks-admin-wrapper .button[class]),
+:where(.wp-core-ui .button[class]):not(.bricks-admin-wrapper .button[class]):not(#toolbar-edit_with_bricks),
 :where(.wp-core-ui .page-title-action):not(.bricks-admin-wrapper .page-title-action) {
 	background-color: var(--admin-redesign-surface-light-primary);
 	border-radius: 6px;
@@ -479,20 +479,20 @@ body:has(#admin-sidebar-resize-handle.active) #wpbody-content {
 	border: none;
 }
 
-:is(:where(.wp-core-ui .button[class]):not(.bricks-admin-wrapper .button[class]), :where(.wp-core-ui .page-title-action):not(.bricks-admin-wrapper .page-title-action)):hover,
-:is(:where(.wp-core-ui .button[class]):not(.bricks-admin-wrapper .button[class]), :where(.wp-core-ui .page-title-action):not(.bricks-admin-wrapper .page-title-action)):focus {
+:is(:where(.wp-core-ui .button[class]):not(.bricks-admin-wrapper .button[class]):not(#toolbar-edit_with_bricks), :where(.wp-core-ui .page-title-action):not(.bricks-admin-wrapper .page-title-action)):hover,
+:is(:where(.wp-core-ui .button[class]):not(.bricks-admin-wrapper .button[class]):not(#toolbar-edit_with_bricks), :where(.wp-core-ui .page-title-action):not(.bricks-admin-wrapper .page-title-action)):focus {
 	background-color: var(--admin-redesign-surface-light-secondary);
 }
 
-:is(:where(.wp-core-ui .button[class]):not(.bricks-admin-wrapper .button[class]), :where(.wp-core-ui .page-title-action):not(.bricks-admin-wrapper .page-title-action)):active {
+:is(:where(.wp-core-ui .button[class]):not(.bricks-admin-wrapper .button[class]):not(#toolbar-edit_with_bricks), :where(.wp-core-ui .page-title-action):not(.bricks-admin-wrapper .page-title-action)):active {
 	padding: 6px 12px;
 }
 
-.button-secondary:is(:where(.wp-core-ui .button[class]):not(.bricks-admin-wrapper .button[class]), :where(.wp-core-ui .page-title-action):not(.bricks-admin-wrapper .page-title-action)) {
+.button-secondary:is(:where(.wp-core-ui .button[class]):not(.bricks-admin-wrapper .button[class]):not(#toolbar-edit_with_bricks), :where(.wp-core-ui .page-title-action):not(.bricks-admin-wrapper .page-title-action)) {
 	background-color: var(--admin-redesign-surface-light-primary);
 }
 
-.button-primary:is(:where(.wp-core-ui .button[class]):not(.bricks-admin-wrapper .button[class]), :where(.wp-core-ui .page-title-action):not(.bricks-admin-wrapper .page-title-action)) {
+.button-primary:is(:where(.wp-core-ui .button[class]):not(.bricks-admin-wrapper .button[class]):not(#toolbar-edit_with_bricks), :where(.wp-core-ui .page-title-action):not(.bricks-admin-wrapper .page-title-action)) {
 	background-color: var(--admin-redesign-action-primary);
 }
 
@@ -538,8 +538,8 @@ body:has(#admin-sidebar-resize-handle.active) #wpbody-content {
 
 :where(.wp-core-ui input[type="checkbox"]):not(.bricks-admin-wrapper input[type="checkbox"]):checked {
 	align-items: center;
-	background-color: var(--admin-redesign-action-primary);
-	border-color: var(--admin-redesign-action-primary);
+	background-color: var(--admin-redesign-action-primary) !important;
+	border-color: var(--admin-redesign-action-primary) !important;
 	flex-direction: column;
 	justify-content: center;
 }
@@ -799,3 +799,17 @@ ul#adminmenu>li.current>a.current::after {
 
 
 /*# sourceMappingURL=admin-redesign.css.map*/
+
+/* --- ToggleControl Overrides --- */
+
+.components-form-toggle.is-checked .components-form-toggle__track {
+	background-color: var(--admin-redesign-action-primary) !important;
+	border-color: var(--admin-redesign-action-primary) !important;
+}
+
+.components-form-toggle .components-form-toggle__input:focus+.components-form-toggle__track {
+	/* Override the default WordPress focus color */
+	box-shadow: 0 0 0 var(--wp-admin-border-width-focus) #fff, 0 0 0 calc(var(--wp-admin-border-width-focus) * 2) var(--admin-redesign-action-primary) !important;
+}
+
+/* --- End ToggleControl Overrides --- */
