@@ -8,17 +8,17 @@
 	--admin-redesign-surface-light-secondary: var(--gray-50, #f9fafb);
 	--admin-redesign-surface-light-tertiary: var(--gray-200, #e5e7eb);
 	--admin-redesign-border: var(--gray-200, #e5e7eb);
-	--admin-redesign-action-primary: var(--primary, #2b66db);
+	--admin-redesign-action-primary: var(--primary);
 }
 
 body.admin-color-modern {
-	--admin-redesign-action-primary: var(--primary, #2b66db);
+	--admin-redesign-action-primary: var(--primary);
 }
 
 body.admin-color-fresh {
 	--admin-redesign-surface-dark-primary: #1d2327;
 	--admin-redesign-surface-dark-secondary: #2c3338;
-	--admin-redesign-action-primary: var(--primary, #2b66db);
+	--admin-redesign-action-primary: var(--primary);
 }
 
 body.admin-color-light {
