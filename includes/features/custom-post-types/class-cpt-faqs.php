@@ -19,6 +19,10 @@ class CPT_FAQs
 
         // Add link to taxonomy on FAQ list page
         add_filter('views_edit-faq', array($this, 'add_category_link_to_views'));
+
+        // Fix admin menu highlighting for the taxonomy page
+        add_filter('parent_file', array($this, 'fix_faq_category_menu'));
+        add_filter('submenu_file', array($this, 'fix_faq_category_submenu'));
     }
 
     public function register_post_type()
@@ -98,5 +102,35 @@ class CPT_FAQs
         );
 
         return $views;
+    }
+
+    /**
+     * Corrects the parent menu highlighting for FAQ Categories page.
+     *
+     * @param string $parent_file The current parent file.
+     * @return string Corrected parent file.
+     */
+    public function fix_faq_category_menu($parent_file)
+    {
+        global $current_screen;
+        if ($current_screen->taxonomy == 'faq_category') {
+            $parent_file = 'cptk-content-menu'; // Slug of our custom parent menu
+        }
+        return $parent_file;
+    }
+
+    /**
+     * Corrects the submenu highlighting for FAQ Categories page.
+     *
+     * @param string $submenu_file The current submenu file.
+     * @return string Corrected submenu file.
+     */
+    public function fix_faq_category_submenu($submenu_file)
+    {
+        global $current_screen;
+        if ($current_screen->taxonomy == 'faq_category') {
+            $submenu_file = 'edit-tags.php?taxonomy=faq_category';
+        }
+        return $submenu_file;
     }
 }

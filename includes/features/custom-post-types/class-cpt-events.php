@@ -19,6 +19,10 @@ class CPT_Events
 
         // Add link to taxonomy on Event list page
         add_filter('views_edit-event', array($this, 'add_category_link_to_views'));
+
+        // Fix admin menu highlighting for the taxonomy page
+        add_filter('parent_file', array($this, 'fix_event_category_menu'));
+        add_filter('submenu_file', array($this, 'fix_event_category_submenu'));
     }
 
     public function register_post_type()
@@ -91,6 +95,36 @@ class CPT_Events
         );
 
         return $views;
+    }
+
+    /**
+     * Corrects the parent menu highlighting for Event Categories page.
+     *
+     * @param string $parent_file The current parent file.
+     * @return string Corrected parent file.
+     */
+    public function fix_event_category_menu($parent_file)
+    {
+        global $current_screen;
+        if ($current_screen->taxonomy == 'event_category') {
+            $parent_file = 'cptk-content-menu'; // Slug of our custom parent menu
+        }
+        return $parent_file;
+    }
+
+    /**
+     * Corrects the submenu highlighting for Event Categories page.
+     *
+     * @param string $submenu_file The current submenu file.
+     * @return string Corrected submenu file.
+     */
+    public function fix_event_category_submenu($submenu_file)
+    {
+        global $current_screen;
+        if ($current_screen->taxonomy == 'event_category') {
+            $submenu_file = 'edit-tags.php?taxonomy=event_category';
+        }
+        return $submenu_file;
     }
 
     public function register_meta_boxes($meta_boxes)
