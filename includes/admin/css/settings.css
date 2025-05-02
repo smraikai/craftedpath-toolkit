@@ -654,3 +654,26 @@ input:checked+.craftedpath-toggle-slider:before {
     font-size: 18px;
     line-height: 1;
 }
+
+/* ===== Floating UI Tooltip Styles ===== */
+#cptk-tooltip {
+    position: absolute;
+    background-color: var(--gray-800, #1f2937);
+    color: var(--white, #ffffff);
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 13px;
+    line-height: 1.4;
+    z-index: 9999;
+    display: none;
+    /* Hidden by default */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+#cptk-tooltip-arrow {
+    position: absolute;
+    background: var(--gray-800, #1f2937);
+    width: 8px;
+    height: 8px;
+    transform: rotate(45deg);
+}

@@ -285,10 +285,37 @@ class CPT_Settings_Manager
             array(),
             CPT_VERSION
         );
+
+        // Enqueue Floating UI (Popper Core and Middleware)
+        wp_enqueue_script(
+            'floating-ui-core',
+            'https://unpkg.com/@floating-ui/core@1/dist/floating-ui.core.umd.js',
+            array(),
+            '1', // Version number or null
+            true
+        );
+        wp_enqueue_script(
+            'floating-ui-dom',
+            'https://unpkg.com/@floating-ui/dom@1/dist/floating-ui.dom.umd.js',
+            array('floating-ui-core'),
+            '1', // Version number or null
+            true
+        );
+
+        // Enqueue our custom settings script
         wp_enqueue_script(
             'craftedpath-toolkit-admin-js',
             CPT_PLUGIN_URL . 'includes/admin/js/settings.js',
-            array('jquery', 'cpt-toast-script'),
+            array('jquery', 'cpt-toast-script'), // Ensure jquery/toast is loaded first if needed
+            CPT_VERSION,
+            true
+        );
+
+        // Enqueue our new tooltip script, dependent on Floating UI
+        wp_enqueue_script(
+            'craftedpath-toolkit-tooltip-js',
+            CPT_PLUGIN_URL . 'includes/admin/js/tooltips.js',
+            array('floating-ui-dom'), // Depends on floating-ui-dom
             CPT_VERSION,
             true
         );
@@ -515,7 +542,7 @@ class CPT_Settings_Manager
         $is_cpt_feature = isset($feature['section']) && $feature['section'] === 'Custom Post Types';
         $is_metabox_active = function_exists('rwmb_meta');
         $disable_toggle = $is_cpt_feature && !$is_metabox_active;
-        $tooltip = $disable_toggle ? 'title="Requires Metabox to be active and installed"' : '';
+        $tooltip_content = $disable_toggle ? 'Requires Metabox to be active and installed' : '';
 
         ?>
         <?php // Use a structure inspired by Material UI ListItem ?>
@@ -530,7 +557,7 @@ class CPT_Settings_Manager
                     <?php echo esc_html($feature['description']); ?>
                 </span>
             </div>
-            <div class="craftedpath-toggle-field" <?php echo $tooltip; ?>> <?php // Represents SecondaryAction ?>
+            <div class="craftedpath-toggle-field" <?php echo $disable_toggle ? 'data-tooltip-content="' . esc_attr($tooltip_content) . '"' : ''; ?>> <?php // Represents SecondaryAction ?>
                 <?php // Keep existing toggle structure inside ?>
                 <label class="craftedpath-toggle">
                     <input type="checkbox" id="feature-<?php echo esc_attr($feature_id); ?>"
