@@ -267,10 +267,10 @@ class CPT_Admin_Quick_Search
     {
         $wp_admin_bar->add_node(array(
             'id' => 'cpt-admin-quick-search-trigger',
-            'title' => '<span class="ab-icon"></span><span class="ab-label">Search / Actions</span>', // Updated Label
+            'title' => '<span class="ab-icon"></span>', // Icon only
             'href' => '#',
             'meta' => array(
-                'title' => 'Quick Search & Actions (Cmd/Ctrl+K)', // Updated Title
+                'title' => 'Quick Search & Actions (Cmd/Ctrl+K)',
             )
         ));
     }
@@ -281,9 +281,12 @@ class CPT_Admin_Quick_Search
         <div class="cpt-admin-search-overlay" style="display: none;"></div>
         <div id="cpt-admin-search-modal" style="display: none;">
             <div class="cpt-admin-search-header">
-                <input type="text" id="cpt-admin-search-input" placeholder="Search menus, content, users, or actions...">
-                <?php // Updated Placeholder ?>
-                <button class="cpt-admin-search-close" title="Close (Esc)">&times;</button>
+                <?php // Input is now styled via header::before for icon ?>
+                <input type="text" id="cpt-admin-search-input" placeholder="Search...">
+                <div class="cpt-admin-search-controls">
+                    <span class="cpt-admin-search-hint">esc</span>
+                    <button class="cpt-admin-search-close" title="Close">&times;</button>
+                </div>
             </div>
             <ul id="cpt-admin-search-results">
                 <!-- Results will be populated by JS -->
