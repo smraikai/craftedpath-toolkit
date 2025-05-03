@@ -1,0 +1,48 @@
+/* CraftedPath Toolkit Global CSS Variables */
+
+:root {
+    /* ===== Base Palette ===== */
+    --primary: #2b71db;
+    --primary-hover: #1f5cb6;
+    --secondary: #6b7280;
+    --success: #10b981;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --dark: #1f2937;
+    --light: #f9fafb;
+    --white: #ffffff;
+
+    /* ===== Grayscale ===== */
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-300: #d1d5db;
+    --gray-400: #9ca3af;
+    --gray-500: #6b7280;
+    --gray-600: #4b5563;
+    --gray-700: #374151;
+    --gray-800: #1f2937;
+    --gray-900: #111827;
+
+    /* ===== UI Elements ===== */
+    --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --transition: all 0.2s ease;
+
+    /* ===== Admin Layout ===== */
+    --admin-redesign-footer-height: 40px;
+    --admin-redesign-sidebar-width: 300px;
+
+    /* ===== Admin Quick Search (Dark Theme - consider moving if only used there) ===== */
+    --cpt-search-modal-bg: rgba(30, 30, 30, 0.95);
+    --cpt-search-text: var(--gray-200);
+    --cpt-search-border-subtle: rgba(74, 74, 74, 0.6);
+    --cpt-search-hover-bg: var(--primary);
+    --cpt-search-active-bg: var(--primary);
+    --cpt-search-active-text: var(--white);
+    --cpt-search-subtle-text: var(--gray-400);
+    --cpt-search-icon-color: var(--cpt-search-subtle-text);
+    --cpt-search-overlay-bg: rgba(30, 30, 30, 0.3);
+    --cpt-search-hint-bg: rgba(255, 255, 255, 0.05);
+    --cpt-search-hint-border: rgba(255, 255, 255, 0.1);
+    --cpt-search-scrollbar-thumb: var(--gray-600);
+}

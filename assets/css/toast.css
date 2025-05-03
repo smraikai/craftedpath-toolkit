@@ -13,13 +13,13 @@
 
 /* Individual Toast */
 .cpt-toast {
-    background-color: #fff;
+    background-color: var(--white);
     /* Match WP admin background */
-    color: #1d2327;
+    color: var(--dark);
     /* Match WP admin text */
     padding: 15px 20px;
     border-radius: 4px;
-    border-left: 4px solid #007cba;
+    border-left: 4px solid var(--primary);
     /* WP blue as default */
     box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
     display: flex;
@@ -44,7 +44,7 @@
 .cpt-toast .cpt-toast-close {
     background: none;
     border: none;
-    color: #72777c;
+    color: var(--gray-500);
     /* WP admin gray */
     cursor: pointer;
     font-size: 16px;
@@ -52,26 +52,26 @@
 }
 
 .cpt-toast .cpt-toast-close:hover {
-    color: #1d2327;
+    color: var(--dark);
 }
 
 /* Toast Types (using WP admin colors) */
 .cpt-toast.success {
-    border-left-color: #00a32a;
+    border-left-color: var(--success);
     /* WP green */
 }
 
 .cpt-toast.error {
-    border-left-color: #d63638;
+    border-left-color: var(--danger);
     /* WP red */
 }
 
 .cpt-toast.warning {
-    border-left-color: #dba617;
+    border-left-color: var(--warning);
     /* WP yellow */
 }
 
 .cpt-toast.info {
-    border-left-color: #007cba;
+    border-left-color: var(--primary);
     /* WP blue */
 }

@@ -20,34 +20,34 @@
     max-width: 500px;
     padding: 8px;
     border-radius: 4px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--gray-300);
 }
 
 .cpt-form-row .description {
     margin-left: 10px;
     font-style: italic;
-    color: #666;
+    color: var(--gray-500);
 }
 
 /* Results Container */
 .cpt-results-container {
     margin-top: 30px;
     padding: 20px;
-    background: #fff;
+    background: var(--white);
     border-radius: 4px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--gray-300);
 }
 
 .cpt-results-container h3 {
     margin-top: 0;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--gray-200);
     padding-bottom: 10px;
 }
 
 .cpt-actions {
     margin-top: 20px;
     padding-top: 15px;
-    border-top: 1px solid #eee;
+    border-top: 1px solid var(--gray-200);
 }
 
 .cpt-actions button {
@@ -61,7 +61,7 @@
     padding: 12px 20px;
     border-radius: 4px;
     margin: 15px 0;
-    border: 1px solid #f5c6cb;
+    border: 1px solid var(--danger);
 }
 
 /* Loading Indicator */
@@ -80,7 +80,7 @@
 
 .cpt-loading p {
     margin: 0;
-    color: #0073aa;
+    color: var(--primary);
 }
 
 /* Sitemap Tree */
@@ -95,9 +95,9 @@
     /* Adjust height as needed */
     overflow-y: auto;
     padding: 10px;
-    border: 1px solid #eee;
+    border: 1px solid var(--gray-200);
     margin-top: 15px;
-    background-color: #fff;
+    background-color: var(--white);
     /* Ensure background for scrolling content */
 }
 
@@ -113,7 +113,7 @@
     top: 12px;
     width: 10px;
     height: 1px;
-    background: #ddd;
+    background: var(--gray-300);
 }
 
 .sitemap-tree-list li:last-child {
@@ -126,13 +126,13 @@
 
 .sitemap-page-title {
     font-weight: 600;
-    color: #23282d;
+    color: var(--dark);
 }
 
 .sitemap-page-desc {
     margin: 5px 0 5px 0;
     font-size: 13px;
-    color: #666;
+    color: var(--gray-500);
 }
 
 .sitemap-tree-list ul {
@@ -149,7 +149,7 @@
     top: 0;
     width: 1px;
     height: 100%;
-    background: #ddd;
+    background: var(--gray-300);
 }
 
 /* Checkbox Styling */
@@ -161,9 +161,9 @@
 .sitemap-controls {
     margin-bottom: 15px;
     padding: 10px;
-    background: #f8f8f8;
+    background: var(--gray-50);
     border-radius: 4px;
-    border: 1px solid #eee;
+    border: 1px solid var(--gray-200);
 }
 
 .sitemap-controls label {
@@ -180,14 +180,14 @@
 .created-pages-list {
     margin: 10px 0;
     padding: 10px;
-    background: #f8f8f8;
+    background: var(--gray-50);
     border-radius: 4px;
 }
 
 .created-pages-list li {
     margin-bottom: 5px;
     padding: 5px;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--gray-200);
 }
 
 .created-pages-list a {
@@ -197,7 +197,7 @@
 
 .notice-success {
     background: #f0f8e8;
-    border-left: 4px solid #46b450;
+    border-left: 4px solid var(--success);
     padding: 10px 15px;
     margin: 15px 0;
 }
@@ -211,10 +211,10 @@
 
 .menu-list li {
     padding: 8px 10px;
-    background: #f9f9f9;
+    background: var(--gray-50);
     margin-bottom: 5px;
     border-radius: 3px;
-    border-left: 3px solid #0073aa;
+    border-left: 3px solid var(--primary);
 }
 
 .menu-list ul {

@@ -89,11 +89,19 @@ final class CraftedPath_Toolkit
     {
         // --- General Admin Assets ---
 
+        // Enqueue Global Variables CSS (should be loaded first)
+        wp_enqueue_style(
+            'cpt-variables',
+            CPT_PLUGIN_URL . 'assets/css/variables.css',
+            array(), // No dependencies for the variables file itself
+            CPT_VERSION
+        );
+
         // Enqueue Toast CSS
         wp_enqueue_style(
             'cpt-toast-style',
             CPT_PLUGIN_URL . 'assets/css/toast.css',
-            array(),
+            array('cpt-variables'), // Depends on variables
             CPT_VERSION
         );
 
