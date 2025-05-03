@@ -46,7 +46,6 @@ final class CraftedPath_Toolkit
     {
         require_once CPT_PLUGIN_DIR . 'includes/features/bem-generator/class-bem-generator.php';
         // Include the AI generator files
-        // require_once CPT_PLUGIN_DIR . 'includes/features/ai-sitemap-generator/class-cpt-ai-sitemap-generator.php'; // Deprecated
         require_once CPT_PLUGIN_DIR . 'includes/features/ai-page-generator/class-cpt-ai-page-generator.php';
         require_once CPT_PLUGIN_DIR . 'includes/features/ai-menu-generator/class-cpt-ai-menu-generator.php';
         require_once CPT_PLUGIN_DIR . 'includes/features/ai-alt-text/class-cpt-ai-alt-text.php';
