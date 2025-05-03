@@ -119,6 +119,13 @@ class CPT_Settings_Manager
                 'section' => 'AI Tools'
             ),
             // Section: UI Enhancements
+            'admin_quick_search' => array(
+                'name' => 'Admin Quick Search',
+                'description' => 'Adds a quick search bar (Cmd/Ctrl+K) to find and navigate admin menu items.',
+                'class' => 'CPT_Admin_Quick_Search',
+                'default' => true,
+                'section' => 'UI Enhancements'
+            ),
             'admin_refresh_ui' => array(
                 'name' => 'Admin Refresh UI',
                 'description' => 'Applies experimental styling refresh to the WP Admin area.',

@@ -1,0 +1,218 @@
+/* Admin Quick Search Styles - macOS Inspired Translucent Dark Mode Redesign */
+
+:root {
+    /* Define dark mode variables */
+    --cpt-search-bg-opaque: #2f2f2f;
+    /* Base dark color */
+    --cpt-search-bg: rgba(47, 47, 47, 0.85);
+    /* Dark grey background with translucency */
+    --cpt-search-text: #e0e0e0;
+    /* Light text */
+    --cpt-search-border: rgba(74, 74, 74, 0.7);
+    /* Slightly translucent border */
+    --cpt-search-hover-bg: rgba(255, 255, 255, 0.1);
+    /* Brighter light hover for better contrast */
+    --cpt-search-active-bg: var(--wp-admin-theme-color, #007cba);
+    /* Keep WP theme color for active */
+    --cpt-search-active-text: #ffffff;
+    --cpt-search-subtle-text: #a8a8a8;
+    /* Adjusted subtle text */
+    --cpt-search-icon-color: #a8a8a8;
+    /* Same as subtle */
+    --cpt-search-input-bg: transparent;
+}
+
+/* Trigger Button Icon */
+#wpadminbar #wp-admin-bar-cpt-admin-quick-search-trigger .ab-icon::before {
+    content: '\ea81';
+    /* Iconoir search icon */
+    top: 3px;
+    font-size: 20px;
+}
+
+/* Modal Overlay - Remove blur from overlay if modal has it */
+.cpt-admin-search-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(30, 30, 30, 0.6);
+    /* Reduced opacity slightly */
+    z-index: 99998;
+    /* backdrop-filter: blur(3px); Removed backdrop filter from overlay */
+}
+
+/* Modal Container - Translucent */
+#cpt-admin-search-modal {
+    position: fixed;
+    top: 12vh;
+    left: 50%;
+    transform: translateX(-50%);
+    width: clamp(400px, 60%, 680px);
+    max-width: 90vw;
+    background-color: var(--cpt-search-bg);
+    backdrop-filter: blur(12px) saturate(180%);
+    /* Frosted glass effect */
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    /* Safari */
+    color: var(--cpt-search-text);
+    border-radius: 12px;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.4);
+    z-index: 99999;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--cpt-search-border);
+}
+
+/* Modal Header - Clean separation */
+.cpt-admin-search-header {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+}
+
+/* Search Input - Minimal, dark friendly */
+#cpt-admin-search-input {
+    flex-grow: 1;
+    padding: 10px 15px;
+    font-size: 1.3em;
+    background-color: var(--cpt-search-input-bg);
+    color: var(--cpt-search-text);
+    border: none;
+    border-radius: 0;
+    margin-right: 10px;
+    outline: none;
+    box-shadow: none;
+    transition: none;
+    line-height: 1.5;
+}
+
+#cpt-admin-search-input::placeholder {
+    color: var(--cpt-search-subtle-text);
+    font-weight: 400;
+}
+
+#cpt-admin-search-input:focus {
+    /* No specific style needed */
+}
+
+/* Close Button - Dark friendly */
+.cpt-admin-search-close {
+    background: none;
+    border: none;
+    font-size: 1.6em;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--cpt-search-subtle-text);
+    padding: 8px;
+    border-radius: 50%;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.cpt-admin-search-close:hover {
+    color: #fff;
+    /* Brighter text on hover */
+    background-color: rgba(255, 255, 255, 0.1);
+    /* Subtle light hover */
+}
+
+/* Results List - Ensure background color doesn't conflict */
+#cpt-admin-search-results {
+    list-style: none;
+    margin: 0;
+    padding: 8px 0;
+    max-height: calc(75vh - 80px);
+    overflow-y: auto;
+    border-top: 1px solid var(--cpt-search-border);
+    /* Background is inherited (transparent) */
+}
+
+/* Custom Scrollbar - Use opaque bg for track for contrast */
+#cpt-admin-search-results::-webkit-scrollbar {
+    width: 8px;
+}
+
+#cpt-admin-search-results::-webkit-scrollbar-track {
+    background: transparent;
+    /* Keep track transparent */
+}
+
+#cpt-admin-search-results::-webkit-scrollbar-thumb {
+    background-color: rgba(85, 85, 85, 0.7);
+    /* Slightly translucent thumb */
+    border-radius: 4px;
+    /* border: 2px solid var(--cpt-search-bg); Remove border for cleaner look on blur */
+}
+
+/* Single Result Item Link */
+#cpt-admin-search-results li a {
+    display: flex;
+    align-items: center;
+    padding: 8px 15px;
+    text-decoration: none;
+    color: var(--cpt-search-text);
+    font-size: 14px;
+    border-radius: 5px;
+    margin: 2px 8px;
+    border: none;
+    transition: background-color 0.1s ease-in-out, color 0.1s ease-in-out;
+}
+
+/* Icon */
+#cpt-admin-search-results li a .result-icon {
+    margin-right: 12px;
+    font-size: 18px;
+    width: 20px;
+    text-align: center;
+    color: var(--cpt-search-icon-color);
+    transition: color 0.1s ease-in-out;
+}
+
+/* Text Content Area */
+#cpt-admin-search-results li a .result-text {
+    flex-grow: 1;
+    line-height: 1.4;
+}
+
+#cpt-admin-search-results li a .result-title {
+    display: block;
+    font-weight: 500;
+}
+
+#cpt-admin-search-results li a .result-parent {
+    display: block;
+    font-size: 0.9em;
+    color: var(--cpt-search-subtle-text);
+    transition: color 0.1s ease-in-out;
+}
+
+/* Hover State - Adjusted via variable */
+#cpt-admin-search-results li a:hover {
+    background-color: var(--cpt-search-hover-bg);
+    color: #fff;
+    /* Slightly brighter text on hover */
+}
+
+#cpt-admin-search-results li a:hover .result-icon,
+#cpt-admin-search-results li a:hover .result-parent {
+    color: var(--cpt-search-subtle-text);
+    /* Keep subtle colors */
+}
+
+/* Active result (keyboard nav) - WP Theme Color */
+#cpt-admin-search-results li.active a {
+    background-color: var(--cpt-search-active-bg);
+    color: var(--cpt-search-active-text);
+}
+
+#cpt-admin-search-results li.active a .result-icon,
+#cpt-admin-search-results li.active a .result-parent {
+    color: var(--cpt-search-active-text);
+}
+
+/* Loading/No results/Info message */
+.cpt-admin-search-message {
+    padding: 20px 15px;
+    color: var(--cpt-search-subtle-text);
+    font-style: italic;
+    text-align: center;
+}

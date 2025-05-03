@@ -51,6 +51,8 @@ final class CraftedPath_Toolkit
         require_once CPT_PLUGIN_DIR . 'includes/features/ai-alt-text/class-cpt-ai-alt-text.php';
         // Include the Admin Refresh UI feature
         require_once CPT_PLUGIN_DIR . 'includes/features/admin-refresh-ui/class-admin-refresh-ui.php';
+        // Include the Admin Quick Search feature
+        require_once CPT_PLUGIN_DIR . 'includes/features/admin-quick-search/class-cpt-admin-quick-search.php';
 
         require_once CPT_PLUGIN_DIR . 'includes/admin/class-settings-manager.php';
         require_once CPT_PLUGIN_DIR . 'includes/admin/settings-page.php';
@@ -231,6 +233,15 @@ final class CraftedPath_Toolkit
                 CPT_AI_Alt_Text::instance();
             } else {
                 error_log("CraftedPath Toolkit Error: CPT_AI_Alt_Text class not found.");
+            }
+        }
+
+        // Load Admin Quick Search
+        if ($settings_manager->is_feature_enabled('admin_quick_search')) {
+            if (class_exists('CPT_Admin_Quick_Search')) {
+                CPT_Admin_Quick_Search::instance();
+            } else {
+                error_log("CraftedPath Toolkit Error: CPT_Admin_Quick_Search class not found.");
             }
         }
 
