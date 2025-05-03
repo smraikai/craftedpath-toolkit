@@ -30,22 +30,25 @@ function cptk_render_settings_page()
 
         <!-- Content Area -->
         <div class="craftedpath-content">
-            <?php
-            // Prepare footer content (Submit button)
-            ob_start();
-            // Use the correct option group ('cptk_settings') for the form 
-            // and a unique name for the submit button
-            submit_button(__('Save General Settings', 'craftedpath-toolkit'), 'primary', 'submit_general_settings', false);
-            $footer_html = ob_get_clean();
+            <form method="post" action="options.php">
+                <?php
+                // Output necessary hidden fields (nonce, action, option_page)
+                settings_fields('cptk_settings');
 
-            // Render the card using the component
-            cptk_render_card(
-                __('General Settings', 'craftedpath-toolkit'),
-                '<i class="iconoir-settings" style="vertical-align: text-bottom; margin-right: 5px;"></i>', // Iconoir icon
-                'cptk_render_settings_form_content',
-                $footer_html // Pass the footer content
-            );
-            ?>
+                // Prepare footer content (Submit button)
+                ob_start();
+                submit_button(__('Save General Settings', 'craftedpath-toolkit'), 'primary', 'submit_general_settings', false); // Use the unique name
+                $footer_html = ob_get_clean();
+
+                // Render the card using the component, now inside the form
+                cptk_render_card(
+                    __('General Settings', 'craftedpath-toolkit'),
+                    '<i class="iconoir-settings" style="vertical-align: text-bottom; margin-right: 5px;"></i>', // Iconoir icon
+                    'cptk_render_settings_form_content', // Callback renders do_settings_sections
+                    $footer_html // Pass the footer content (submit button)
+                );
+                ?>
+            </form>
         </div>
     </div>
     <?php
@@ -57,7 +60,7 @@ function cptk_render_settings_page()
  */
 function cptk_render_settings_form_content()
 {
-    // Show validation errors/update messages within the card body
+    // Show validation errors/update messages
     settings_errors('cptk_settings_messages');
 
     // Output settings sections and fields for the 'cptk_settings_page' slug
