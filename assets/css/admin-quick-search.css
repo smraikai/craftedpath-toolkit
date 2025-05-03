@@ -258,22 +258,18 @@
     margin-top: 1px;
 }
 
-/* Hover State - Adjusted */
+/* Hover State - Use primary color */
 #cpt-admin-search-results li a:hover {
-    background-color: var(--cpt-search-hover-bg);
-    /* Use variable */
+    background-color: var(--cpt-search-active-bg);
+    /* Use active/primary bg on hover */
     color: var(--cpt-search-active-text);
-    /* Use active text color on hover */
 }
 
 #cpt-admin-search-results li a:hover .result-icon,
-#cpt-admin-search-results li a:hover .result-parent {
-    color: var(--cpt-search-active-text);
-    /* Match hover text color */
-}
-
+#cpt-admin-search-results li a:hover .result-parent,
 #cpt-admin-search-results li a:hover .cpt-search-highlight {
     color: var(--cpt-search-active-text);
+    /* Use variable */
 }
 
 /* Active result (keyboard nav) */
