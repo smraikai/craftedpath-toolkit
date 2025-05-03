@@ -42,11 +42,20 @@ class CPT_Admin_Quick_Search
             CPT_VERSION
         );
 
-        // Enqueue JS
+        // Enqueue Fuse.js from CDN (ensure it loads before our script)
+        wp_enqueue_script(
+            'fuse-js',
+            'https://cdn.jsdelivr.net/npm/fuse.js@6.6.2/dist/fuse.min.js', // Use a specific version
+            array(), // No WP dependencies
+            '6.6.2',
+            true // Load in footer
+        );
+
+        // Enqueue our JS (now depends on fuse-js)
         wp_enqueue_script(
             'cpt-admin-quick-search-script',
             CPT_PLUGIN_URL . 'assets/js/admin-quick-search.js',
-            array('jquery'), // Add dependencies if needed
+            array('fuse-js'), // Add fuse-js as a dependency
             CPT_VERSION,
             true // Load in footer
         );

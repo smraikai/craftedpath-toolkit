@@ -1,7 +1,7 @@
-// Admin Quick Search JS - Redesign
+// Admin Quick Search JS - Redesign with Fuse.js
 
 document.addEventListener('DOMContentLoaded', function () {
-    console.log("Admin Quick Search JS Loaded - Redesign");
+    console.log("Admin Quick Search JS Loaded - Fuse.js");
 
     const triggerButton = document.getElementById('wp-admin-bar-cpt-admin-quick-search-trigger');
     const modal = document.getElementById('cpt-admin-search-modal');
@@ -16,21 +16,42 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
     }
 
+    // Check if Fuse is available
+    if (typeof Fuse === 'undefined') {
+        console.error("Admin Quick Search: Fuse.js library not loaded.");
+        resultsList.innerHTML = '<li class="cpt-admin-search-message">Error: Search library failed to load.</li>';
+        return;
+    }
+
     // Check if search items are localized
     if (typeof cptAdminSearchItems === 'undefined' || !Array.isArray(cptAdminSearchItems)) {
         console.error("Admin Quick Search: Search items not localized correctly (cptAdminSearchItems).");
         resultsList.innerHTML = '<li class="cpt-admin-search-message">Error: Search data unavailable.</li>';
-        return; // Stop execution
+        return;
     }
 
-    let activeResultIndex = -1; // For keyboard navigation
-    let currentResults = []; // Hold the currently filtered results
+    // --- Fuse.js Setup ---
+    const fuseOptions = {
+        keys: [
+            { name: 'title', weight: 0.7 }, // Give title higher weight
+            { name: 'parent', weight: 0.3 }  // Parent context is less important
+        ],
+        includeScore: true, // Include score in results
+        threshold: 0.4,     // Adjust threshold (0=exact match, 1=match anything)
+        minMatchCharLength: 2, // Minimum characters to trigger search
+        // includeMatches: true, // Optionally include match details for highlighting
+    };
+    const fuse = new Fuse(cptAdminSearchItems, fuseOptions);
+    // --- End Fuse.js Setup ---
+
+    let activeResultIndex = -1;
+    let currentResults = [];
 
     function openModal() {
         overlay.style.display = 'block';
         modal.style.display = 'flex';
         searchInput.value = '';
-        resultsList.innerHTML = '<li class="cpt-admin-search-message">Start typing to search...</li>'; // Initial message
+        resultsList.innerHTML = '<li class="cpt-admin-search-message">Start typing to search...</li>';
         searchInput.focus();
         activeResultIndex = -1;
         currentResults = [];
@@ -43,15 +64,12 @@ document.addEventListener('DOMContentLoaded', function () {
         document.removeEventListener('keydown', handleGlobalKeyDown);
     }
 
-    // Renamed to avoid conflict with input keydown
     function handleGlobalKeyDown(event) {
         if (event.key === 'Escape') {
             closeModal();
         }
-        // Keyboard nav handled by input's keydown listener
     }
 
-    // Specific handler for input/results list nav
     function handleInputKeyDown(event) {
         if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
             event.preventDefault();
@@ -60,39 +78,34 @@ document.addEventListener('DOMContentLoaded', function () {
             event.preventDefault();
             selectResult();
         }
-        // Allow Escape to bubble up to handleGlobalKeyDown
     }
 
     function updateResults() {
-        const query = searchInput.value.toLowerCase().trim();
-        resultsList.innerHTML = ''; // Clear previous results
+        const query = searchInput.value.trim(); // No need for toLowerCase() with Fuse.js
+        resultsList.innerHTML = '';
         activeResultIndex = -1;
 
-        if (query.length < 1) { // Allow searching from 1 character
-            resultsList.innerHTML = '<li class="cpt-admin-search-message">Start typing to search...</li>';
+        if (query.length < fuseOptions.minMatchCharLength) {
+            resultsList.innerHTML = `<li class="cpt-admin-search-message">Type ${fuseOptions.minMatchCharLength} or more characters...</li>`;
             currentResults = [];
             return;
         }
 
-        // Basic filtering (can be improved with fuzzy search library later)
-        currentResults = cptAdminSearchItems.filter(item => {
-            const titleMatch = item.title.toLowerCase().includes(query);
-            const parentMatch = item.parent && item.parent.toLowerCase().includes(query);
-            const typeMatch = item.type.toLowerCase().includes(query); // Allow searching type e.g., "action"
-            return titleMatch || parentMatch || typeMatch;
-        });
+        // Use Fuse.js to search
+        currentResults = fuse.search(query);
 
         if (currentResults.length === 0) {
             resultsList.innerHTML = '<li class="cpt-admin-search-message">No results found.</li>';
         } else {
-            currentResults.forEach((item, index) => {
+            // Fuse returns results like [{ item: {..original..}, score: 0.123 }, ...]
+            currentResults.forEach((result, index) => {
+                const item = result.item; // Get the original item data
                 const li = document.createElement('li');
-                // Create the anchor tag FIRST
                 const a = document.createElement('a');
                 a.href = item.url;
                 if (item.target === '_blank') {
                     a.target = '_blank';
-                    a.rel = 'noopener noreferrer'; // Security for target blank
+                    a.rel = 'noopener noreferrer';
                 }
 
                 // Icon Span
@@ -118,35 +131,25 @@ document.addEventListener('DOMContentLoaded', function () {
                     textSpan.appendChild(parentSpan);
                 }
 
-                // Append Text container to Anchor
                 a.appendChild(textSpan);
-
-                // Append Anchor to List Item
                 li.appendChild(a);
-                li.dataset.index = index; // Store index for navigation
+                li.dataset.index = index;
 
-                // Click handler for the anchor
                 a.addEventListener('click', (e) => {
-                    // In future, could check item.type === 'action' and prevent default/do AJAX
-                    // console.log(`Clicked: ${item.title} (Type: ${item.type})`);
-                    // closeModal(); // Optional: close modal after click
+                    // closeModal(); // Optional
                 });
 
-                // Append List Item to the Results List
                 resultsList.appendChild(li);
             });
         }
     }
 
     function navigateResults(key) {
-        const resultsItems = resultsList.querySelectorAll('li'); // Select the li elements
-        // Ensure we only navigate actual results, not messages
-        const actualResultItems = Array.from(resultsItems).filter(li => !li.classList.contains('cpt-admin-search-message'));
+        const actualResultItems = resultsList.querySelectorAll('li:not(.cpt-admin-search-message)');
         if (actualResultItems.length === 0) return;
 
-        // Remove active class from previously active item
-        if (activeResultIndex >= 0 && activeResultIndex < actualResultItems.length) {
-            actualResultItems[activeResultIndex].classList.remove('active');
+        if (activeResultIndex >= 0) {
+            actualResultItems[activeResultIndex]?.classList.remove('active');
         }
 
         if (key === 'ArrowDown') {
@@ -155,55 +158,45 @@ document.addEventListener('DOMContentLoaded', function () {
             activeResultIndex = (activeResultIndex - 1 + actualResultItems.length) % actualResultItems.length;
         }
 
-        // Add active class to the new item
-        if (activeResultIndex >= 0 && activeResultIndex < actualResultItems.length) {
-            actualResultItems[activeResultIndex].classList.add('active');
-            actualResultItems[activeResultIndex].scrollIntoView({ block: 'nearest' });
+        if (activeResultIndex >= 0) {
+            actualResultItems[activeResultIndex]?.classList.add('active');
+            actualResultItems[activeResultIndex]?.scrollIntoView({ block: 'nearest' });
         }
     }
 
     function selectResult() {
-        const resultsItems = resultsList.querySelectorAll('li');
-        const actualResultItems = Array.from(resultsItems).filter(li => !li.classList.contains('cpt-admin-search-message'));
-
+        const actualResultItems = resultsList.querySelectorAll('li:not(.cpt-admin-search-message)');
         if (activeResultIndex >= 0 && activeResultIndex < actualResultItems.length) {
-            const link = actualResultItems[activeResultIndex].querySelector('a');
+            const link = actualResultItems[activeResultIndex]?.querySelector('a');
             if (link) {
-                link.click(); // Simulate click on the active item's link
-                // closeModal(); // Optional: close modal after selection
+                link.click();
+                // closeModal(); // Optional
             }
         }
     }
 
     // --- Event Listeners ---
-
-    // Open modal via trigger button
     triggerButton.addEventListener('click', function (e) {
         e.preventDefault();
         openModal();
     });
 
-    // Open modal via keyboard shortcut (Cmd/Ctrl + K)
     document.addEventListener('keydown', function (event) {
-        // Ensure modal isn't already open
         if (modal.style.display !== 'flex' && (event.metaKey || event.ctrlKey) && event.key === 'k') {
             event.preventDefault();
             openModal();
         }
     });
 
-    // Close modal
     closeButton.addEventListener('click', closeModal);
     overlay.addEventListener('click', closeModal);
 
-    // Update results on input (debounced)
     let debounceTimer;
     searchInput.addEventListener('input', () => {
         clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(updateResults, 150); // Faster debounce
+        debounceTimer = setTimeout(updateResults, 100); // Even faster debounce for fuzzy search
     });
 
-    // Add keyboard navigation specifically to the input field
     searchInput.addEventListener('keydown', handleInputKeyDown);
 
 }); 
