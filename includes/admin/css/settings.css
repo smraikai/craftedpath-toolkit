@@ -23,6 +23,31 @@
     --gray-900: #111827;
     --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     --transition: all 0.2s ease;
+
+    /* Variables for Admin Quick Search (Dark Theme) */
+    --cpt-search-modal-bg: #2f2f2f;
+    /* Opaque dark background for modal */
+    --cpt-search-text: var(--gray-200);
+    /* Main light text (#e5e7eb is close to #e0e0e0) */
+    --cpt-search-border-subtle: rgba(74, 74, 74, 0.6);
+    /* Translucent border */
+    --cpt-search-hover-bg: rgba(255, 255, 255, 0.1);
+    /* Light hover overlay */
+    --cpt-search-active-bg: var(--primary);
+    /* Use primary color */
+    --cpt-search-active-text: var(--white);
+    /* Active text color */
+    --cpt-search-subtle-text: var(--gray-400);
+    /* Subtle text/icons (#9ca3af is close to #a8a8a8) */
+    --cpt-search-icon-color: var(--cpt-search-subtle-text);
+    --cpt-search-overlay-bg: rgba(30, 30, 30, 0.3);
+    /* Background overlay */
+    --cpt-search-hint-bg: rgba(255, 255, 255, 0.05);
+    /* Hint background */
+    --cpt-search-hint-border: rgba(255, 255, 255, 0.1);
+    /* Hint border */
+    --cpt-search-scrollbar-thumb: var(--gray-600);
+    /* Scrollbar thumb color */
 }
 
 .craftedpath-settings {
