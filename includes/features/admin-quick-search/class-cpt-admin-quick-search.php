@@ -75,6 +75,9 @@ class CPT_Admin_Quick_Search
         $this->searchable_items = [];
         $current_user = wp_get_current_user();
 
+        // We'll store custom post type information for URL fixes
+        $custom_post_types = get_post_types(['_builtin' => false], 'names');
+
         // Function to clean up menu titles (remove spans like update counts)
         $clean_title = function ($title) {
             return trim(preg_replace('/<span.*<\/span>/is', '', $title));
@@ -130,6 +133,16 @@ class CPT_Admin_Quick_Search
                     if (!$sub_url || $sub_url === admin_url()) {
                         if (strpos($sub_slug, 'http') === 0) { // It's already a full URL
                             $sub_url = $sub_slug;
+                        } elseif (strpos($sub_slug, 'edit.php') === 0) {
+                            // Direct fix for edit.php URLs (CPTs)
+                            // Ensure we don't add admin.php?page= prefix to edit.php URLs
+                            $sub_url = admin_url($sub_slug);
+                        } elseif (strpos($sub_slug, 'post-new.php') === 0) {
+                            // Direct fix for post-new.php URLs
+                            $sub_url = admin_url($sub_slug);
+                        } elseif (strpos($sub_slug, 'edit-tags.php') === 0) {
+                            // Direct fix for taxonomy URLs
+                            $sub_url = admin_url($sub_slug);
                         } elseif (strpos($slug, '.php') !== false) { // Parent is a .php file
                             $sub_url = admin_url(add_query_arg('page', $sub_slug, $slug));
                         } else { // Parent is likely a plugin page slug
@@ -250,6 +263,67 @@ class CPT_Admin_Quick_Search
                         'type' => 'user',
                         'icon' => 'dashicons-admin-users'
                     ];
+                }
+            }
+        }
+
+        // After processing all menu items, let's add direct links for our CPTs
+        foreach ($custom_post_types as $post_type) {
+            $post_type_obj = get_post_type_object($post_type);
+            if ($post_type_obj && current_user_can($post_type_obj->cap->edit_posts)) {
+                // Add direct links for the CPT list view
+                $this->searchable_items[] = [
+                    'id' => 'cpt-direct-' . $post_type,
+                    'title' => $post_type_obj->labels->name,
+                    'url' => admin_url('edit.php?post_type=' . $post_type),
+                    'parent' => 'Custom Post Types',
+                    'type' => 'menu',
+                    'icon' => 'dashicons-admin-post'
+                ];
+
+                // Add direct links for adding a new CPT entry
+                $this->searchable_items[] = [
+                    'id' => 'cpt-direct-new-' . $post_type,
+                    'title' => 'Add New ' . $post_type_obj->labels->singular_name,
+                    'url' => admin_url('post-new.php?post_type=' . $post_type),
+                    'parent' => 'Custom Post Types',
+                    'type' => 'menu',
+                    'icon' => 'dashicons-plus'
+                ];
+            }
+        }
+
+        // After adding all items, let's fix any incorrect CPT edit URLs
+        // This is a post-processing step to catch any that slipped through
+        foreach ($this->searchable_items as $key => $item) {
+            // Look for telltale signs of incorrect CPT URLs
+            if (isset($item['url']) && strpos($item['url'], 'admin.php?page=edit.php?post_type=') !== false) {
+                // Extract the post_type
+                preg_match('/post_type=([^&]+)/', $item['url'], $matches);
+                if (!empty($matches[1])) {
+                    $post_type = $matches[1];
+                    $corrected_url = admin_url('edit.php?post_type=' . $post_type);
+                    $this->searchable_items[$key]['url'] = $corrected_url;
+                }
+            }
+
+            // Also fix taxonomy URLs
+            if (isset($item['url']) && strpos($item['url'], 'admin.php?page=edit-tags.php?taxonomy=') !== false) {
+                // Extract the taxonomy and post type
+                preg_match('/taxonomy=([^&]+)/', $item['url'], $tax_matches);
+                preg_match('/post_type=([^&]+)/', $item['url'], $pt_matches);
+
+                if (!empty($tax_matches[1])) {
+                    $taxonomy = $tax_matches[1];
+                    $post_type = !empty($pt_matches[1]) ? $pt_matches[1] : '';
+
+                    if ($post_type) {
+                        $corrected_url = admin_url("edit-tags.php?taxonomy={$taxonomy}&post_type={$post_type}");
+                    } else {
+                        $corrected_url = admin_url("edit-tags.php?taxonomy={$taxonomy}");
+                    }
+
+                    $this->searchable_items[$key]['url'] = $corrected_url;
                 }
             }
         }
