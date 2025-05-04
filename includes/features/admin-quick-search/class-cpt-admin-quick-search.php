@@ -143,8 +143,20 @@ class CPT_Admin_Quick_Search
                         } elseif (strpos($sub_slug, 'edit-tags.php') === 0) {
                             // Direct fix for taxonomy URLs
                             $sub_url = admin_url($sub_slug);
-                        } elseif (strpos($slug, '.php') !== false) { // Parent is a .php file
-                            $sub_url = admin_url(add_query_arg('page', $sub_slug, $slug));
+                        } elseif (strpos($sub_slug, '.php') !== false) {
+                            // Direct fix for any .php file (like import.php)
+                            // This covers cases like tools.php?page=import.php
+                            // where import.php should be accessed directly
+                            if (preg_match('/\.php$/', $sub_slug) || strpos($sub_slug, '.php?') !== false) {
+                                // It's a PHP file (with or without query params) - access directly
+                                $sub_url = admin_url($sub_slug);
+                            } elseif (strpos($slug, '.php') !== false) {
+                                // Parent is a .php file, and child is not a direct PHP file
+                                $sub_url = admin_url(add_query_arg('page', $sub_slug, $slug));
+                            } else {
+                                // Fallback to admin.php
+                                $sub_url = admin_url(add_query_arg('page', $sub_slug, 'admin.php'));
+                            }
                         } else { // Parent is likely a plugin page slug
                             $sub_url = admin_url(add_query_arg('page', $sub_slug, 'admin.php'));
                         }
@@ -325,6 +337,14 @@ class CPT_Admin_Quick_Search
 
                     $this->searchable_items[$key]['url'] = $corrected_url;
                 }
+            }
+
+            // Fix direct PHP file URLs like tools.php?page=import.php
+            if (isset($item['url']) && preg_match('/admin\.php\?page=([^&]+\.php)(.*)/', $item['url'], $matches)) {
+                $php_file = $matches[1];
+                $query_string = isset($matches[2]) ? $matches[2] : '';
+                $corrected_url = admin_url($php_file . $query_string);
+                $this->searchable_items[$key]['url'] = $corrected_url;
             }
         }
 
