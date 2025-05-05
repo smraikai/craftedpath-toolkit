@@ -66,6 +66,9 @@ final class CraftedPath_Toolkit
         require_once CPT_PLUGIN_DIR . 'includes/features/custom-post-types/class-cpt-faqs.php';
         require_once CPT_PLUGIN_DIR . 'includes/features/custom-post-types/class-cpt-staff.php';
         require_once CPT_PLUGIN_DIR . 'includes/features/custom-post-types/class-cpt-events.php';
+
+        // Include the API handler
+        require_once CPT_PLUGIN_DIR . 'includes/api/class-cptk-ai-api.php';
     }
 
     private function init_hooks()
@@ -73,6 +76,7 @@ final class CraftedPath_Toolkit
         add_action('plugins_loaded', array($this, 'init_settings'));
         add_action('plugins_loaded', array($this, 'load_features'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_assets'));
+        add_action('init', array($this, 'register_blocks'));
 
         // Initialize SEO hooks moved to load_features()
         /*
@@ -315,6 +319,32 @@ final class CraftedPath_Toolkit
             }
         }
         */
+    }
+
+    /**
+     * Register block types on the init hook.
+     */
+    public function register_blocks()
+    {
+        // Get settings manager instance (needed if not already available)
+        // If init_settings runs before this on plugins_loaded, it should be set.
+        // Alternatively, access it directly: $settings_manager = CPT_Settings_Manager::instance();
+        if (empty($this->settings_manager)) {
+            $this->settings_manager = CPT_Settings_Manager::instance();
+        }
+        $settings_manager = $this->settings_manager;
+
+        // Load AI Content Generator Block
+        if ($settings_manager->is_feature_enabled('ai_content_generator')) {
+            // Adjust path to account for extra nesting from build process
+            $block_dir = CPT_PLUGIN_DIR . 'build/blocks/ai-content-generator/ai-content-generator';
+            if (is_dir($block_dir)) {
+                register_block_type($block_dir);
+            } else {
+                error_log("CraftedPath Toolkit Error: AI Content Generator block directory not found at: " . $block_dir);
+            }
+        }
+        // Add registration for other blocks here in the future
     }
 }
 
