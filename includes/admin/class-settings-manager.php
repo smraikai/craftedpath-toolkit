@@ -118,13 +118,6 @@ class CPT_Settings_Manager
                 'default' => false,
                 'section' => 'AI Tools'
             ),
-            'ai_content_generator' => array(
-                'name' => 'AI Content Generator Block',
-                'description' => 'Adds a block that uses AI to generate content (paragraphs, headings, etc.) based on a prompt.',
-                'class' => null, // No specific PHP class needed for block registration itself
-                'default' => false, // Default to disabled
-                'section' => 'AI Tools'
-            ),
             // Section: UI Enhancements
             'admin_quick_search' => array(
                 'name' => 'Admin Quick Search',

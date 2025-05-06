@@ -334,16 +334,6 @@ final class CraftedPath_Toolkit
         }
         $settings_manager = $this->settings_manager;
 
-        // Load AI Content Generator Block
-        if ($settings_manager->is_feature_enabled('ai_content_generator')) {
-            // Adjust path to account for extra nesting from build process
-            $block_dir = CPT_PLUGIN_DIR . 'build/blocks/ai-content-generator/ai-content-generator';
-            if (is_dir($block_dir)) {
-                register_block_type($block_dir);
-            } else {
-                error_log("CraftedPath Toolkit Error: AI Content Generator block directory not found at: " . $block_dir);
-            }
-        }
         // Add registration for other blocks here in the future
     }
 }

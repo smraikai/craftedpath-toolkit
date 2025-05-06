@@ -19,25 +19,7 @@ class CPTK_AI_API
      */
     public function register_routes()
     {
-        register_rest_route(
-            self::NAMESPACE ,
-            '/generate-content',
-            array(
-                'methods' => WP_REST_Server::CREATABLE, // POST requests
-                'callback' => array($this, 'handle_generate_request'),
-                'permission_callback' => array($this, 'check_permissions'),
-                'args' => array( // Define expected arguments
-                    'prompt' => array(
-                        'required' => true,
-                        'validate_callback' => function ($param, $request, $key) {
-                            return is_string($param) && !empty(trim($param));
-                        },
-                        'sanitize_callback' => 'sanitize_textarea_field',
-                        'description' => __('The user prompt for content generation.', 'craftedpath-toolkit'),
-                    ),
-                ),
-            )
-        );
+        // Remove the register_rest_route call for the '/generate-content' endpoint
     }
 
     /**
