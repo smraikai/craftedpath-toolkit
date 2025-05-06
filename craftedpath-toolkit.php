@@ -77,6 +77,7 @@ final class CraftedPath_Toolkit
         add_action('plugins_loaded', array($this, 'load_features'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_assets'));
         add_action('init', array($this, 'register_blocks'));
+        add_action('wp_enqueue_scripts', array($this, 'enqueue_frontend_assets'));
 
         // Initialize SEO hooks moved to load_features()
         /*
@@ -335,6 +336,25 @@ final class CraftedPath_Toolkit
         $settings_manager = $this->settings_manager;
 
         // Add registration for other blocks here in the future
+    }
+
+    /**
+     * Enqueue frontend scripts and styles.
+     */
+    public function enqueue_frontend_assets()
+    {
+        if (empty($this->settings_manager)) {
+            $this->settings_manager = CPT_Settings_Manager::instance();
+        }
+
+        if ($this->settings_manager && $this->settings_manager->is_feature_enabled('wireframe_mode')) {
+            wp_enqueue_style(
+                'cpt-wireframe-mode',
+                CPT_PLUGIN_URL . 'assets/css/wireframe-mode.css',
+                array(), // No dependencies for this override stylesheet
+                CPT_VERSION
+            );
+        }
     }
 }
 

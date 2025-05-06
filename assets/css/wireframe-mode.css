@@ -1,0 +1,63 @@
+:root {
+    /* Primary Colors - Muted */
+    --sb-c-primary: #666666 !important;
+    --sb-c-primary-hover: #777777 !important;
+    --sb-c-primary-light: #f0f0f0 !important;
+
+    /* Accent Colors - Muted */
+    --sb-c-accent: #888888 !important;
+    --sb-c-accent-hover: #999999 !important;
+
+    /* Background Colors - Muted but distinct */
+    --sb-c-background-dark: #404040 !important;
+    /* Darker gray for dark backgrounds */
+    --sb-c-background-light: #f0f0f0 !important;
+    /* Lighter gray for light backgrounds */
+
+    /* Borders and Grays - Muted */
+    --sb-c-border: #aaaaaa !important;
+    --sb-c-light-gray: #e0e0e0 !important;
+    --sb-c-dark-gray: #505050 !important;
+
+    /* Text and Utility Colors - Ensure readability */
+    --sb-c-black: #222222 !important;
+    /* Keep dark for text */
+    --sb-c-white: #ffffff !important;
+    /* Keep white for text on dark backgrounds */
+    --sb-c-font-muted: #707070 !important;
+
+    /* Overlays and Shadows - Simplified/Neutralized */
+    --sb-c-shadow: none !important;
+    /* Remove shadows or make them very subtle if needed */
+    --sb-c-overlay-top: rgba(50, 50, 50, 0.5) !important;
+    /* Semi-transparent gray */
+    --sb-c-overlay-bottom: rgba(30, 30, 30, 0.7) !important;
+    /* Darker semi-transparent gray */
+
+    --rounded: 0px !important;
+}
+
+body {
+    /* Optional: Force a basic font if theme fonts are too distracting */
+    /* font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important; */
+}
+
+
+
+/* Style specific blocks for clarity */
+.wp-block-button__link {
+    background-color: var(--sb-c-primary, #666666) !important;
+    color: var(--sb-c-white, #ffffff) !important;
+    border: 1px solid var(--sb-c-border, #aaaaaa) !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+}
+
+.wp-block-button__link:hover {
+    background-color: var(--sb-c-primary-hover, #777777) !important;
+}
+
+/* Remove complex text shadows */
+* {
+    text-shadow: none !important;
+}

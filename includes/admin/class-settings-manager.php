@@ -133,6 +133,14 @@ class CPT_Settings_Manager
                 'default' => false,
                 'section' => 'UI Enhancements'
             ),
+            // Section: Wireframe Mode
+            'wireframe_mode' => array(
+                'name' => 'Wireframe Mode (Global)',
+                'description' => 'Strips back visual styling on the frontend to display a simplified, structural view. Affects all users.',
+                'class' => null, // No specific class to instantiate for this, handled by enqueuing CSS
+                'default' => false,
+                'section' => 'Developer Tools' // Or a new section like 'Development Tools'
+            ),
             // Section: SEO Tools
             'seo_tools' => array(
                 'name' => 'SEO Title & Meta',
