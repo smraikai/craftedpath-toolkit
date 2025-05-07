@@ -552,9 +552,9 @@ class CPT_Settings_Manager
                 ''
             );
         }
-        
+
         // Submit button container, styled to appear like a main form footer
-        echo '<div class="craftedpath-form-actions" style="margin-top: -2px; padding: 15px 25px; background: var(--white); border-top: 1px solid var(--gray-200); display: flex; justify-content: flex-end; border-radius: 0 0 8px 8px; margin-bottom: 30px; box-shadow: var(--card-shadow); border: 1px solid var(--gray-200); border-top:1px solid var(--gray-200);">';
+        echo '<div class="craftedpath-form-actions" style="padding: 20px 0; display: flex; justify-content: flex-end; margin-bottom: 30px;">';
         submit_button(__('Save All Feature Settings', 'craftedpath-toolkit'), 'primary', 'submit-features', false, ['id' => 'submit-features-btn']);
         echo '</div>';
 
