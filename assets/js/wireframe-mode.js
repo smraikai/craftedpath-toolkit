@@ -12,8 +12,12 @@ class WireframeMode {
                     <stop offset="0%" style="stop-color:#4E4E4E"/>
                     <stop offset="100%" style="stop-color:#818181"/>
                 </linearGradient>
+                <pattern id="wavyPattern" x="0" y="0" width="20" height="100" patternUnits="userSpaceOnUse">
+                    <path d="M10 0 Q 0 25, 10 50 T 10 100" stroke="#F7F7F7" stroke-width="1" fill="none"/>
+                </pattern>
             </defs>
             <rect width="100%" height="100%" fill="#DDDDDD"/>
+            <rect width="100%" height="100%" fill="url(#wavyPattern)"/>
             <g transform="translate(192, 192) scale(0.25)">
                 <path d="M256 32c12.5 0 24.1 6.4 30.8 17L503.4 394.4c5.6 8.9 8.6 19.2 8.6 29.7c0 30.9-25 55.9-55.9 55.9L55.9 480C25 480 0 455 0 424.1c0-10.5 3-20.8 8.6-29.7L225.2 49c6.6-10.6 18.3-17 30.8-17zm65 192L256 120.4 176.9 246.5l18.3 24.4c6.4 8.5 19.2 8.5 25.6 0l25.6-34.1c6-8.1 15.5-12.8 25.6-12.8l49 0z" fill="url(#mountainGradient)"/>
             </g>
