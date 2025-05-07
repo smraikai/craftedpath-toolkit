@@ -355,6 +355,22 @@ final class CraftedPath_Toolkit
                 CPT_VERSION
             );
         }
+
+        // Enqueue wireframe mode assets
+        wp_enqueue_style(
+            'cpt-wireframe-mode',
+            CPT_PLUGIN_URL . 'assets/css/wireframe-mode.css',
+            array(),
+            CPT_VERSION
+        );
+
+        wp_enqueue_script(
+            'cpt-wireframe-mode',
+            CPT_PLUGIN_URL . 'assets/js/wireframe-mode.js',
+            array(),
+            CPT_VERSION,
+            true
+        );
     }
 }
 

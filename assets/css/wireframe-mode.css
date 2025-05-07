@@ -61,3 +61,8 @@ body {
 * {
     text-shadow: none !important;
 }
+
+/* Also handle background images */
+* {
+    background-image: none !important;
+}
