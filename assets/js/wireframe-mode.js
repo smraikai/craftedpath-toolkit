@@ -13,7 +13,7 @@ class WireframeMode {
                     <stop offset="100%" style="stop-color:#818181"/>
                 </linearGradient>
                 <pattern id="wavyPattern" x="0" y="0" width="20" height="100" patternUnits="userSpaceOnUse">
-                    <path d="M10 0 Q 0 25, 10 50 T 10 100" stroke="#F7F7F7" stroke-width="1" fill="none"/>
+                    <path d="M10 0 Q -10 25, 10 50 T 10 100" stroke="#F7F7F7" stroke-width="1" fill="none"/>
                 </pattern>
             </defs>
             <rect width="100%" height="100%" fill="#DDDDDD"/>
