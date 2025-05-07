@@ -44,7 +44,6 @@ final class CraftedPath_Toolkit
 
     private function includes()
     {
-        require_once CPT_PLUGIN_DIR . 'includes/features/bem-generator/class-bem-generator.php';
         // Include the AI generator files
         require_once CPT_PLUGIN_DIR . 'includes/features/ai-page-generator/class-cpt-ai-page-generator.php';
         require_once CPT_PLUGIN_DIR . 'includes/features/ai-menu-generator/class-cpt-ai-menu-generator.php';
@@ -57,9 +56,6 @@ final class CraftedPath_Toolkit
         require_once CPT_PLUGIN_DIR . 'includes/admin/class-settings-manager.php';
         require_once CPT_PLUGIN_DIR . 'includes/admin/settings-page.php';
         require_once CPT_PLUGIN_DIR . 'includes/admin/views/ui-components.php';
-
-        // SEO functionality is now loaded conditionally in load_features()
-        // require_once CPT_PLUGIN_DIR . 'includes/seo.php';
 
         // Load CPT classes (if feature enabled later)
         require_once CPT_PLUGIN_DIR . 'includes/features/custom-post-types/class-cpt-testimonials.php';
@@ -181,15 +177,6 @@ final class CraftedPath_Toolkit
     {
         // Use the singleton instance
         $settings_manager = CPT_Settings_Manager::instance();
-
-        if ($settings_manager->is_feature_enabled('bem_generator')) {
-            // Ensure class exists before instantiation
-            if (class_exists('CPT_Bem_Generator')) {
-                new CPT_Bem_Generator(); // Reverted: Use new, not instance()
-            } else {
-                error_log("CraftedPath Toolkit Error: CPT_Bem_Generator class not found.");
-            }
-        }
 
         // Load AI Page Generator
         if ($settings_manager->is_feature_enabled('ai_page_generator')) { // Adjusted feature key
@@ -354,23 +341,15 @@ final class CraftedPath_Toolkit
                 array(), // No dependencies for this override stylesheet
                 CPT_VERSION
             );
+
+            wp_enqueue_script(
+                'cpt-wireframe-mode',
+                CPT_PLUGIN_URL . 'assets/js/wireframe-mode.js',
+                array(),
+                CPT_VERSION,
+                true
+            );
         }
-
-        // Enqueue wireframe mode assets
-        wp_enqueue_style(
-            'cpt-wireframe-mode',
-            CPT_PLUGIN_URL . 'assets/css/wireframe-mode.css',
-            array(),
-            CPT_VERSION
-        );
-
-        wp_enqueue_script(
-            'cpt-wireframe-mode',
-            CPT_PLUGIN_URL . 'assets/js/wireframe-mode.js',
-            array(),
-            CPT_VERSION,
-            true
-        );
     }
 }
 
