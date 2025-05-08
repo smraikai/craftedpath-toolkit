@@ -18,6 +18,8 @@
     --warning: #f59e0b;
     --danger: #ef4444;
     --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --input-border-color: #ccd0d4;
+    /* WordPress default input border */
     --transition: all 0.2s ease;
 }
 
@@ -30,122 +32,214 @@
     padding: 0;
 }
 
-.cpt-bricks-colors-grid {
+.cpt-bricks-colors-list {
+    /* Changed from -grid */
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 20px;
     margin-top: 20px;
     margin-bottom: 20px;
 }
 
-/* Color item card styles */
+/* Color item styles - now a row */
 .cpt-bricks-color-item {
-    border: 1px solid var(--gray-200);
-    padding: 15px;
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
     background-color: var(--white);
-    border-radius: 8px;
+    border: 1px solid var(--gray-200);
+    border-radius: 6px;
     box-shadow: var(--card-shadow);
     transition: var(--transition);
     position: relative;
-    overflow: visible;
-    /* Ensure color picker dropdown is visible */
 }
 
 .cpt-bricks-color-item:hover {
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    transform: translateY(-2px);
+    border-color: var(--gray-300);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
-.cpt-bricks-color-swatch {
-    width: 100%;
-    height: 60px;
-    border: 1px solid var(--gray-200);
-    margin-bottom: 10px;
-    border-radius: 4px;
+.cpt-color-editor-area {
+    margin-right: 15px;
+    flex-shrink: 0;
+    position: relative;
 }
 
-.cpt-bricks-color-name {
-    font-weight: 600;
-    margin-bottom: 8px;
-    display: block;
-    color: var(--gray-700);
-}
-
-.cpt-bricks-color-field-wrapper {
+.cpt-color-info-area {
     display: flex;
-    align-items: center;
-    position: relative;
+    flex-direction: column;
+    gap: 2px;
+    /* Small gap between name and value */
+    flex-grow: 1;
+    overflow: hidden;
+    /* Prevent long names from breaking layout */
 }
 
-/* WordPress color picker integration */
+.cpt-bricks-color-name-label {
+    font-weight: 600;
+    color: var(--gray-800);
+    cursor: default;
+    /* No need to seem clickable if swatch is the target */
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cpt-bricks-color-value-text {
+    font-size: 12px;
+    color: var(--gray-500);
+    font-family: monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* WordPress Color Picker Customization */
+.cpt-bricks-color-item .wp-picker-container {
+    display: inline-block;
+    line-height: 0;
+    /* Prevent extra space from line height */
+}
+
+/* Style the color picker button to be our swatch/circle */
+.cpt-bricks-color-item .wp-color-result {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 50% !important;
+    /* Make it a circle */
+    border: 2px solid var(--white) !important;
+    /* Optional: white border around circle */
+    box-shadow: 0 0 0 1px var(--input-border-color), inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+    /* Subtle border and inner shadow */
+    margin: 0 !important;
+    /* Remove default margins */
+    padding: 0 !important;
+    /* Remove default paddings */
+    position: relative;
+    overflow: hidden;
+    /* Ensure inner parts don't spill */
+    vertical-align: middle;
+}
+
+.cpt-bricks-color-item .wp-color-result::after {
+    display: none !important;
+    /* Hide default arrow/text */
+}
+
+.cpt-bricks-color-item .wp-color-result .wp-color-result-text {
+    display: none !important;
+    /* Hide default text like "Select Color" */
+}
+
+/* Hide the actual input field that wp-color-picker uses, if desired */
+.cpt-bricks-color-input-field {
+    /* Option 1: Visually hide but keep for functionality */
+    /* opacity: 0;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    left: -9999px; */
+
+    /* Option 2: wp-color-picker usually handles making the input small or part of its UI */
+    /* For now, let wp-color-picker manage it. If it's still visible and ugly, we'll hide it. */
+    width: 0 !important;
+    height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    position: absolute;
+    left: -9999px;
+    opacity: 0;
+}
+
+/* Ensure picker dropdown is well-positioned */
+.cpt-bricks-color-item .iris-picker {
+    position: absolute !important;
+    /* Position relative to a positioned ancestor if needed */
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    border-color: var(--gray-300) !important;
+    border-radius: 4px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* General picker container adjustments within the item */
 .wp-picker-container {
-    width: 100% !important;
+    vertical-align: middle;
 }
 
-.wp-picker-container .wp-color-result {
-    margin-bottom: 0;
-    height: 30px;
-    border-radius: 4px;
-    box-shadow: none;
-    border: 1px solid var(--gray-300);
-    width: 100%;
+/* Hide the "Default" button within the color picker UI */
+.wp-picker-input-wrap .button.wp-picker-default {
+    display: none !important;
 }
 
-.wp-picker-container .wp-color-result-text {
-    line-height: 28px;
-    border-radius: 0 3px 3px 0;
-    border-left: 1px solid var(--gray-300);
-}
-
-/* Input field styling */
-.cpt-bricks-color-input {
-    width: 100%;
-}
-
-.cpt-bricks-color-field-wrapper .iris-picker {
-    position: absolute;
-    z-index: 100;
-    margin-top: 3px;
-    border: 1px solid var(--gray-300) !important;
-    border-radius: 4px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1) !important;
-}
-
-/* General styling fixes */
-.wp-picker-active {
-    position: relative;
-}
-
-.wp-picker-holder {
-    position: absolute;
-    z-index: 100;
-}
-
-.wp-picker-container .iris-picker {
-    margin-top: 3px;
-}
-
-.wp-picker-container input[type="text"].wp-color-picker {
+/* Style the color code input field within Iris */
+.iris-picker .iris-input-wrap input[type="text"].iris-color-evolución,
+.iris-picker .iris-input-wrap .wp-color-picker {
+    font-family: monospace !important;
+    font-size: 12px !important;
+    padding: 5px !important;
+    border: 1px solid var(--input-border-color) !important;
+    border-radius: 3px !important;
     width: 80px !important;
-    vertical-align: top;
-    margin: 0 5px;
+    margin-left: 5px !important;
+    box-shadow: none !important;
+    height: auto !important;
+    line-height: normal !important;
+}
+
+.iris-picker .iris-input-wrap {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end;
+    padding: 5px 0;
+}
+
+.iris-picker .iris-input-wrap .button.button-small {
+    margin-left: 5px;
 }
 
 /* Responsive adjustments */
+@media screen and (max-width: 1200px) {
+    .cpt-bricks-colors-list {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
 @media screen and (max-width: 782px) {
-    .cpt-bricks-colors-grid {
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    .cpt-bricks-colors-list {
+        grid-template-columns: 1fr;
     }
 
-    .wp-picker-container .wp-color-result {
-        height: 36px;
+    .cpt-bricks-color-item {
+        padding: 8px 10px;
     }
 
-    .wp-picker-container .wp-color-result-text {
-        line-height: 34px;
+    .cpt-bricks-color-item .wp-color-result {
+        width: 32px !important;
+        height: 32px !important;
     }
 
-    .craftedpath-settings .form-table td {
-        padding: 15px 0;
+    .cpt-bricks-color-name-label {
+        font-size: 13px;
+    }
+
+    .cpt-bricks-color-value-text {
+        font-size: 11px;
+    }
+
+    .cpt-bricks-color-item .iris-picker {
+        left: 0;
+        transform: translateX(0);
+        width: calc(100% - 10px);
+        max-width: 255px;
+    }
+
+    .iris-picker .iris-input-wrap input[type="text"].iris-color-evolución,
+    .iris-picker .iris-input-wrap .wp-color-picker {
+        width: 70px !important;
     }
 }

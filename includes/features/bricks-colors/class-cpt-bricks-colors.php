@@ -139,7 +139,7 @@ class CPT_Bricks_Colors
 
         <?php wp_nonce_field('save_bricks_colors', 'cpt_bricks_colors_nonce'); ?>
         <div class="cpt-bricks-colors-container">
-            <div class="cpt-bricks-colors-grid">
+            <div class="cpt-bricks-colors-list">
                 <?php foreach ($color_variables as $variable):
                     $var_id = isset($variable['id']) ? esc_attr($variable['id']) : '';
                     $var_name = isset($variable['name']) ? esc_attr($variable['name']) : '';
@@ -148,11 +148,20 @@ class CPT_Bricks_Colors
                         continue;
                     ?>
                     <div class="cpt-bricks-color-item">
-                        <div class="cpt-bricks-color-swatch" style="background-color: <?php echo $var_value; ?>"></div>
-                        <label for="color_<?php echo $var_id; ?>" class="cpt-bricks-color-name"><?php echo $var_name; ?></label>
-                        <div class="cpt-bricks-color-field-wrapper">
-                            <input type="text" name="color_<?php echo $var_id; ?>" id="color_<?php echo $var_id; ?>"
-                                value="<?php echo $var_value; ?>" class="cpt-bricks-color-input" />
+                        <div class="cpt-color-editor-area">
+                            <?php // This input will be transformed by wp-color-picker. Its .wp-color-result will be our circle. ?>
+                            <input type="text"
+                                   name="color_<?php echo $var_id; ?>"
+                                   id="color_<?php echo $var_id; ?>"
+                                   value="<?php echo esc_attr($var_value); ?>"
+                                   class="cpt-bricks-color-input-field" 
+                                   data-default-color="<?php echo esc_attr($var_value); ?>"
+                                   data-variable-name="<?php echo esc_attr($var_name); ?>" <?php // Added data attribute for JS targeting ?>
+                            />
+                        </div>
+                        <div class="cpt-color-info-area">
+                            <label for="color_<?php echo $var_id; ?>" class="cpt-bricks-color-name-label"><?php echo esc_html($var_name); ?></label>
+                            <span class="cpt-bricks-color-value-text"><?php echo esc_html($var_value); ?></span>
                         </div>
                     </div>
                 <?php endforeach; ?>
