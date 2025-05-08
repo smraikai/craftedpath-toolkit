@@ -56,7 +56,7 @@ final class CraftedPath_Toolkit
         require_once CPT_PLUGIN_DIR . 'includes/admin/class-settings-manager.php';
         require_once CPT_PLUGIN_DIR . 'includes/admin/settings-page.php';
         require_once CPT_PLUGIN_DIR . 'includes/admin/views/ui-components.php';
-        require_once CPT_PLUGIN_DIR . 'includes/admin/class-cpt-bricks-colors-page.php';
+        // require_once CPT_PLUGIN_DIR . 'includes/admin/class-cpt-bricks-colors-page.php';
 
         // Load CPT classes (if feature enabled later)
         require_once CPT_PLUGIN_DIR . 'includes/features/custom-post-types/class-cpt-testimonials.php';
@@ -66,6 +66,9 @@ final class CraftedPath_Toolkit
 
         // Include the API handler
         require_once CPT_PLUGIN_DIR . 'includes/api/class-cptk-ai-api.php';
+
+        // Include the Bricks Colors feature
+        require_once CPT_PLUGIN_DIR . 'includes/features/bricks-colors/class-cpt-bricks-colors.php';
     }
 
     private function init_hooks()
@@ -97,7 +100,14 @@ final class CraftedPath_Toolkit
         // add_action( 'admin_init', array( $this->settings_manager, 'register_settings' ) ); // Already done in class constructor
 
         // Initialize Bricks Colors Page
-        CPT_Bricks_Colors_Page::instance()->init();
+        // CPT_Bricks_Colors_Page::instance()->init();
+
+        // Initialize Bricks Colors Feature
+        if ($this->settings_manager && $this->settings_manager->is_feature_enabled('bricks_colors')) {
+            if (class_exists('CPT_Bricks_Colors')) {
+                CPT_Bricks_Colors::instance();
+            }
+        }
     }
 
     /**

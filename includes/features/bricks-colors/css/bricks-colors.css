@@ -1,0 +1,51 @@
+/* Bricks Colors Feature Styles */
+.cpt-bricks-colors-container {
+    padding: 20px;
+}
+
+.cpt-bricks-colors-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+.cpt-bricks-color-item {
+    border: 1px solid var(--gray-200);
+    padding: 15px;
+    background-color: var(--white);
+    border-radius: 8px;
+    box-shadow: var(--card-shadow);
+    transition: var(--transition);
+    position: relative;
+}
+
+.cpt-bricks-color-item:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.cpt-bricks-color-swatch {
+    width: 100%;
+    height: 60px;
+    border: 1px solid var(--gray-200);
+    margin-bottom: 10px;
+    border-radius: 4px;
+}
+
+.cpt-bricks-color-name {
+    font-weight: 600;
+    margin-bottom: 8px;
+    display: block;
+    color: var(--gray-700);
+}
+
+.cpt-bricks-color-field-wrapper {
+    display: flex;
+    align-items: center;
+}
+
+.cpt-bricks-color-input {
+    width: 100%;
+}

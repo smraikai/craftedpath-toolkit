@@ -170,6 +170,13 @@ class CPT_Settings_Manager
                 'default' => false,
                 'section' => 'Custom Post Types'
             ),
+            'bricks_colors' => array(
+                'name' => 'Bricks Colors',
+                'description' => 'Visual editor for Bricks global color variables.',
+                'class' => 'CPT_Bricks_Colors',
+                'default' => false,
+                'section' => 'Developer Tools'
+            ),
             // Add more features here as they are developed
         );
     }
