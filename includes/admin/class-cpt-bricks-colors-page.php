@@ -26,97 +26,140 @@ class CPT_Bricks_Colors_Page
     public function init()
     {
         add_action('admin_menu', array($this, 'add_admin_menu_page'));
+        add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
     }
 
+    /**
+     * Enqueue required admin scripts and styles
+     */
+    public function enqueue_admin_scripts($hook)
+    {
+        // Only load on our admin page
+        if ('craftedpath_page_cpt-bricks-colors' !== $hook) {
+            return;
+        }
+
+        // Enqueue WordPress color picker
+        wp_enqueue_style('wp-color-picker');
+        wp_enqueue_script('wp-color-picker');
+
+        // Enqueue the admin settings CSS
+        wp_enqueue_style(
+            'cpt-admin-settings',
+            CPT_PLUGIN_URL . 'includes/admin/css/settings.css',
+            array('cpt-variables'), // Depends on variables
+            CPT_VERSION
+        );
+
+        // Enqueue our custom script
+        wp_enqueue_script(
+            'cpt-bricks-colors-admin',
+            CPT_PLUGIN_URL . 'includes/admin/js/bricks-colors-admin.js',
+            array('jquery', 'wp-color-picker'),
+            CPT_VERSION,
+            true
+        );
+    }
+
+    /**
+     * Add admin menu page
+     */
     public function add_admin_menu_page()
     {
-        error_log('[CraftedPath Toolkit] Attempting to add Bricks Colors submenu page.'); // Temporary debug line
         add_submenu_page(
             'craftedpath-toolkit', // Parent slug (main plugin menu slug)
             __('Bricks Colors', 'craftedpath-toolkit'), // Page title
             __('Bricks Colors', 'craftedpath-toolkit'), // Menu title
             'manage_options', // Capability required
             'cpt-bricks-colors', // Menu slug
-            array($this, 'render_admin_page') // Callback function to render the page
+            array($this, 'render_admin_page') // Callback function
         );
     }
 
+    /**
+     * Process form submission
+     */
     private function handle_form_submission()
     {
-        if (!isset($_POST['cpt_bricks_colors_nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['cpt_bricks_colors_nonce'])), 'cpt_bricks_colors_update')) {
-            add_settings_error(self::NOTICE_GROUP, 'nonce_failure', __('Security check failed.', 'craftedpath-toolkit'), 'error');
+        // Verify nonce
+        if (!isset($_POST['cpt_bricks_colors_nonce']) || !wp_verify_nonce($_POST['cpt_bricks_colors_nonce'], 'save_bricks_colors')) {
+            add_settings_error(
+                self::NOTICE_GROUP,
+                'invalid_nonce',
+                __('Security verification failed. Please try again.', 'craftedpath-toolkit'),
+                'error'
+            );
             return;
         }
 
-        if (!current_user_can('manage_options')) {
-            add_settings_error(self::NOTICE_GROUP, 'capability_failure', __('You do not have permission to save these settings.', 'craftedpath-toolkit'), 'error');
-            return;
-        }
-
-        if (!isset($_POST['bricks_color']) || !is_array($_POST['bricks_color'])) {
-            // This case might not be strictly necessary if the form always submits the array, even if empty.
-            // However, it's a good safeguard.
-            add_settings_error(self::NOTICE_GROUP, 'data_missing', __('No color data submitted or data format is incorrect.', 'craftedpath-toolkit'), 'warning');
-            return;
-        }
-
-        // Sanitize all submitted color values. Using map_deep for arrays.
-        $submitted_colors = map_deep($_POST['bricks_color'], 'sanitize_text_field');
-
+        // Get the Bricks global variables
         $bricks_variables_option = get_option('bricks_global_variables');
-        // Check if the option retrieval was successful and is an array.
         if (false === $bricks_variables_option || !is_array($bricks_variables_option)) {
-            add_settings_error(self::NOTICE_GROUP, 'option_read_error', __('Could not read existing Bricks variables to update. The option might be missing or corrupted.', 'craftedpath-toolkit'), 'error');
+            add_settings_error(
+                self::NOTICE_GROUP,
+                'no_variables',
+                __('Could not retrieve Bricks global variables.', 'craftedpath-toolkit'),
+                'error'
+            );
             return;
         }
 
-        $all_variables = $bricks_variables_option; // Already an array as per previous fix
+        // Process the form submissions
+        $updated = false;
         $updated_count = 0;
-
-        foreach ($all_variables as $index => $variable_details) {
-            // Ensure the variable ID exists in the current variable details and in the submitted data.
-            if (isset($variable_details['id']) && array_key_exists($variable_details['id'], $submitted_colors)) {
-                $new_value = trim($submitted_colors[$variable_details['id']]);
-
-                // Basic validation for a hex color, rgb, rgba, or CSS var() - can be improved.
-                // Allows standard color names too. An empty value is also considered valid (to clear a value if needed).
-                if (empty($new_value) || preg_match('/^(#[0-9a-fA-F]{3,8}|rgba?\([^)]+\)|var\(--[a-zA-Z0-9-]+\)|[a-zA-Z]+)$/i', $new_value)) {
-                    if ($all_variables[$index]['value'] !== $new_value) {
-                        $all_variables[$index]['value'] = $new_value;
-                        $updated_count++;
-                    }
-                } else {
-                    // Optionally, add a specific error message for invalid color formats for a particular variable.
-                    // For now, we just skip updating it.
-                    add_settings_error(
-                        self::NOTICE_GROUP,
-                        'invalid_color_format_' . esc_attr($variable_details['id']),
-                        sprintf(__('Invalid color format for %s: %s. Value not updated.', 'craftedpath-toolkit'), esc_html($variable_details['name']), esc_html($new_value)),
-                        'warning'
-                    );
-                }
+        
+        foreach ($bricks_variables_option as $key => $variable) {
+            $variable_id = isset($variable['id']) ? $variable['id'] : '';
+            
+            if (empty($variable_id) || !isset($_POST['color_' . $variable_id])) {
+                continue;
+            }
+            
+            $new_color_value = sanitize_text_field($_POST['color_' . $variable_id]);
+            
+            // Only process if value has changed
+            if ($variable['value'] === $new_color_value) {
+                continue;
+            }
+            
+            // Basic validation for color format (hex, rgb, rgba, etc.)
+            if (preg_match('/^(#[a-f0-9]{3,8}|rgb\(.*\)|rgba\(.*\)|var\(.*\)|hsla?\(.*\))$/i', $new_color_value) || empty($new_color_value)) {
+                $bricks_variables_option[$key]['value'] = $new_color_value;
+                $updated = true;
+                $updated_count++;
+            } else {
+                add_settings_error(
+                    self::NOTICE_GROUP,
+                    'invalid_color_' . $variable_id,
+                    sprintf(__('Invalid color format for %s. Please use a valid CSS color format.', 'craftedpath-toolkit'), 
+                           esc_html($variable['name'])),
+                    'error'
+                );
             }
         }
 
-        if ($updated_count > 0) {
-            $update_result = update_option('bricks_global_variables', $all_variables);
-            if ($update_result) {
-                add_settings_error(self::NOTICE_GROUP, 'settings_saved', sprintf(_n('%d Bricks color variable updated successfully.', '%d Bricks color variables updated successfully.', $updated_count, 'craftedpath-toolkit'), $updated_count), 'updated');
-                // Consider adding a note about Bricks' cache if applicable/known.
-            } else {
-                // Check if the value was actually different before attempting to save
-                $current_db_val_after_attempt = get_option('bricks_global_variables');
-                if ($current_db_val_after_attempt === $all_variables) {
-                    add_settings_error(self::NOTICE_GROUP, 'no_actual_changes_needed', __('No database update was performed as the submitted values were identical to stored values, or already updated.', 'craftedpath-toolkit'), 'info');
-                } else {
-                    add_settings_error(self::NOTICE_GROUP, 'save_failed', __('Failed to update Bricks color variables in the database.', 'craftedpath-toolkit'), 'error');
-                }
-            }
+        // Save changes if any updates were made
+        if ($updated) {
+            update_option('bricks_global_variables', $bricks_variables_option);
+            add_settings_error(
+                self::NOTICE_GROUP,
+                'settings_updated',
+                sprintf(_n('%d variable updated successfully.', '%d variables updated successfully.', $updated_count, 'craftedpath-toolkit'), $updated_count),
+                'success'
+            );
         } else {
-            add_settings_error(self::NOTICE_GROUP, 'no_valid_changes_submitted', __('No valid color changes were submitted or values were already up to date.', 'craftedpath-toolkit'), 'info');
+            add_settings_error(
+                self::NOTICE_GROUP,
+                'no_changes',
+                __('No changes were made to the variables.', 'craftedpath-toolkit'),
+                'info'
+            );
         }
     }
 
+    /**
+     * Render admin page
+     */
     public function render_admin_page()
     {
         // Handle form submission if POST request
@@ -125,109 +168,350 @@ class CPT_Bricks_Colors_Page
         }
 
         ?>
-        <div class="wrap cpt-bricks-colors-wrap">
-            <h1><?php echo esc_html__('Bricks Global Colors', 'craftedpath-toolkit'); ?></h1>
+        <div class="wrap craftedpath-settings">
+            <?php
+            // Call the header card rendering function if it exists
+            if (function_exists('cptk_render_header_card')) {
+                cptk_render_header_card();
+            } else {
+                echo '<h1>' . esc_html__('Bricks Global Colors', 'craftedpath-toolkit') . '</h1>';
+            }
 
-            <?php settings_errors(self::NOTICE_GROUP); // Display admin notices/errors ?>
+            // Display admin notices/errors
+            settings_errors(self::NOTICE_GROUP);
+            ?>
 
-            <form method="post" action="">
-                <?php wp_nonce_field('cpt_bricks_colors_update', 'cpt_bricks_colors_nonce'); ?>
-                <?php
-                $bricks_variables_option = get_option('bricks_global_variables');
-                if (false === $bricks_variables_option) {
-                    echo '<p>' . esc_html__('Bricks global variables option (bricks_global_variables) not found.', 'craftedpath-toolkit') . '</p>';
-                    echo '</form></div>'; // Close form and wrap
-                    return;
-                }
+            <div class="craftedpath-content">
+                <form method="post" action="">
+                    <?php wp_nonce_field('save_bricks_colors', 'cpt_bricks_colors_nonce'); ?>
 
-                $all_variables = $bricks_variables_option;
+                    <?php
+                    // Prepare the submit button HTML for footer
+                    ob_start();
+                    submit_button(__('Save Color Changes', 'craftedpath-toolkit'), 'primary', 'cpt_bricks_colors_submit', false);
+                    $submit_button = ob_get_clean();
 
-                if (false === $all_variables || !is_array($all_variables)) {
-                    echo '<p>' . esc_html__('Bricks global variables data is not in the expected array format.', 'craftedpath-toolkit') . '</p>';
-                    echo '</form></div>'; // Close form and wrap
-                    return;
-                }
-
-                $colors_category_id = 'ydzflk';
-                $color_variables = [];
-
-                foreach ($all_variables as $variable_details) {
-                    if (isset($variable_details['category'], $variable_details['name'], $variable_details['value']) && $variable_details['category'] === $colors_category_id) {
-                        $css_var_name = $variable_details['name'];
-                        if (substr($css_var_name, 0, 2) !== '--') {
-                            $css_var_name = '--' . $css_var_name;
-                        }
-                        $color_variables[] = [
-                            'name' => $css_var_name,
-                            'value' => $variable_details['value'],
-                            'id' => isset($variable_details['id']) ? $variable_details['id'] : '' // Ensure ID is present
-                        ];
+                    // Use the card rendering function if it exists
+                    if (function_exists('cptk_render_card')) {
+                        cptk_render_card(
+                            __('Bricks Color Variables', 'craftedpath-toolkit'),
+                            '<i class="iconoir-color-filter" style="vertical-align: text-bottom; margin-right: 5px;"></i>',
+                            array($this, 'render_card_content'),
+                            $submit_button
+                        );
+                    } else {
+                        // Fallback if the card function doesn't exist
+                        ?>
+                        <div class="card">
+                            <h2><?php echo esc_html__('Bricks Color Variables', 'craftedpath-toolkit'); ?></h2>
+                            <?php $this->render_card_content(); ?>
+                            <div class="submit">
+                                <?php echo $submit_button; ?>
+                            </div>
+                        </div>
+                        <?php
                     }
-                }
+                    ?>
+                </form>
+            </div>
+        </div>
+        <?php
+    }
 
-                if (empty($color_variables)) {
-                    echo '<p>' . esc_html__('No color variables found in the specified category.', 'craftedpath-toolkit') . '</p>';
-                } else {
-                    echo '<div class="cpt-colors-grid">';
-                    foreach ($color_variables as $color_var) {
-                        if (empty($color_var['id']))
-                            continue; // Skip if no ID for the input field name
+    /**
+     * Render the content of the card, used by cptk_render_card()
+     */
+    public function render_card_content()
+    {
+        // Get the Bricks global variables
+        $bricks_variables_option = get_option('bricks_global_variables');
+
+        if (false === $bricks_variables_option) {
+            echo '<p>' . esc_html__('No Bricks global variables found.', 'craftedpath-toolkit') . '</p>';
+            return;
+        }
+
+        // $all_variables = unserialize($bricks_variables_option); // Error here: get_option already unserializes
+        $all_variables = $bricks_variables_option; // Use the option directly as it should be an array
+
+        if (false === $all_variables || !is_array($all_variables)) { // Keep this check, though $all_variables will be true if option exists
+            echo '<p>' . esc_html__('Bricks global variables data is not in the expected array format.', 'craftedpath-toolkit') . '</p>';
+            return;
+        }
+
+        // Check if in debug mode
+        $debug_mode = isset($_GET['debug']) && $_GET['debug'] === '1';
         
-                        echo '<div class="cpt-color-item">';
-                        echo '<div class="cpt-color-swatch" style="background-color:' . esc_attr($color_var['value']) . ';"></div>';
-                        echo '<label for="bricks_color_' . esc_attr($color_var['id']) . '" class="cpt-color-name">' . esc_html($color_var['name']) . '</label>';
-                        echo '<input type="text" id="bricks_color_' . esc_attr($color_var['id']) . '" name="bricks_color[' . esc_attr($color_var['id']) . ']" value="' . esc_attr($color_var['value']) . '" class="cpt-color-input regular-text" />';
-                        echo '</div>'; // .cpt-color-item
+        // Debugging section - shows all categories found in the data (only when debug=1)
+        if ($debug_mode) {
+            echo '<div class="debug-info" style="margin-bottom: 20px; padding: 15px; background: #f5f5f5; border-left: 4px solid #ddd;">';
+            echo '<h3>' . esc_html__('Debug Information', 'craftedpath-toolkit') . '</h3>';
+            
+            // Count variables by category
+            $categories = [];
+            foreach ($all_variables as $var) {
+                if (isset($var['category'])) {
+                    $cat = $var['category'];
+                    if (!isset($categories[$cat])) {
+                        $categories[$cat] = 0;
                     }
-                    echo '</div>'; // .cpt-colors-grid
-                    submit_button(__('Save Color Changes', 'craftedpath-toolkit'), 'primary', 'cpt_bricks_colors_submit');
+                    $categories[$cat]++;
+                }
+            }
+            
+            echo '<p><strong>' . esc_html__('Total variables', 'craftedpath-toolkit') . ':</strong> ' . count($all_variables) . '</p>';
+            echo '<p><strong>' . esc_html__('Categories found', 'craftedpath-toolkit') . ':</strong></p>';
+            echo '<ul>';
+            foreach ($categories as $cat => $count) {
+                echo '<li><strong>' . esc_html($cat) . ':</strong> ' . $count . ' ' . esc_html__('variables', 'craftedpath-toolkit') . '</li>';
+            }
+            echo '</ul>';
+            
+            // Sample of the first few variables to see structure
+            if (!empty($all_variables)) {
+                echo '<p><strong>' . esc_html__('First variable structure', 'craftedpath-toolkit') . ':</strong></p>';
+                echo '<pre style="background: #fff; padding: 10px; overflow: auto; max-height: 200px;">';
+                print_r(reset($all_variables));
+                echo '</pre>';
+            }
+            
+            echo '</div>';
+        }
+
+        // Check if we should show all variables (for debugging)
+        $show_all = isset($_GET['show_all']) && $_GET['show_all'] === '1';
+        
+        // Filter to get color variables using multiple potential matches
+        $color_variables = array_filter($all_variables, function ($var) use ($show_all) {
+            // If show_all flag is set, include all variables
+            if ($show_all) {
+                return true;
+            }
+            
+            // Look for variables that could be colors
+            if (!isset($var['category'])) {
+                return false;
+            }
+            
+            // Try different potential matches for color category
+            // 1. Direct match for 'color'
+            if ($var['category'] === 'color') {
+                return true;
+            }
+            
+            // 2. Check for 'colors' (plural)
+            if ($var['category'] === 'colors') {
+                return true;
+            }
+            
+            // 3. Check for 'ydzflk' (from previous code)
+            if ($var['category'] === 'ydzflk') {
+                return true;
+            }
+            
+            // 4. Check if the value looks like a color
+            if (isset($var['value']) && preg_match('/^(#[a-fA-F0-9]{3,8}|rgba?\([^)]+\)|hsla?\([^)]+\))$/', $var['value'])) {
+                return true;
+            }
+            
+            return false;
+        });
+
+        if (empty($color_variables)) {
+            echo '<div class="no-variables-found">';
+            echo '<p>' . esc_html__('No color variables found in Bricks settings.', 'craftedpath-toolkit') . '</p>';
+            echo '<div class="action-buttons">';
+            
+            // Show all variables button
+            echo '<a href="' . esc_url(add_query_arg('show_all', '1')) . '" class="button button-secondary">' . 
+                 esc_html__('Show All Variables', 'craftedpath-toolkit') . '</a> ';
+            
+            // Toggle debug mode button
+            if ($debug_mode) {
+                echo '<a href="' . esc_url(remove_query_arg('debug')) . '" class="button button-secondary">' . 
+                     esc_html__('Hide Debug Info', 'craftedpath-toolkit') . '</a>';
+            } else {
+                echo '<a href="' . esc_url(add_query_arg('debug', '1')) . '" class="button button-secondary">' . 
+                     esc_html__('Show Debug Info', 'craftedpath-toolkit') . '</a>';
+            }
+            
+            echo '</div></div>';
+            return;
+        }
+
+        // Display the color variables in a grid
+        ?>
+        <div class="bricks-colors-controls">
+            <p class="description">
+                <?php 
+                if ($show_all) {
+                    esc_html_e('Showing all Bricks variables. This is useful for debugging.', 'craftedpath-toolkit');
+                } else {
+                    esc_html_e('Use this interface to manage your Bricks color variables. Changes will affect your entire site where these variables are used.', 'craftedpath-toolkit');
                 }
                 ?>
-            </form>
+            </p>
+            
+            <div class="action-buttons">
+                <?php if ($show_all): ?>
+                    <a href="<?php echo esc_url(remove_query_arg('show_all')); ?>" class="button button-secondary">
+                        <?php esc_html_e('Show Only Colors', 'craftedpath-toolkit'); ?>
+                    </a>
+                <?php else: ?>
+                    <a href="<?php echo esc_url(add_query_arg('show_all', '1')); ?>" class="button button-secondary">
+                        <?php esc_html_e('Show All Variables', 'craftedpath-toolkit'); ?>
+                    </a>
+                <?php endif; ?>
+                
+                <?php if ($debug_mode): ?>
+                    <a href="<?php echo esc_url(remove_query_arg('debug')); ?>" class="button button-secondary">
+                        <?php esc_html_e('Hide Debug Info', 'craftedpath-toolkit'); ?>
+                    </a>
+                <?php else: ?>
+                    <a href="<?php echo esc_url(add_query_arg('debug', '1')); ?>" class="button button-secondary">
+                        <?php esc_html_e('Show Debug Info', 'craftedpath-toolkit'); ?>
+                    </a>
+                <?php endif; ?>
+            </div>
         </div>
+        
+        <div class="cpt-colors-grid">
+            <?php foreach ($color_variables as $variable) : 
+                $var_id = isset($variable['id']) ? esc_attr($variable['id']) : '';
+                $var_name = isset($variable['name']) ? esc_attr($variable['name']) : '';
+                $var_value = isset($variable['value']) ? esc_attr($variable['value']) : '';
+                $var_category = isset($variable['category']) ? esc_attr($variable['category']) : 'unknown';
+                
+                if (empty($var_id)) continue;
+                
+                // Determine if this is likely a color value
+                $is_color = preg_match('/^(#[a-fA-F0-9]{3,8}|rgba?\([^)]+\)|hsla?\([^)]+\))$/', $var_value);
+            ?>
+                <div class="cpt-color-item <?php echo $is_color ? 'is-color' : 'not-color'; ?>">
+                    <?php if ($show_all): ?>
+                    <div class="cpt-color-category"><?php echo $var_category; ?></div>
+                    <?php endif; ?>
+                    
+                    <div class="cpt-color-swatch" style="background-color: <?php echo $var_value; ?>"></div>
+                    <label for="color_<?php echo $var_id; ?>" class="cpt-color-name">
+                        <?php echo $var_name; ?>
+                    </label>
+                    <div class="cpt-color-field-wrapper">
+                        <input 
+                            type="text" 
+                            name="color_<?php echo $var_id; ?>" 
+                            id="color_<?php echo $var_id; ?>" 
+                            value="<?php echo $var_value; ?>" 
+                            class="color-picker cpt-color-input" 
+                            <?php echo !$is_color ? 'data-non-color="true"' : ''; ?>
+                        />
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+
         <style>
-            .cpt-bricks-colors-wrap .cpt-colors-grid {
+            .bricks-colors-controls {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 20px;
+            }
+            
+            .action-buttons {
+                display: flex;
+                gap: 10px;
+            }
+            
+            .no-variables-found {
+                text-align: center;
+                padding: 30px;
+                background: var(--gray-50);
+                border-radius: 8px;
+                border: 1px solid var(--gray-200);
+            }
+            
+            .no-variables-found .action-buttons {
+                margin-top: 15px;
+                justify-content: center;
+            }
+        
+            .cpt-colors-grid {
                 display: grid;
-                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
                 gap: 20px;
                 margin-top: 20px;
                 margin-bottom: 20px;
             }
 
-            .cpt-bricks-colors-wrap .cpt-color-item {
-                border: 1px solid #ccd0d4;
+            .cpt-color-item {
+                border: 1px solid var(--gray-200);
                 padding: 15px;
-                background-color: #fff;
-                border-radius: 4px;
-                box-shadow: 0 1px 1px rgba(0, 0, 0, .04);
+                background-color: var(--white);
+                border-radius: 8px;
+                box-shadow: var(--card-shadow);
+                transition: var(--transition);
+                position: relative;
             }
 
-            .cpt-bricks-colors-wrap .cpt-color-swatch {
+            .cpt-color-item:hover {
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                transform: translateY(-2px);
+            }
+            
+            .cpt-color-category {
+                position: absolute;
+                top: 0;
+                right: 0;
+                background: var(--gray-100);
+                font-size: 10px;
+                padding: 2px 6px;
+                border-radius: 0 8px 0 8px;
+                color: var(--gray-600);
+            }
+
+            .cpt-color-swatch {
                 width: 100%;
-                height: 80px;
-                border: 1px solid #ddd;
+                height: 60px;
+                border: 1px solid var(--gray-200);
                 margin-bottom: 10px;
-                border-radius: 2px;
+                border-radius: 4px;
+            }
+            
+            .not-color .cpt-color-swatch {
+                background-image: linear-gradient(45deg, #f0f0f0 25%, transparent 25%, transparent 75%, #f0f0f0 75%, #f0f0f0),
+                                  linear-gradient(45deg, #f0f0f0 25%, transparent 25%, transparent 75%, #f0f0f0 75%, #f0f0f0);
+                background-size: 20px 20px;
+                background-position: 0 0, 10px 10px;
             }
 
-            .cpt-bricks-colors-wrap .cpt-color-name {
-                font-weight: bold;
-                margin-bottom: 5px;
+            .cpt-color-name {
+                font-weight: 600;
+                margin-bottom: 8px;
                 display: block;
-                /* For label */
-                word-break: break-all;
+                color: var(--gray-700);
             }
 
-            .cpt-bricks-colors-wrap .cpt-color-input {
+            .cpt-color-field-wrapper {
+                display: flex;
+                align-items: center;
+            }
+
+            .cpt-color-input {
                 width: 100%;
             }
 
-            .cpt-bricks-colors-wrap .cpt-color-value {
-                /* This class is no longer used for display, replaced by input */
-                font-size: 0.9em;
-                color: #555;
-                word-break: break-all;
-                margin-top: 5px;
+            /* Color picker adjustments */
+            .wp-picker-container {
+                width: 100%;
+            }
+
+            .wp-picker-container .wp-color-result.button {
+                min-height: 30px;
+            }
+
+            .wp-picker-container input.wp-color-picker[type="text"] {
+                width: 80px !important;
             }
         </style>
         <?php
