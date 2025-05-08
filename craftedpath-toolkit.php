@@ -56,6 +56,7 @@ final class CraftedPath_Toolkit
         require_once CPT_PLUGIN_DIR . 'includes/admin/class-settings-manager.php';
         require_once CPT_PLUGIN_DIR . 'includes/admin/settings-page.php';
         require_once CPT_PLUGIN_DIR . 'includes/admin/views/ui-components.php';
+        require_once CPT_PLUGIN_DIR . 'includes/admin/class-cpt-bricks-colors-page.php';
 
         // Load CPT classes (if feature enabled later)
         require_once CPT_PLUGIN_DIR . 'includes/features/custom-post-types/class-cpt-testimonials.php';
@@ -81,6 +82,22 @@ final class CraftedPath_Toolkit
             \CraftedPath\Toolkit\SEO\setup();
         }
         */
+
+        // Initialize other features by ensuring their instance is created.
+        // Hooks are generally set in their constructors or methods called by constructors.
+        CPT_AI_Page_Generator::instance();
+        CPT_AI_Menu_Generator::instance();
+        CPT_AI_Alt_Text::instance();
+        CPT_Admin_Refresh_UI::instance();
+        CPT_Admin_Quick_Search::instance();
+
+        // Initialize settings manager
+        $this->settings_manager = CPT_Settings_Manager::instance();
+        // add_action( 'admin_menu', array( $this->settings_manager, 'add_settings_page' ) ); // Already done in class constructor
+        // add_action( 'admin_init', array( $this->settings_manager, 'register_settings' ) ); // Already done in class constructor
+
+        // Initialize Bricks Colors Page
+        CPT_Bricks_Colors_Page::instance()->init();
     }
 
     /**
