@@ -389,7 +389,8 @@ class CPT_Settings_Manager
             'craftedpath_page_cpt-aipg-pages',     // Added new Page Gen slug
             'craftedpath_page_cpt-aimg-menu',      // Added new Menu Gen slug
             'craftedpath_page_cptk_settings_page', // General Settings submenu
-            'craftedpath_page_craftedpath-seo-settings' // <<< Added SEO Settings page hook
+            'craftedpath_page_craftedpath-seo-settings', // <<< Added SEO Settings page hook
+            'craftedpath_page_cpt-bricks-colors' // Added Bricks Colors page
         ];
 
         // Check if the current screen ID matches any toolkit page

@@ -33,16 +33,26 @@ class CPT_Bricks_Colors
         if (!$screen || $screen->id !== 'craftedpath_page_cpt-bricks-colors') {
             return;
         }
+
+        // WordPress color picker styles are a dependency
+        wp_enqueue_style('wp-color-picker');
+
+        // Enqueue our custom styles, dependent on common toolkit styles and wp-color-picker
         wp_enqueue_style(
             'cpt-bricks-colors-style',
             CPT_PLUGIN_URL . 'includes/features/bricks-colors/css/bricks-colors.css',
-            array(),
+            array('craftedpath-toolkit-admin', 'wp-color-picker'), // Depends on common styles
             CPT_VERSION
         );
+
+        // WordPress color picker script (jQuery is a dependency of wp-color-picker)
+        wp_enqueue_script('wp-color-picker');
+
+        // Enqueue our custom script, dependent on jQuery, wp-color-picker, and common toolkit JS
         wp_enqueue_script(
             'cpt-bricks-colors-script',
             CPT_PLUGIN_URL . 'includes/features/bricks-colors/js/bricks-colors.js',
-            array('jquery', 'wp-color-picker'),
+            array('jquery', 'wp-color-picker', 'craftedpath-toolkit-admin-js'),
             CPT_VERSION,
             true
         );
@@ -54,17 +64,22 @@ class CPT_Bricks_Colors
         <div class="wrap craftedpath-settings">
             <?php cptk_render_header_card(); ?>
             <div class="craftedpath-content">
-                <?php
-                ob_start();
-                submit_button(__('Save Color Changes', 'craftedpath-toolkit'), 'primary', 'cpt_bricks_colors_submit', false);
-                $footer_html = ob_get_clean();
-                cptk_render_card(
-                    __('Bricks Color Variables', 'craftedpath-toolkit'),
-                    '<i class="iconoir-color-filter" style="vertical-align: text-bottom; margin-right: 5px;"></i>',
-                    array($this, 'render_bricks_colors_content'),
-                    $footer_html
-                );
-                ?>
+                <form method="post" action="" class="cpt-bricks-colors-form">
+                    <?php
+                    // Set up the submit button in the footer
+                    ob_start();
+                    submit_button(__('Save Color Changes', 'craftedpath-toolkit'), 'primary', 'cpt_bricks_colors_submit', false);
+                    $footer_html = ob_get_clean();
+
+                    // Render the card with form content
+                    cptk_render_card(
+                        __('Bricks Color Variables', 'craftedpath-toolkit'),
+                        '<i class="iconoir-color-filter" style="vertical-align: text-bottom; margin-right: 5px;"></i>',
+                        array($this, 'render_bricks_colors_content'),
+                        $footer_html
+                    );
+                    ?>
+                </form>
             </div>
         </div>
         <?php
@@ -82,13 +97,13 @@ class CPT_Bricks_Colors
         $categories_option = get_option('bricks_global_variables_categories');
 
         if (false === $bricks_variables_option || false === $categories_option) {
-            echo '<p>' . esc_html__('Bricks global variables or categories not found.', 'craftedpath-toolkit') . '</p>';
+            echo '<div class="notice notice-error"><p>' . esc_html__('Bricks global variables or categories not found.', 'craftedpath-toolkit') . '</p></div>';
             return;
         }
         $all_variables = $bricks_variables_option;
         $all_categories = $categories_option;
         if (!is_array($all_variables) || !is_array($all_categories)) {
-            echo '<p>' . esc_html__('Bricks global variables or categories are not in the expected array format.', 'craftedpath-toolkit') . '</p>';
+            echo '<div class="notice notice-error"><p>' . esc_html__('Bricks global variables or categories are not in the expected array format.', 'craftedpath-toolkit') . '</p></div>';
             return;
         }
 
@@ -101,7 +116,7 @@ class CPT_Bricks_Colors
             }
         }
         if (!$color_category_id) {
-            echo '<p>' . esc_html__('No color category found in Bricks categories.', 'craftedpath-toolkit') . '</p>';
+            echo '<div class="notice notice-warning"><p>' . esc_html__('No color category found in Bricks categories.', 'craftedpath-toolkit') . '</p></div>';
             return;
         }
 
@@ -111,36 +126,38 @@ class CPT_Bricks_Colors
         });
 
         if (empty($color_variables)) {
-            echo '<p>' . esc_html__('No color variables found in Bricks settings.', 'craftedpath-toolkit') . '</p>';
+            echo '<div class="notice notice-warning"><p>' . esc_html__('No color variables found in Bricks settings.', 'craftedpath-toolkit') . '</p></div>';
             return;
         }
 
         // Display admin notices/errors
         settings_errors('cpt_bricks_colors_notices');
         ?>
-        <form method="post" action="">
-            <?php wp_nonce_field('save_bricks_colors', 'cpt_bricks_colors_nonce'); ?>
-            <div class="cpt-bricks-colors-container">
-                <div class="cpt-bricks-colors-grid">
-                    <?php foreach ($color_variables as $variable):
-                        $var_id = isset($variable['id']) ? esc_attr($variable['id']) : '';
-                        $var_name = isset($variable['name']) ? esc_attr($variable['name']) : '';
-                        $var_value = isset($variable['value']) ? esc_attr($variable['value']) : '';
-                        if (empty($var_id))
-                            continue;
-                        ?>
-                        <div class="cpt-bricks-color-item">
-                            <div class="cpt-bricks-color-swatch" style="background-color: <?php echo $var_value; ?>"></div>
-                            <label for="color_<?php echo $var_id; ?>" class="cpt-bricks-color-name"><?php echo $var_name; ?></label>
-                            <div class="cpt-bricks-color-field-wrapper">
-                                <input type="text" name="color_<?php echo $var_id; ?>" id="color_<?php echo $var_id; ?>"
-                                    value="<?php echo $var_value; ?>" class="cpt-bricks-color-input" />
-                            </div>
+        <p class="description" style="margin-top: 0; margin-bottom: 20px;">
+            <?php echo esc_html__('These colors are synchronized with Bricks global color variables. Changes made here will immediately affect your Bricks templates.', 'craftedpath-toolkit'); ?>
+        </p>
+
+        <?php wp_nonce_field('save_bricks_colors', 'cpt_bricks_colors_nonce'); ?>
+        <div class="cpt-bricks-colors-container">
+            <div class="cpt-bricks-colors-grid">
+                <?php foreach ($color_variables as $variable):
+                    $var_id = isset($variable['id']) ? esc_attr($variable['id']) : '';
+                    $var_name = isset($variable['name']) ? esc_attr($variable['name']) : '';
+                    $var_value = isset($variable['value']) ? esc_attr($variable['value']) : '';
+                    if (empty($var_id))
+                        continue;
+                    ?>
+                    <div class="cpt-bricks-color-item">
+                        <div class="cpt-bricks-color-swatch" style="background-color: <?php echo $var_value; ?>"></div>
+                        <label for="color_<?php echo $var_id; ?>" class="cpt-bricks-color-name"><?php echo $var_name; ?></label>
+                        <div class="cpt-bricks-color-field-wrapper">
+                            <input type="text" name="color_<?php echo $var_id; ?>" id="color_<?php echo $var_id; ?>"
+                                value="<?php echo $var_value; ?>" class="cpt-bricks-color-input" />
                         </div>
-                    <?php endforeach; ?>
-                </div>
+                    </div>
+                <?php endforeach; ?>
             </div>
-        </form>
+        </div>
         <?php
     }
 

@@ -1,6 +1,33 @@
 /* Bricks Colors Feature Styles */
+:root {
+    --white: #ffffff;
+    --black: #000000;
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-300: #d1d5db;
+    --gray-400: #9ca3af;
+    --gray-500: #6b7280;
+    --gray-600: #4b5563;
+    --gray-700: #374151;
+    --gray-800: #1f2937;
+    --gray-900: #111827;
+    --primary: #4f46e5;
+    --primary-dark: #4338ca;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --transition: all 0.2s ease;
+}
+
+/* Main container styles */
+.cpt-bricks-colors-form {
+    margin: 0;
+}
+
 .cpt-bricks-colors-container {
-    padding: 20px;
+    padding: 0;
 }
 
 .cpt-bricks-colors-grid {
@@ -11,6 +38,7 @@
     margin-bottom: 20px;
 }
 
+/* Color item card styles */
 .cpt-bricks-color-item {
     border: 1px solid var(--gray-200);
     padding: 15px;
@@ -19,6 +47,8 @@
     box-shadow: var(--card-shadow);
     transition: var(--transition);
     position: relative;
+    overflow: visible;
+    /* Ensure color picker dropdown is visible */
 }
 
 .cpt-bricks-color-item:hover {
@@ -44,8 +74,78 @@
 .cpt-bricks-color-field-wrapper {
     display: flex;
     align-items: center;
+    position: relative;
 }
 
+/* WordPress color picker integration */
+.wp-picker-container {
+    width: 100% !important;
+}
+
+.wp-picker-container .wp-color-result {
+    margin-bottom: 0;
+    height: 30px;
+    border-radius: 4px;
+    box-shadow: none;
+    border: 1px solid var(--gray-300);
+    width: 100%;
+}
+
+.wp-picker-container .wp-color-result-text {
+    line-height: 28px;
+    border-radius: 0 3px 3px 0;
+    border-left: 1px solid var(--gray-300);
+}
+
+/* Input field styling */
 .cpt-bricks-color-input {
     width: 100%;
+}
+
+.cpt-bricks-color-field-wrapper .iris-picker {
+    position: absolute;
+    z-index: 100;
+    margin-top: 3px;
+    border: 1px solid var(--gray-300) !important;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* General styling fixes */
+.wp-picker-active {
+    position: relative;
+}
+
+.wp-picker-holder {
+    position: absolute;
+    z-index: 100;
+}
+
+.wp-picker-container .iris-picker {
+    margin-top: 3px;
+}
+
+.wp-picker-container input[type="text"].wp-color-picker {
+    width: 80px !important;
+    vertical-align: top;
+    margin: 0 5px;
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 782px) {
+    .cpt-bricks-colors-grid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
+
+    .wp-picker-container .wp-color-result {
+        height: 36px;
+    }
+
+    .wp-picker-container .wp-color-result-text {
+        line-height: 34px;
+    }
+
+    .craftedpath-settings .form-table td {
+        padding: 15px 0;
+    }
 }
