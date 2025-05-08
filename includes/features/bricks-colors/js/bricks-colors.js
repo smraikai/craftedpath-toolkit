@@ -136,6 +136,36 @@ console.log('[BricksColors] bricks-colors.js File Loaded'); // Log 1: File loade
         return hslToHex(hsl.h, hsl.s, Math.round(newL)); // Round newL
     }
 
+    /**
+     * Blends a HEX color with white based on a given alpha.
+     * Simulates placing the color with transparency over a white background.
+     * @param {string} hexColor The base color in HEX format.
+     * @param {number} alpha Opacity level (0.0 to 1.0). e.g., 0.1 for 10% opacity.
+     * @returns {string|null} The resulting blended HEX color or null if input is invalid.
+     */
+    function alphaBlendWithWhite(hexColor, alpha) {
+        const stdHex = toStandardHex(hexColor);
+        if (!stdHex) {
+            console.warn('alphaBlendWithWhite: Invalid input hex', hexColor);
+            return null;
+        }
+        const rgb = hexToRgb(stdHex);
+        if (!rgb) {
+            console.warn('alphaBlendWithWhite: Could not convert hex to RGB', stdHex);
+            return null;
+        }
+
+        // Background is white (255, 255, 255)
+        const bgR = 255, bgG = 255, bgB = 255;
+
+        // Blend formula: C = α * Ca + (1 - α) * Cb
+        const resultR = Math.round(alpha * rgb.r + (1 - alpha) * bgR);
+        const resultG = Math.round(alpha * rgb.g + (1 - alpha) * bgG);
+        const resultB = Math.round(alpha * rgb.b + (1 - alpha) * bgB);
+
+        return rgbToHex(resultR, resultG, resultB);
+    }
+
     $(document).ready(function () {
         console.log('[BricksColors] Document Ready Fired'); // Log 2
 
@@ -173,58 +203,58 @@ console.log('[BricksColors] bricks-colors.js File Loaded'); // Log 1: File loade
                             }
                             $valueText.text(displayColor); // Update the text display for the changed input
 
-                            // --- Auto-update hover color logic (using variable name) ---
-                            if (variableName && !variableName.endsWith('-hover') && hexForCalculation) {
+                            // --- Auto-update dependent colors (Hover and Light) ---
+                            if (variableName && !variableName.endsWith('-hover') && !variableName.endsWith('-light') && hexForCalculation) {
+                                // --- Update HOVER color ---
                                 let hoverVariableName = variableName + '-hover';
-                                // console.log(`[BricksColors] ${variableName}: Looking for hover variable '${hoverVariableName}'`); // Log 10
-
                                 let $hoverInput = $('.cpt-bricks-color-input-field[data-variable-name="' + hoverVariableName + '"]');
-
                                 if ($hoverInput.length) {
-                                    let hoverInputId = $hoverInput.attr('id');
-                                    // console.log(`[BricksColors] ${variableName}: Found hover input #${hoverInputId} for variable '${hoverVariableName}'`); // Log 11
-
-                                    // Use the new HSL-based darkening function - INCREASED PERCENTAGE AGAIN
-                                    let newHoverColor = darkenColorHSL(hexForCalculation, 40, 10); // Darken by 40%, min Lightness 10%
-
+                                    let newHoverColor = darkenColorHSL(hexForCalculation, 30, 10); // Darken by 40%
                                     if (newHoverColor) {
-                                        // console.log(`[BricksColors] ${variableName}: Calculated new hover color ${newHoverColor}`); // Log 12
-                                        $hoverInput.val(newHoverColor);
-                                        $hoverInput.wpColorPicker('color', newHoverColor); // Programmatically update its picker
-
-                                        let $hoverItem = $hoverInput.closest('.cpt-bricks-color-item');
-                                        $hoverItem.find('.cpt-bricks-color-value-text').text(newHoverColor); // Update hover text display
-                                        // console.log(`[BricksColors] ${variableName}: Updated hover input #${hoverInputId} to ${newHoverColor}`); // Log 13
-                                    } else {
-                                        // console.warn(`[BricksColors] ${variableName}: Could not calculate new hover color.`); // Log 14
+                                        updateDependentColor($hoverInput, newHoverColor);
                                     }
                                 } else {
-                                    // console.log(`[BricksColors] ${variableName}: Hover variable '${hoverVariableName}' not found.`); // Log 15
+                                    // console.log(`[BricksColors] ${variableName}: Hover variable '${hoverVariableName}' not found.`);
+                                }
+
+                                // --- Update LIGHT color using Alpha Blend ---
+                                let lightVariableName = variableName + '-light';
+                                let $lightInput = $('.cpt-bricks-color-input-field[data-variable-name="' + lightVariableName + '"]');
+                                if ($lightInput.length) {
+                                    // Use alpha blending for the light version (10% opacity over white)
+                                    let newLightColor = alphaBlendWithWhite(hexForCalculation, 0.1);
+                                    if (newLightColor) {
+                                        updateDependentColor($lightInput, newLightColor);
+                                    }
+                                } else {
+                                    // console.log(`[BricksColors] ${variableName}: Light variable '${lightVariableName}' not found.`);
                                 }
                             } else if (hexForCalculation === null) {
-                                // console.warn(`[BricksColors] ${variableName}: Cannot calculate hover color because base color could not be converted to hex.`); // Log 16
+                                // console.warn(`[BricksColors] ${variableName}: Cannot calculate dependent colors because base color could not be converted to hex.`);
                             }
-                            // --- End Auto-update hover color logic ---
+                            // --- End Auto-update dependent colors ---
                         },
                         clear: function () {
-                            // console.log(`[BricksColors] CLEAR event for ${variableName} (#${inputId})`); // Log 17
+                            // console.log(`[BricksColors] CLEAR event for ${variableName} (#${inputId})`);
                             $valueText.text(''); // Clear text for the cleared input
-                            if (variableName && !variableName.endsWith('-hover')) {
+                            if (variableName && !variableName.endsWith('-hover') && !variableName.endsWith('-light')) {
+                                // Clear Hover
                                 let hoverVariableName = variableName + '-hover';
                                 let $hoverInput = $('.cpt-bricks-color-input-field[data-variable-name="' + hoverVariableName + '"]');
                                 if ($hoverInput.length) {
-                                    let hoverInputId = $hoverInput.attr('id');
-                                    $hoverInput.val('');
-                                    $hoverInput.wpColorPicker('color', ''); // Clear its picker
-                                    let $hoverItem = $hoverInput.closest('.cpt-bricks-color-item');
-                                    $hoverItem.find('.cpt-bricks-color-value-text').text(''); // Clear hover text display
-                                    // console.log(`[BricksColors] Cleared hover input #${hoverInputId} for variable '${hoverVariableName}'`); // Log 18
+                                    clearDependentColor($hoverInput);
+                                }
+                                // Clear Light
+                                let lightVariableName = variableName + '-light';
+                                let $lightInput = $('.cpt-bricks-color-input-field[data-variable-name="' + lightVariableName + '"]');
+                                if ($lightInput.length) {
+                                    clearDependentColor($lightInput);
                                 }
                             }
                         }
                     });
                 } catch (e) {
-                    console.error(`[BricksColors] ERROR initializing wpColorPicker for #${inputId} (Var: ${variableName}):`, e); // Log 19
+                    console.error(`[BricksColors] ERROR initializing wpColorPicker for #${inputId} (Var: ${variableName}):`, e);
                 }
             });
         } else {
@@ -239,5 +269,27 @@ console.log('[BricksColors] bricks-colors.js File Loaded'); // Log 1: File loade
         }
         console.log('[BricksColors] Initialization complete.'); // Log 21
     });
+
+    // Helper function to update a dependent color input, picker, and text
+    function updateDependentColor($input, newColor) {
+        if (!$input || !$input.length || !newColor) return;
+        let inputId = $input.attr('id');
+        // console.log(`[BricksColors] Updating dependent color #${inputId} to ${newColor}`);
+        $input.val(newColor);
+        $input.wpColorPicker('color', newColor);
+        let $item = $input.closest('.cpt-bricks-color-item');
+        $item.find('.cpt-bricks-color-value-text').text(newColor);
+    }
+
+    // Helper function to clear a dependent color input, picker, and text
+    function clearDependentColor($input) {
+        if (!$input || !$input.length) return;
+        let inputId = $input.attr('id');
+        // console.log(`[BricksColors] Clearing dependent color #${inputId}`);
+        $input.val('');
+        $input.wpColorPicker('color', '');
+        let $item = $input.closest('.cpt-bricks-color-item');
+        $item.find('.cpt-bricks-color-value-text').text('');
+    }
 
 })(jQuery); 
