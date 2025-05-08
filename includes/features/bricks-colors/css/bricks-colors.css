@@ -158,9 +158,14 @@
     position: absolute !important;
     /* Position relative to a positioned ancestor if needed */
     top: calc(100% + 8px);
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 1000;
+    left: 0;
+    /* Align to the left of the parent */
+    transform: translateX(0);
+    /* No horizontal transform */
+    max-width: 255px;
+    /* Add a max-width to control its size */
+    z-index: 99999;
+    /* Increased z-index from previous step */
     border-color: var(--gray-300) !important;
     border-radius: 4px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2) !important;
