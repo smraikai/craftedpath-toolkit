@@ -243,7 +243,22 @@ class CPT_Settings_Manager
             );
         }
 
-        // Add General Toolkit Settings Submenu (OpenAI API Key, etc.)
+        // Conditionally add Bricks Colors page if feature is enabled
+        if ($this->is_feature_enabled('bricks_colors') && class_exists('CPT_Bricks_Colors')) {
+            add_submenu_page(
+                'craftedpath-toolkit',
+                __('Bricks Colors', 'craftedpath-toolkit'),
+                __('Bricks Colors', 'craftedpath-toolkit'),
+                'manage_options',
+                'cpt-bricks-colors',
+                array(CPT_Bricks_Colors::instance(), 'render_bricks_colors_page')
+            );
+        }
+
+        // Add "Content" Top-Level menu if any CPT is active and Meta Box exists
+        $this->add_content_parent_menu();
+
+        // Add General Toolkit Settings Submenu (OpenAI API Key, etc.) LAST
         add_submenu_page(
             'craftedpath-toolkit',                  // Parent slug
             __('Toolkit Settings', 'craftedpath-toolkit'), // Page title
@@ -253,9 +268,6 @@ class CPT_Settings_Manager
             'cptk_render_settings_page',              // Callback function (from settings-page.php)
             90                                        // Position (optional, place it after others)
         );
-
-        // Add "Content" Top-Level menu if any CPT is active and Meta Box exists
-        $this->add_content_parent_menu();
     }
 
     /**

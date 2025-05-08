@@ -23,20 +23,8 @@ class CPT_Bricks_Colors
 
     private function __construct()
     {
-        add_action('admin_menu', array($this, 'add_admin_menu_page'));
+        // Menu registration now handled by the settings manager
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
-    }
-
-    public function add_admin_menu_page()
-    {
-        add_submenu_page(
-            'craftedpath-toolkit',
-            __('Bricks Colors', 'craftedpath-toolkit'),
-            __('Bricks Colors', 'craftedpath-toolkit'),
-            'manage_options',
-            'cpt-bricks-colors',
-            array($this, 'render_bricks_colors_page')
-        );
     }
 
     public function enqueue_admin_scripts($hook)
