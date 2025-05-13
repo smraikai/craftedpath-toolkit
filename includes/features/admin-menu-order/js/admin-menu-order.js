@@ -43,6 +43,54 @@ jQuery(document).ready(function ($) {
     });
     console.log('Initial menu items:', initialMenuItems);
 
+    // Add Spacer button functionality
+    $('#add-spacer-btn').on('click', function () {
+        console.log('Add spacer button clicked');
+
+        // Create a unique ID for the spacer
+        const timestamp = new Date().getTime();
+        const spacerId = `cpt-spacer-${timestamp}`;
+
+        // Create the spacer element
+        const $spacer = $(`<li class="cpt-menu-order-item cpt-menu-spacer" data-menu-id="${spacerId}" data-id="${spacerId}">
+            <span class="dashicons dashicons-menu"></span>
+            <span class="menu-title">Spacer</span>
+            <button type="button" class="cpt-remove-spacer" title="Remove Spacer">
+                <span class="dashicons dashicons-no-alt"></span>
+            </button>
+        </li>`);
+
+        // Add the spacer to the end of the list
+        $menuList.append($spacer);
+
+        // Highlight the new spacer
+        $spacer.addClass('cpt-menu-highlight');
+        setTimeout(() => {
+            $spacer.removeClass('cpt-menu-highlight');
+        }, 1500);
+
+        // Enable save button since order has changed
+        $saveBtn.prop('disabled', false);
+    });
+
+    // Remove Spacer button functionality (delegated event for dynamically added elements)
+    $menuList.on('click', '.cpt-remove-spacer', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const $spacer = $(this).closest('li');
+        const spacerId = $spacer.attr('data-menu-id');
+
+        console.log(`Removing spacer: ${spacerId}`);
+
+        // Fade out and remove the spacer
+        $spacer.fadeOut(300, function () {
+            $spacer.remove();
+            // Enable save button since order has changed
+            $saveBtn.prop('disabled', false);
+        });
+    });
+
     // Save menu order with improved error handling and user feedback
     $saveBtn.on('click', function (e) {
         console.log('Save button clicked');

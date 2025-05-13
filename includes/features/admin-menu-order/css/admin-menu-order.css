@@ -204,3 +204,53 @@
     line-height: 1.5;
     color: #50575e;
 }
+
+/* Spacer styling */
+.cpt-menu-spacer {
+    background-color: #f0f0f1;
+    position: relative;
+    border-top: 1px solid #c3c4c7;
+    border-bottom: 1px solid #c3c4c7;
+}
+
+.cpt-menu-spacer .menu-title {
+    font-style: italic;
+    color: #646970;
+    font-size: 12px;
+}
+
+.cpt-remove-spacer {
+    background: none;
+    border: none;
+    color: #b32d2e;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 50%;
+    opacity: 0.7;
+    transition: all 0.2s ease;
+}
+
+.cpt-remove-spacer:hover {
+    opacity: 1;
+    background-color: #f6f7f7;
+}
+
+.cpt-menu-actions .dashicons {
+    vertical-align: middle;
+    margin-right: 4px;
+}
+
+#add-spacer-btn {
+    display: inline-flex;
+    align-items: center;
+    background-color: #f7f7f7;
+    border-color: #c3c4c7;
+    color: #50575e;
+    padding: 0 12px;
+    transition: all 0.2s ease;
+}
+
+#add-spacer-btn:hover {
+    background-color: #f0f0f1;
+    border-color: #8c8f94;
+}

@@ -166,6 +166,12 @@ class CPT_Admin_Menu_Order
             error_log('Menu items to render: ' . wp_json_encode($menu_items));
         }
 
+        // Load saved menu order to look for spacers
+        $saved_order = get_option('cpt_admin_menu_order', array());
+        $spacers_in_saved_order = array_filter($saved_order, function ($item) {
+            return strpos($item, 'cpt-spacer-') === 0;
+        });
+
         ?>
         <div class="cpt-menu-order-container">
             <p><?php esc_html_e('Drag and drop menu items to reorder them. Changes will take effect after you click Save Order.', 'craftedpath-toolkit'); ?>
@@ -176,10 +182,15 @@ class CPT_Admin_Menu_Order
                     <i class="iconoir-sparks" style="vertical-align: middle; margin-right: 4px;"></i>
                     <?php esc_html_e('Auto Sort with AI', 'craftedpath-toolkit'); ?>
                 </button>
+                <button type="button" class="button button-secondary" id="add-spacer-btn">
+                    <span class="dashicons dashicons-minus"></span>
+                    <?php esc_html_e('Add Spacer', 'craftedpath-toolkit'); ?>
+                </button>
             </div>
 
             <ul class="cpt-menu-order-list">
                 <?php
+                // Render the current menu items
                 foreach ($menu as $menu_item) {
                     if (!empty($menu_item[0])) {
                         $menu_id = sanitize_title($menu_item[2]);
@@ -188,6 +199,17 @@ class CPT_Admin_Menu_Order
                         echo '<span class="menu-title">' . wp_strip_all_tags($menu_item[0]) . '</span>';
                         echo '</li>';
                     }
+                }
+
+                // Add any spacers that were in the saved order but not in the current menu
+                foreach ($spacers_in_saved_order as $spacer_id) {
+                    echo '<li class="cpt-menu-order-item cpt-menu-spacer" data-menu-id="' . esc_attr($spacer_id) . '" data-id="' . esc_attr($spacer_id) . '">';
+                    echo '<span class="dashicons dashicons-menu"></span>';
+                    echo '<span class="menu-title">' . esc_html__('Spacer', 'craftedpath-toolkit') . '</span>';
+                    echo '<button type="button" class="cpt-remove-spacer" title="' . esc_attr__('Remove Spacer', 'craftedpath-toolkit') . '">';
+                    echo '<span class="dashicons dashicons-no-alt"></span>';
+                    echo '</button>';
+                    echo '</li>';
                 }
                 ?>
             </ul>
@@ -288,52 +310,170 @@ class CPT_Admin_Menu_Order
             return $menu_order;
         }
 
-        // Debug log current menu items
-        $current_menu_items = array();
+        // Add detailed menu debugging
         if (is_array($menu)) {
-            foreach ($menu as $index => $item) {
+            error_log('Current menu structure before modification:');
+            foreach ($menu as $pos => $item) {
                 if (!empty($item[2])) {
-                    $current_menu_items[] = array(
-                        'index' => $index,
-                        'title' => isset($item[0]) ? wp_strip_all_tags($item[0]) : '',
-                        'slug' => sanitize_title($item[2]),
-                        'original' => $item[2]
-                    );
+                    error_log("Menu item at {$pos}: {$item[0]} ({$item[2]}) - Type: " . (isset($item[4]) ? $item[4] : 'regular'));
                 }
             }
-            error_log('Current menu items: ' . wp_json_encode($current_menu_items));
-        } else {
-            error_log('$menu is not an array, it is: ' . gettype($menu));
-            return $menu_order;
         }
 
         error_log('Saved menu order: ' . wp_json_encode($saved_order));
         error_log('Original menu_order: ' . wp_json_encode($menu_order));
 
-        // Create a new sorted menu_order array based on the saved order
-        $new_menu_order = array();
+        // Create a map of positions for each item in our saved order
+        $position_map = array();
+        $position = 10; // Starting position
+        $position_increment = 10; // Increment each item by 10 for easy insertion
 
-        // First add all items from saved order (if they exist in current menu)
-        foreach ($saved_order as $slug) {
-            foreach ($menu as $index => $item) {
-                if (!empty($item[2]) && sanitize_title($item[2]) === $slug) {
-                    $new_menu_order[] = $item[2]; // Use original unsanitized value
-                    break;
+        // Clear existing separators from menu
+        foreach ($menu as $index => $item) {
+            if (isset($item[4]) && $item[4] === 'wp-menu-separator') {
+                unset($menu[$index]);
+            }
+        }
+
+        // First pass: assign positions to regular menu items
+        foreach ($saved_order as $item_slug) {
+            if (strpos($item_slug, 'cpt-spacer-') === 0) {
+                // This is a spacer - we'll handle it in the next pass
+                $position_map[$item_slug] = $position;
+                $position += $position_increment;
+            } else {
+                // Regular item
+                $position_map[$item_slug] = $position;
+                $position += $position_increment;
+            }
+        }
+
+        // Create a new sorted menu from scratch
+        $new_menu = array();
+
+        // Second pass: move menu items to their assigned positions
+        foreach ($menu as $index => $item) {
+            if (!empty($item[2])) {
+                $slug = sanitize_title($item[2]);
+                if (isset($position_map[$slug])) {
+                    $new_pos = $position_map[$slug];
+                    $new_menu[$new_pos] = $item;
+                    unset($menu[$index]);
                 }
             }
         }
 
-        // Add any remaining items that weren't in the saved order
-        foreach ($menu_order as $item) {
-            $slug = sanitize_title($item);
-            if (!in_array($slug, array_map('sanitize_title', $new_menu_order)) && !in_array($item, $new_menu_order)) {
-                $new_menu_order[] = $item;
+        // Add separators where spacers were defined - use WordPress standard naming
+        $separator_count = 1;  // Standard WordPress separators are named separator1, separator2, etc.
+        foreach ($saved_order as $i => $item_slug) {
+            if (strpos($item_slug, 'cpt-spacer-') === 0) {
+                $sep_position = $position_map[$item_slug];
+                
+                // Use WordPress native separator format exactly - they use these specific values
+                $separator_name = "separator" . $separator_count++;
+                
+                $new_menu[$sep_position] = array(
+                    '', 
+                    'read', 
+                    $separator_name, 
+                    '', 
+                    'wp-menu-separator'
+                );
+                error_log("Added separator '{$separator_name}' at position {$sep_position}");
             }
         }
 
-        error_log('New menu_order: ' . wp_json_encode($new_menu_order));
+        // Add any remaining items
+        foreach ($menu as $index => $item) {
+            if (!empty($item[2])) {
+                $new_menu[$position] = $item;
+                $position += $position_increment;
+            }
+        }
+
+        // Sort by key to ensure correct order
+        ksort($new_menu);
+
+        // Replace the global menu with our new one
+        $menu = $new_menu;
+
+        // Now use the same order for menu_order
+        $new_menu_order = array();
+        foreach ($new_menu as $index => $item) {
+            if (!empty($item[2]) && !isset($item[4])) { // Skip separators
+                $new_menu_order[] = $item[2];
+            } else if (isset($item[4]) && $item[4] === 'wp-menu-separator') {
+                // Add separators to the menu_order array too
+                $new_menu_order[] = $item[2];
+            }
+        }
+
+        error_log('Final menu structure after modification:');
+        foreach ($menu as $pos => $item) {
+            $type = isset($item[4]) ? $item[4] : 'regular';
+            $name = isset($item[0]) ? $item[0] : 'Unnamed';
+            $slug = isset($item[2]) ? $item[2] : 'No slug';
+            error_log("Menu item at {$pos}: {$name} ({$slug}) - Type: {$type}");
+        }
+
+        // Force the menu to appear as we defined it by directly manipulating
+        // the global variable in functions that run after apply_custom_menu_order
+        add_action('admin_head', array($this, 'force_custom_menu'), 999);
 
         return $new_menu_order;
+    }
+
+    /**
+     * Force the custom menu to be used by re-applying our menu structure
+     * This ensures separators are not removed by later WordPress processes
+     */
+    public function force_custom_menu()
+    {
+        global $menu;
+        
+        // Check if we need to force separators
+        $needs_separator = false;
+        $saved_order = get_option('cpt_admin_menu_order', array());
+        
+        foreach ($saved_order as $item) {
+            if (strpos($item, 'cpt-spacer-') === 0) {
+                $needs_separator = true;
+                break;
+            }
+        }
+        
+        if (!$needs_separator) {
+            return;
+        }
+        
+        error_log('Forcing custom menu with separators in admin_head');
+        
+        // Check if separators are missing
+        $has_separators = false;
+        foreach ($menu as $pos => $item) {
+            if (isset($item[4]) && $item[4] === 'wp-menu-separator') {
+                $has_separators = true;
+                break;
+            }
+        }
+        
+        if (!$has_separators) {
+            error_log('Separators are missing from menu, re-adding them');
+            
+            // Re-apply our custom menu ordering with separators
+            $this->apply_custom_menu_order(array());
+            
+            // Output a JavaScript fix to ensure separators display correctly
+            ?>
+            <script type="text/javascript">
+            jQuery(document).ready(function($) {
+                console.log('Forcing separators to appear correctly');
+                // Force refresh of admin menu display
+                $('#adminmenu').css('opacity', '0.99').css('opacity', '1');
+            });
+            </script>
+            <?php
+        }
     }
 
     /**
@@ -395,6 +535,12 @@ class CPT_Admin_Menu_Order
                 do_action('_admin_menu');
             }
         }
+
+        // Get the saved order to find existing spacers
+        $saved_order = get_option('cpt_admin_menu_order', array());
+        $existing_spacers = array_filter($saved_order, function ($item) {
+            return strpos($item, 'cpt-spacer-') === 0;
+        });
 
         // Check again if menu is populated
         if (empty($menu)) {
@@ -494,7 +640,8 @@ class CPT_Admin_Menu_Order
         $prompt .= "2. Content-related items (Posts, Pages, Media) come next\n";
         $prompt .= "3. Design/appearance items (Themes, Customizer) follow content\n";
         $prompt .= "4. Functionality items (Plugins, Users, Tools) come next\n";
-        $prompt .= "5. System/settings items usually come last\n\n";
+        $prompt .= "5. System/settings items usually come last\n";
+        $prompt .= "6. Logical separators should be placed between different groups\n\n";
 
         // Add potential categories if we found any
         if (!empty($categories)) {
@@ -507,9 +654,14 @@ class CPT_Admin_Menu_Order
             $prompt .= "\n";
         }
 
+        // Filter out spacers before listing items
+        $filtered_items = array_filter($menu_items, function ($item) {
+            return strpos($item['id'], 'cpt-spacer-') !== 0;
+        });
+
         // List the actual menu items
         $prompt .= "Here are the current WordPress admin menu items:\n\n";
-        foreach ($menu_items as $item) {
+        foreach ($filtered_items as $item) {
             $prompt .= "- " . $item['title'] . " (ID: " . $item['id'] . ")\n";
         }
 
@@ -525,6 +677,7 @@ class CPT_Admin_Menu_Order
         $prompt .= "2. Include ONLY string values in the array, no numbers or objects\n";
         $prompt .= "3. Include ALL the menu items listed above, don't skip any\n";
         $prompt .= "4. Don't make up new IDs that weren't in the list\n";
+        $prompt .= "5. If you think two groups should be separated logically, include a special spacer ID in the format 'cpt-spacer-X' where X is a number\n";
 
         return $prompt;
     }
