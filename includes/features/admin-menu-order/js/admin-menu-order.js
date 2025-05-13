@@ -4,8 +4,6 @@ jQuery(document).ready(function ($) {
     // Get the menu list element and save button
     const $menuList = $('.cpt-menu-order-list');
     const $saveBtn = $('#cpt-menu-order-save-btn');
-    const $status = $('#menu_order_status');
-    const $error = $('#menu_order_error');
     const $loading = $('#menu_order_loading');
 
     console.log('Menu list found:', $menuList.length > 0);
@@ -55,10 +53,6 @@ jQuery(document).ready(function ($) {
         // Log the menu order for debugging
         console.log('Menu order to save:', menuOrder);
 
-        // Hide any previous messages
-        $status.hide();
-        $error.hide();
-
         // Show loading state
         button.prop('disabled', true).val('Saving...');
 
@@ -75,19 +69,18 @@ jQuery(document).ready(function ($) {
             success: function (response) {
                 console.log('AJAX success response:', response);
                 if (response.success) {
-                    // Show success message
-                    $status.html('Menu order saved successfully!').show();
+                    // Show success toast
+                    showCPTToast('Menu order saved successfully!', 'success');
                     button.val('Saved!');
 
                     setTimeout(function () {
                         button.val(originalText);
-                        $status.fadeOut();
                     }, 3000);
                 } else {
-                    // Show error message with details if available
+                    // Show error toast with details
                     const errorMsg = response.data || 'Error saving menu order';
                     console.error('Error from server:', errorMsg);
-                    $error.html('Error: ' + errorMsg).show();
+                    showCPTToast('Error: ' + errorMsg, 'error');
                     button.val(originalText).prop('disabled', false);
                 }
             },
@@ -95,7 +88,7 @@ jQuery(document).ready(function ($) {
                 // Handle network or server errors
                 console.error('AJAX error:', status, error);
                 console.error('Response text:', xhr.responseText);
-                $error.html('Network Error: ' + error).show();
+                showCPTToast('Network Error: ' + error, 'error');
                 button.val(originalText).prop('disabled', false);
             }
         });
@@ -124,9 +117,7 @@ jQuery(document).ready(function ($) {
             return;
         }
 
-        // Hide any previous messages and show loading
-        $status.hide();
-        $error.hide();
+        // Show loading
         $loading.show();
 
         // Disable button to prevent multiple requests
@@ -147,22 +138,19 @@ jQuery(document).ready(function ($) {
                 $loading.hide();
 
                 if (response.success && response.data && response.data.sorted_menu) {
-                    $status.html(response.data.message).show();
+                    // Show success toast
+                    showCPTToast(response.data.message, 'success');
 
                     // Reorder the menu items according to the AI suggestion
                     reorderMenuItems(response.data.sorted_menu);
 
                     // Enable save button since order has changed
                     $saveBtn.prop('disabled', false);
-
-                    setTimeout(function () {
-                        $status.fadeOut();
-                    }, 5000);
                 } else {
-                    // Show error message with details
+                    // Show error toast with details
                     const errorMsg = response.data || 'Error auto-sorting menu';
                     console.error('Error from server:', errorMsg);
-                    $error.html('Error: ' + errorMsg).show();
+                    showCPTToast('Error: ' + errorMsg, 'error');
                 }
 
                 // Re-enable button
@@ -173,7 +161,7 @@ jQuery(document).ready(function ($) {
                 console.error('AI sort AJAX error:', status, error);
                 console.error('Response text:', xhr.responseText);
                 $loading.hide();
-                $error.html('Network Error: ' + error).show();
+                showCPTToast('Network Error: ' + error, 'error');
                 button.prop('disabled', false);
                 button.html(originalText);
             }

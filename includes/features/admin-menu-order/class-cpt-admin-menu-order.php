@@ -63,6 +63,22 @@ class CPT_Admin_Menu_Order
                 true
             );
 
+            // Enqueue Toast.js for notifications
+            wp_enqueue_script(
+                'cpt-toast-js',
+                CPT_PLUGIN_URL . 'assets/js/toast.js',
+                array('jquery'),
+                CPT_VERSION,
+                true
+            );
+
+            wp_enqueue_style(
+                'cpt-toast-css',
+                CPT_PLUGIN_URL . 'assets/css/toast.css',
+                array(),
+                CPT_VERSION
+            );
+
             // Enqueue our custom styles and scripts
             wp_enqueue_style(
                 'cpt-admin-menu-order',
@@ -74,7 +90,7 @@ class CPT_Admin_Menu_Order
             wp_enqueue_script(
                 'cpt-admin-menu-order',
                 CPT_PLUGIN_URL . 'includes/features/admin-menu-order/js/admin-menu-order.js',
-                array('jquery', 'sortablejs'),
+                array('jquery', 'sortablejs', 'cpt-toast-js'),
                 CPT_VERSION,
                 true
             );
@@ -176,8 +192,6 @@ class CPT_Admin_Menu_Order
                 ?>
             </ul>
 
-            <div id="menu_order_status" class="cpt-status-message" style="display: none;"></div>
-            <div id="menu_order_error" class="cpt-error-message" style="display: none;"></div>
             <div id="menu_order_loading" class="cpt-loading" style="display: none;">
                 <span class="spinner is-active"></span>
                 <p><?php esc_html_e('Processing with AI...', 'craftedpath-toolkit'); ?></p>
