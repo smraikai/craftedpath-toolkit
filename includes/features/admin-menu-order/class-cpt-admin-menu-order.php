@@ -410,10 +410,15 @@ class CPT_Admin_Menu_Order
             $menu_items = array();
             foreach ($menu as $item) {
                 if (!empty($item[0])) {
+                    // Store both the sanitized and original ID for reference
+                    $sanitized_id = sanitize_title($item[2]);
                     $menu_items[] = array(
                         'title' => html_entity_decode(wp_strip_all_tags($item[0])),
-                        'id' => sanitize_title($item[2])
+                        'id' => $sanitized_id,
+                        'original_id' => $item[2]
                     );
+
+                    error_log("Menu item mapped: " . $item[0] . " | Original: " . $item[2] . " | Sanitized: " . $sanitized_id);
                 }
             }
         }
@@ -454,14 +459,20 @@ class CPT_Admin_Menu_Order
         $sorted_menu = $this->process_ai_response($response, $menu_items);
 
         if (empty($sorted_menu)) {
-            wp_send_json_error('Failed to process AI response.');
+            wp_send_json_error('Failed to process AI response. Please try again.');
             return;
+        }
+
+        // Ensure we have valid menu IDs
+        if (count($sorted_menu) < count($menu_items) / 2) {
+            error_log('Warning: AI returned fewer menu items than expected. Original: ' . count($menu_items) . ', Sorted: ' . count($sorted_menu));
         }
 
         // Return the sorted menu
         wp_send_json_success(array(
             'message' => __('Menu sorted successfully with AI.', 'craftedpath-toolkit'),
-            'sorted_menu' => $sorted_menu
+            'sorted_menu' => $sorted_menu,
+            'item_count' => count($sorted_menu)
         ));
     }
 
@@ -502,11 +513,18 @@ class CPT_Admin_Menu_Order
             $prompt .= "- " . $item['title'] . " (ID: " . $item['id'] . ")\n";
         }
 
-        // Detailed instructions for output format
+        // Detailed instructions for output format with emphasis on using the exact IDs
         $prompt .= "\nPlease organize these items into logical groups, following WordPress conventions and best UX practices.\n";
-        $prompt .= "Return a JSON object with this exact format:\n";
+        $prompt .= "IMPORTANT: Return a JSON object with this exact format:\n";
         $prompt .= "{\n  \"menu_order\": [\"id1\", \"id2\", ...],\n";
-        $prompt .= "  \"explanation\": \"Brief explanation of your organization logic\"\n}";
+        $prompt .= "  \"explanation\": \"Brief explanation of your organization logic\"\n}\n\n";
+
+        // Critical instructions about ID format
+        $prompt .= "CRITICAL: For the menu_order array, you MUST:\n";
+        $prompt .= "1. Use ONLY the exact IDs as shown in parentheses above (e.g., 'index-php', not 'index.php')\n";
+        $prompt .= "2. Include ONLY string values in the array, no numbers or objects\n";
+        $prompt .= "3. Include ALL the menu items listed above, don't skip any\n";
+        $prompt .= "4. Don't make up new IDs that weren't in the list\n";
 
         return $prompt;
     }
@@ -622,25 +640,62 @@ class CPT_Admin_Menu_Order
             return array();
         }
 
+        // Store the explanation if available for later use
+        if (isset($data['explanation'])) {
+            update_option('cpt_admin_menu_ai_explanation', sanitize_text_field($data['explanation']));
+        }
+
         // If we have a menu_order key, use that
+        $menu_order = array();
         if (isset($data['menu_order']) && is_array($data['menu_order'])) {
-            // Store the explanation if available for later use
-            if (isset($data['explanation'])) {
-                update_option('cpt_admin_menu_ai_explanation', sanitize_text_field($data['explanation']));
+            $menu_order = $data['menu_order'];
+        } else {
+            // Otherwise use the first array found
+            foreach ($data as $key => $value) {
+                if (is_array($value)) {
+                    $menu_order = $value;
+                    break;
+                }
             }
 
-            return $data['menu_order'];
-        }
-
-        // Otherwise use the first array found
-        foreach ($data as $key => $value) {
-            if (is_array($value)) {
-                return $value;
+            // Fall back to using the entire response if it's an array and we haven't found an array yet
+            if (empty($menu_order)) {
+                $menu_order = $data;
             }
         }
 
-        // Fall back to using the entire response if it's an array
-        return $data;
+        // Create an array of valid IDs that match our DOM elements format
+        $valid_ids = array();
+        foreach ($menu_order as $id) {
+            if (!is_string($id)) {
+                continue; // Skip non-string values
+            }
+
+            // Convert periods to dashes to match DOM format (index.php -> index-php)
+            $formatted_id = str_replace('.', '-', $id);
+            // Convert ? to nothing (edit.php?post_type=page -> edit-phppost_typepage)
+            $formatted_id = str_replace('?', '', $formatted_id);
+            // Convert = to nothing
+            $formatted_id = str_replace('=', '', $formatted_id);
+
+            // Check if this ID exists in our original items
+            $found = false;
+            foreach ($original_items as $original) {
+                if ($original['id'] === $formatted_id) {
+                    $found = true;
+                    break;
+                }
+            }
+
+            if ($found) {
+                $valid_ids[] = $formatted_id;
+            } else {
+                error_log('AI returned ID not found in original menu: ' . $id . ' -> ' . $formatted_id);
+            }
+        }
+
+        error_log('Processed menu order IDs: ' . wp_json_encode($valid_ids));
+        return $valid_ids;
     }
 
     /**

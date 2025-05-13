@@ -174,6 +174,12 @@ jQuery(document).ready(function ($) {
     function reorderMenuItems(sortedMenu) {
         console.log('Reordering with:', sortedMenu);
 
+        if (!Array.isArray(sortedMenu) || sortedMenu.length === 0) {
+            console.error('Invalid sorted menu data received');
+            showCPTToast('Error: Invalid menu data received from AI', 'error');
+            return;
+        }
+
         // Create a map of items by ID for quick lookup
         const itemMap = {};
         const items = sortable.el.children;
@@ -184,6 +190,30 @@ jQuery(document).ready(function ($) {
             console.log(`Mapping item: ${id}`);
         });
 
+        // Keep track of found items
+        const foundItems = [];
+        const notFoundItems = [];
+
+        // Check which items can be found
+        sortedMenu.forEach(id => {
+            if (itemMap[id]) {
+                foundItems.push(id);
+            } else {
+                notFoundItems.push(id);
+                console.warn(`Item not found for ID: ${id}`);
+            }
+        });
+
+        console.log('Found items:', foundItems);
+        console.log('Not found items:', notFoundItems);
+
+        // Only proceed if we have items to reorder
+        if (foundItems.length === 0) {
+            console.error('None of the sorted menu items were found in the DOM');
+            showCPTToast('Error: Unable to match sorted items', 'error');
+            return;
+        }
+
         // Remove all existing items
         console.log('Removing existing items');
         while (sortable.el.firstChild) {
@@ -192,17 +222,21 @@ jQuery(document).ready(function ($) {
 
         // Add items back in the sorted order
         console.log('Adding items in sorted order');
-        sortedMenu.forEach(id => {
-            if (itemMap[id]) {
-                console.log(`Appending item: ${id}`);
+        foundItems.forEach(id => {
+            console.log(`Appending item: ${id}`);
+            sortable.el.appendChild(itemMap[id]);
+            // Add highlight effect
+            itemMap[id].classList.add('cpt-menu-highlight');
+            setTimeout(() => {
+                itemMap[id].classList.remove('cpt-menu-highlight');
+            }, 1500);
+        });
+
+        // Add any remaining items that weren't in the sorted list
+        Object.keys(itemMap).forEach(id => {
+            if (!foundItems.includes(id)) {
+                console.log(`Appending remaining item: ${id}`);
                 sortable.el.appendChild(itemMap[id]);
-                // Add highlight effect
-                itemMap[id].classList.add('cpt-menu-highlight');
-                setTimeout(() => {
-                    itemMap[id].classList.remove('cpt-menu-highlight');
-                }, 1500);
-            } else {
-                console.warn(`Item not found for ID: ${id}`);
             }
         });
 
