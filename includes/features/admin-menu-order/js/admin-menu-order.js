@@ -9,6 +9,15 @@ jQuery(document).ready(function ($) {
     console.log('Menu list found:', $menuList.length > 0);
     console.log('Save button found:', $saveBtn.length > 0);
 
+    // Check for saved success message in sessionStorage
+    const savedStatus = sessionStorage.getItem('cpt_menu_order_saved');
+    if (savedStatus) {
+        // Show toast with the saved message
+        showCPTToast(savedStatus, 'success');
+        // Remove the flag to prevent showing on future page loads
+        sessionStorage.removeItem('cpt_menu_order_saved');
+    }
+
     // Initialize Sortable
     const sortable = new Sortable($menuList[0], {
         animation: 150,
@@ -69,13 +78,10 @@ jQuery(document).ready(function ($) {
             success: function (response) {
                 console.log('AJAX success response:', response);
                 if (response.success) {
-                    // Show success toast
-                    showCPTToast('Menu order saved successfully!', 'success');
-                    button.val('Saved!');
-
-                    setTimeout(function () {
-                        button.val(originalText);
-                    }, 3000);
+                    // Store success message in sessionStorage
+                    sessionStorage.setItem('cpt_menu_order_saved', 'Menu order saved successfully!');
+                    // Refresh the page immediately
+                    window.location.reload();
                 } else {
                     // Show error toast with details
                     const errorMsg = response.data || 'Error saving menu order';
