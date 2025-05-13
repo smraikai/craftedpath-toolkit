@@ -22,7 +22,7 @@ class CPT_Admin_Menu_Order
     {
         add_action('admin_enqueue_scripts', array($this, 'enqueue_assets'));
         add_action('wp_ajax_save_admin_menu_order', array($this, 'save_admin_menu_order'));
-        add_action('wp_ajax_auto_sort_menu', array($this, 'auto_sort_menu'));
+        add_action('wp_ajax_auto_sort_menu', array($this, 'ajax_auto_sort'));
         add_filter('menu_order', array($this, 'apply_custom_menu_order'), 99);
         add_filter('custom_menu_order', array($this, 'enable_custom_menu_order'));
 
@@ -168,7 +168,7 @@ class CPT_Admin_Menu_Order
 
         // Load saved menu order to look for spacers
         $saved_order = get_option('cpt_admin_menu_order', array());
-        $spacers_in_saved_order = array_filter($saved_order, function($item) {
+        $spacers_in_saved_order = array_filter($saved_order, function ($item) {
             return strpos($item, 'cpt-spacer-') === 0;
         });
 
@@ -186,13 +186,18 @@ class CPT_Admin_Menu_Order
                     <span class="dashicons dashicons-minus"></span>
                     <?php esc_html_e('Add Spacer', 'craftedpath-toolkit'); ?>
                 </button>
+
+                <div id="menu_order_loading" class="cpt-loading" style="display: none; margin-left: 10px;">
+                    <span class="spinner is-active"></span>
+                    <p><?php esc_html_e('Processing with AI...', 'craftedpath-toolkit'); ?></p>
+                </div>
             </div>
 
             <ul class="cpt-menu-order-list">
                 <?php
                 // We need to show both regular menu items and spacers in the correct order based on saved_order
                 $menu_by_id = array();
-                
+
                 // Create a map of menu items by ID for quick lookup
                 foreach ($menu as $menu_item) {
                     if (!empty($menu_item[0])) {
@@ -200,7 +205,7 @@ class CPT_Admin_Menu_Order
                         $menu_by_id[$menu_id] = $menu_item;
                     }
                 }
-                
+
                 // Render items in the order specified in saved_order
                 if (!empty($saved_order)) {
                     foreach ($saved_order as $item_id) {
@@ -220,13 +225,13 @@ class CPT_Admin_Menu_Order
                             echo '<span class="dashicons dashicons-menu"></span>';
                             echo '<span class="menu-title">' . wp_strip_all_tags($menu_item[0]) . '</span>';
                             echo '</li>';
-                            
+
                             // Remove from the map so we know we've rendered it
                             unset($menu_by_id[$item_id]);
                         }
                     }
                 }
-                
+
                 // Add any remaining menu items that weren't in the saved order
                 foreach ($menu_by_id as $id => $menu_item) {
                     echo '<li class="cpt-menu-order-item" data-menu-id="' . esc_attr($id) . '" data-id="' . esc_attr($id) . '">';
@@ -237,24 +242,7 @@ class CPT_Admin_Menu_Order
                 ?>
             </ul>
 
-            <div id="menu_order_loading" class="cpt-loading" style="display: none;">
-                <span class="spinner is-active"></span>
-                <p><?php esc_html_e('Processing with AI...', 'craftedpath-toolkit'); ?></p>
-            </div>
-
             <?php
-            // Display AI explanation if available
-            $ai_explanation = get_option('cpt_admin_menu_ai_explanation', '');
-            if (!empty($ai_explanation)) {
-                ?>
-                <div class="cpt-ai-explanation">
-                    <h3><i class="iconoir-brain" style="vertical-align: middle; margin-right: 5px;"></i>
-                        <?php esc_html_e('AI Organization Logic', 'craftedpath-toolkit'); ?></h3>
-                    <p><?php echo esc_html($ai_explanation); ?></p>
-                </div>
-                <?php
-            }
-
             // Display current saved order for debugging
             $saved_order = get_option('cpt_admin_menu_order', array());
             if (!empty($saved_order) && defined('WP_DEBUG') && WP_DEBUG) {
@@ -391,15 +379,15 @@ class CPT_Admin_Menu_Order
         foreach ($saved_order as $i => $item_slug) {
             if (strpos($item_slug, 'cpt-spacer-') === 0) {
                 $sep_position = $position_map[$item_slug];
-                
+
                 // Use WordPress native separator format exactly - they use these specific values
                 $separator_name = "separator" . $separator_count++;
-                
+
                 $new_menu[$sep_position] = array(
-                    '', 
-                    'read', 
-                    $separator_name, 
-                    '', 
+                    '',
+                    'read',
+                    $separator_name,
+                    '',
                     'wp-menu-separator'
                 );
                 error_log("Added separator '{$separator_name}' at position {$sep_position}");
@@ -453,24 +441,24 @@ class CPT_Admin_Menu_Order
     public function force_custom_menu()
     {
         global $menu;
-        
+
         // Check if we need to force separators
         $needs_separator = false;
         $saved_order = get_option('cpt_admin_menu_order', array());
-        
+
         foreach ($saved_order as $item) {
             if (strpos($item, 'cpt-spacer-') === 0) {
                 $needs_separator = true;
                 break;
             }
         }
-        
+
         if (!$needs_separator) {
             return;
         }
-        
+
         error_log('Forcing custom menu with separators in admin_head');
-        
+
         // Check if separators are missing
         $has_separators = false;
         foreach ($menu as $pos => $item) {
@@ -479,21 +467,21 @@ class CPT_Admin_Menu_Order
                 break;
             }
         }
-        
+
         if (!$has_separators) {
             error_log('Separators are missing from menu, re-adding them');
-            
+
             // Re-apply our custom menu ordering with separators
             $this->apply_custom_menu_order(array());
-            
+
             // Output a JavaScript fix to ensure separators display correctly
             ?>
             <script type="text/javascript">
-            jQuery(document).ready(function($) {
-                console.log('Forcing separators to appear correctly');
-                // Force refresh of admin menu display
-                $('#adminmenu').css('opacity', '0.99').css('opacity', '1');
-            });
+                jQuery(document).ready(function ($) {
+                    console.log('Forcing separators to appear correctly');
+                    // Force refresh of admin menu display
+                    $('#adminmenu').css('opacity', '0.99').css('opacity', '1');
+                });
             </script>
             <?php
         }
@@ -522,127 +510,68 @@ class CPT_Admin_Menu_Order
     }
 
     /**
-     * Call OpenAI API to automatically sort the admin menu
+     * Auto-sort the menu items using AI
+     * 
+     * @return array Sorted menu items or error message
      */
     public function auto_sort_menu()
     {
-        // Check nonce
-        if (!check_ajax_referer('cpt_admin_menu_order_nonce', 'nonce', false)) {
-            wp_send_json_error('Security check failed. Please refresh the page and try again.');
-            return;
-        }
-
-        // Check permissions
         if (!current_user_can('manage_options')) {
-            wp_send_json_error('You do not have permission to modify menu order.');
-            return;
+            return array('error' => __('You do not have permission to perform this action.', 'craftedpath-toolkit'));
         }
 
-        // Get current menu items
-        global $menu;
+        // Get the saved menu items
+        $menu_order = get_option('cpt_admin_menu_order', array());
+        $menu_items = $this->get_menu_items();
 
-        // The $menu global might not be available during AJAX calls
-        // We need to load the admin menu manually
-        if (empty($menu)) {
-            // Load the necessary admin files if they're not already loaded
-            if (!function_exists('wp_admin_css_color')) {
-                require_once(ABSPATH . 'wp-admin/includes/misc.php');
-            }
+        // Look for potential categories by parsing titles
+        $categories = $this->detect_potential_categories($menu_items);
 
-            if (!function_exists('add_menu_page')) {
-                require_once(ABSPATH . 'wp-admin/includes/admin.php');
-            }
+        $this->set_processing_flag(true);
 
-            // Make sure the global menu is initialized
-            if (!did_action('admin_menu') && current_user_can('list_users')) {
-                do_action('_admin_menu');
-            }
-        }
-
-        // Get the saved order to find existing spacers
-        $saved_order = get_option('cpt_admin_menu_order', array());
-        $existing_spacers = array_filter($saved_order, function ($item) {
-            return strpos($item, 'cpt-spacer-') === 0;
-        });
-
-        // Check again if menu is populated
-        if (empty($menu)) {
-            // If still empty, try to get menu items directly from database
-            $menu_items = $this->get_registered_menu_items();
-
-            if (empty($menu_items)) {
-                wp_send_json_error('No menu items found. Please try again from the admin dashboard.');
-                return;
-            }
-        } else {
-            // Convert the menu global to our format
-            $menu_items = array();
-            foreach ($menu as $item) {
-                if (!empty($item[0])) {
-                    // Store both the sanitized and original ID for reference
-                    $sanitized_id = sanitize_title($item[2]);
-                    $menu_items[] = array(
-                        'title' => html_entity_decode(wp_strip_all_tags($item[0])),
-                        'id' => $sanitized_id,
-                        'original_id' => $item[2]
-                    );
-
-                    error_log("Menu item mapped: " . $item[0] . " | Original: " . $item[2] . " | Sanitized: " . $sanitized_id);
-                }
-            }
-        }
-
-        // Get API settings
-        $settings = $this->get_openai_settings();
-        if (empty($settings['api_key'])) {
-            wp_send_json_error('OpenAI API Key is not configured. Please add it in the CraftedPath Settings page.');
-            return;
-        }
-
-        // Prepare categories for the prompt
-        $categories = array(); // Track existing categories/sections
-        foreach ($menu_items as $item) {
-            // Try to identify category from item name
-            $parts = explode(' ', $item['title']);
-            if (count($parts) > 1) {
-                $potential_category = $parts[0];
-                if (!isset($categories[$potential_category])) {
-                    $categories[$potential_category] = 0;
-                }
-                $categories[$potential_category]++;
-            }
-        }
-
-        // Build a more detailed prompt
+        // Build the prompt
         $prompt = $this->build_ai_prompt($menu_items, $categories);
 
-        // Call OpenAI API
-        $response = $this->call_openai_api($prompt);
+        // Log the prompt for debugging
+        error_log('AI Prompt: ' . $prompt);
 
-        if (is_wp_error($response)) {
-            wp_send_json_error($response->get_error_message());
-            return;
+        try {
+            // Get API settings
+            $settings = $this->get_openai_settings();
+            if (empty($settings['api_key'])) {
+                $this->set_processing_flag(false);
+                return array('error' => __('OpenAI API Key is not configured. Please add it in the CraftedPath Settings page.', 'craftedpath-toolkit'));
+            }
+
+            // Call OpenAI API
+            $response = $this->call_openai_api($prompt);
+
+            if (is_wp_error($response)) {
+                $this->set_processing_flag(false);
+                return array('error' => $response->get_error_message());
+            }
+
+            // Process the AI response to get ordered menu IDs
+            // This new implementation will directly use the AI's spacer suggestions
+            $ordered_menu_ids = $this->process_ai_response($response, $menu_items);
+
+            if (empty($ordered_menu_ids)) {
+                $this->set_processing_flag(false);
+                return array('error' => __('Failed to process AI response', 'craftedpath-toolkit'));
+            }
+
+            // Save the new order
+            update_option('cpt_admin_menu_order', $ordered_menu_ids);
+            $this->set_processing_flag(false);
+
+            return array(
+                'success' => true,
+                'message' => __('Menu sorted successfully! Refreshing page...', 'craftedpath-toolkit'),
+            );
+        } catch (Exception $e) {
+            $this->set_processing_flag(false);
+            return array('error' => $e->getMessage());
         }
-
-        // Process the response to get the sorted menu
-        $sorted_menu = $this->process_ai_response($response, $menu_items);
-
-        if (empty($sorted_menu)) {
-            wp_send_json_error('Failed to process AI response. Please try again.');
-            return;
-        }
-
-        // Ensure we have valid menu IDs
-        if (count($sorted_menu) < count($menu_items) / 2) {
-            error_log('Warning: AI returned fewer menu items than expected. Original: ' . count($menu_items) . ', Sorted: ' . count($sorted_menu));
-        }
-
-        // Return the sorted menu
-        wp_send_json_success(array(
-            'message' => __('Menu sorted successfully with AI.', 'craftedpath-toolkit'),
-            'sorted_menu' => $sorted_menu,
-            'item_count' => count($sorted_menu)
-        ));
     }
 
     /**
@@ -664,7 +593,7 @@ class CPT_Admin_Menu_Order
         $prompt .= "3. Design/appearance items (Themes, Customizer) follow content\n";
         $prompt .= "4. Functionality items (Plugins, Users, Tools) come next\n";
         $prompt .= "5. System/settings items usually come last\n";
-        $prompt .= "6. Logical separators should be placed between different groups\n\n";
+        $prompt .= "6. Logical separators should be placed between different functional groups\n\n";
 
         // Add potential categories if we found any
         if (!empty($categories)) {
@@ -691,7 +620,7 @@ class CPT_Admin_Menu_Order
         // Detailed instructions for output format with emphasis on using the exact IDs
         $prompt .= "\nPlease organize these items into logical groups, following WordPress conventions and best UX practices.\n";
         $prompt .= "IMPORTANT: Return a JSON object with this exact format:\n";
-        $prompt .= "{\n  \"menu_order\": [\"id1\", \"id2\", ...],\n";
+        $prompt .= "{\n  \"menu_order\": [\"id1\", \"id2\", ..., \"cpt-spacer-1\", \"id3\", ...],\n";
         $prompt .= "  \"explanation\": \"Brief explanation of your organization logic\"\n}\n\n";
 
         // Critical instructions about ID format
@@ -700,7 +629,9 @@ class CPT_Admin_Menu_Order
         $prompt .= "2. Include ONLY string values in the array, no numbers or objects\n";
         $prompt .= "3. Include ALL the menu items listed above, don't skip any\n";
         $prompt .= "4. Don't make up new IDs that weren't in the list\n";
-        $prompt .= "5. If you think two groups should be separated logically, include a special spacer ID in the format 'cpt-spacer-X' where X is a number\n";
+        $prompt .= "5. INSERT SPACERS ('cpt-spacer-1', 'cpt-spacer-2', etc.) between logical groups of menu items\n";
+        $prompt .= "6. USE AT LEAST 3-4 SPACERS to separate different functional groups (content, appearance, functionality, settings)\n";
+        $prompt .= "7. Don't worry about preserving existing spacers, just create a clean logical grouping\n";
 
         return $prompt;
     }
@@ -840,11 +771,24 @@ class CPT_Admin_Menu_Order
             }
         }
 
-        // Create an array of valid IDs that match our DOM elements format
+        // Process the menu order - handle both regular items and spacers
         $valid_ids = array();
+        $next_spacer_id = 1;
+        $spacer_map = array(); // Map AI-suggested spacer IDs to sequential ones
+
         foreach ($menu_order as $id) {
             if (!is_string($id)) {
                 continue; // Skip non-string values
+            }
+
+            // Check if this is a spacer
+            if (strpos($id, 'cpt-spacer-') === 0) {
+                // Normalize spacer ID to ensure sequential numbering
+                if (!isset($spacer_map[$id])) {
+                    $spacer_map[$id] = 'cpt-spacer-' . $next_spacer_id++;
+                }
+                $valid_ids[] = $spacer_map[$id];
+                continue;
             }
 
             // Convert periods to dashes to match DOM format (index.php -> index-php)
@@ -870,7 +814,7 @@ class CPT_Admin_Menu_Order
             }
         }
 
-        error_log('Processed menu order IDs: ' . wp_json_encode($valid_ids));
+        error_log('Processed menu order with intelligent spacer placement: ' . wp_json_encode($valid_ids));
         return $valid_ids;
     }
 
@@ -932,5 +876,127 @@ class CPT_Admin_Menu_Order
         }
 
         return $default_items;
+    }
+
+    /**
+     * Get all available menu items
+     * 
+     * @return array Menu items with title and ID
+     */
+    private function get_menu_items()
+    {
+        global $menu;
+        $menu_items = array();
+
+        // The $menu global might not be available during AJAX calls
+        // We need to load the admin menu manually
+        if (empty($menu)) {
+            // Load the necessary admin files if they're not already loaded
+            if (!function_exists('wp_admin_css_color')) {
+                require_once(ABSPATH . 'wp-admin/includes/misc.php');
+            }
+
+            if (!function_exists('add_menu_page')) {
+                require_once(ABSPATH . 'wp-admin/includes/admin.php');
+            }
+
+            // Make sure the global menu is initialized
+            if (!did_action('admin_menu') && current_user_can('list_users')) {
+                do_action('_admin_menu');
+            }
+        }
+
+        // Check again if menu is populated
+        if (empty($menu)) {
+            // If still empty, try to get menu items directly from database
+            return $this->get_registered_menu_items();
+        }
+
+        // Convert the menu global to our format
+        foreach ($menu as $item) {
+            if (!empty($item[0])) {
+                // Store both the sanitized and original ID for reference
+                $sanitized_id = sanitize_title($item[2]);
+
+                // Skip any separators
+                if (isset($item[4]) && $item[4] === 'wp-menu-separator') {
+                    continue;
+                }
+
+                $menu_items[] = array(
+                    'title' => html_entity_decode(wp_strip_all_tags($item[0])),
+                    'id' => $sanitized_id,
+                    'original_id' => $item[2]
+                );
+            }
+        }
+
+        return $menu_items;
+    }
+
+    /**
+     * Detect potential categories in menu items
+     * 
+     * @param array $menu_items Menu items
+     * @return array Categories and their counts
+     */
+    private function detect_potential_categories($menu_items)
+    {
+        $categories = array(); // Track existing categories/sections
+
+        foreach ($menu_items as $item) {
+            // Try to identify category from item name
+            $parts = explode(' ', $item['title']);
+            if (count($parts) > 1) {
+                $potential_category = $parts[0];
+                if (!isset($categories[$potential_category])) {
+                    $categories[$potential_category] = 0;
+                }
+                $categories[$potential_category]++;
+            }
+        }
+
+        return $categories;
+    }
+
+    /**
+     * Set or clear the processing flag
+     * 
+     * @param bool $processing Whether AI processing is in progress
+     */
+    private function set_processing_flag($processing = false)
+    {
+        update_option('cpt_admin_menu_ai_processing', $processing ? time() : false);
+    }
+
+    /**
+     * Handle AJAX request to auto-sort the menu
+     */
+    public function ajax_auto_sort()
+    {
+        // Check nonce
+        if (!check_ajax_referer('cpt_admin_menu_order_nonce', 'nonce', false)) {
+            wp_send_json_error('Security check failed. Please refresh the page and try again.');
+            return;
+        }
+
+        // Check permissions
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('You do not have permission to modify menu order.');
+            return;
+        }
+
+        // Call the auto_sort_menu method and get result
+        $result = $this->auto_sort_menu();
+
+        // Handle result
+        if (isset($result['error'])) {
+            wp_send_json_error($result['error']);
+        } else {
+            wp_send_json_success(array(
+                'message' => $result['message'],
+                'success' => true
+            ));
+        }
     }
 }

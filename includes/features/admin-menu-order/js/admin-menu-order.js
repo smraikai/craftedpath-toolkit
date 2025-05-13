@@ -191,12 +191,21 @@ jQuery(document).ready(function ($) {
                 console.log('AI sort AJAX success response:', response);
                 $loading.hide();
 
-                if (response.success && response.data && response.data.sorted_menu) {
+                if (response.success) {
                     // Show success toast
-                    showCPTToast(response.data.message, 'success');
+                    const message = response.data && response.data.message
+                        ? response.data.message
+                        : 'Menu sorted successfully! Please save to confirm changes.';
 
-                    // Reorder the menu items according to the AI suggestion
-                    reorderMenuItems(response.data.sorted_menu);
+                    showCPTToast(message, 'success');
+
+                    // If we have a sorted menu, reorder the items
+                    if (response.data && response.data.sorted_menu) {
+                        reorderMenuItems(response.data.sorted_menu);
+                    } else {
+                        // Refresh the page to show the updated menu
+                        window.location.reload();
+                    }
 
                     // Enable save button since order has changed
                     $saveBtn.prop('disabled', false);
