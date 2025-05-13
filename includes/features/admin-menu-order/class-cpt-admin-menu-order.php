@@ -168,7 +168,7 @@ class CPT_Admin_Menu_Order
 
         // Load saved menu order to look for spacers
         $saved_order = get_option('cpt_admin_menu_order', array());
-        $spacers_in_saved_order = array_filter($saved_order, function ($item) {
+        $spacers_in_saved_order = array_filter($saved_order, function($item) {
             return strpos($item, 'cpt-spacer-') === 0;
         });
 
@@ -190,25 +190,48 @@ class CPT_Admin_Menu_Order
 
             <ul class="cpt-menu-order-list">
                 <?php
-                // Render the current menu items
+                // We need to show both regular menu items and spacers in the correct order based on saved_order
+                $menu_by_id = array();
+                
+                // Create a map of menu items by ID for quick lookup
                 foreach ($menu as $menu_item) {
                     if (!empty($menu_item[0])) {
                         $menu_id = sanitize_title($menu_item[2]);
-                        echo '<li class="cpt-menu-order-item" data-menu-id="' . esc_attr($menu_id) . '" data-id="' . esc_attr($menu_id) . '">';
-                        echo '<span class="dashicons dashicons-menu"></span>';
-                        echo '<span class="menu-title">' . wp_strip_all_tags($menu_item[0]) . '</span>';
-                        echo '</li>';
+                        $menu_by_id[$menu_id] = $menu_item;
                     }
                 }
-
-                // Add any spacers that were in the saved order but not in the current menu
-                foreach ($spacers_in_saved_order as $spacer_id) {
-                    echo '<li class="cpt-menu-order-item cpt-menu-spacer" data-menu-id="' . esc_attr($spacer_id) . '" data-id="' . esc_attr($spacer_id) . '">';
+                
+                // Render items in the order specified in saved_order
+                if (!empty($saved_order)) {
+                    foreach ($saved_order as $item_id) {
+                        if (strpos($item_id, 'cpt-spacer-') === 0) {
+                            // This is a spacer
+                            echo '<li class="cpt-menu-order-item cpt-menu-spacer" data-menu-id="' . esc_attr($item_id) . '" data-id="' . esc_attr($item_id) . '">';
+                            echo '<span class="dashicons dashicons-menu"></span>';
+                            echo '<span class="menu-title">' . esc_html__('Spacer', 'craftedpath-toolkit') . '</span>';
+                            echo '<button type="button" class="cpt-remove-spacer" title="' . esc_attr__('Remove Spacer', 'craftedpath-toolkit') . '">';
+                            echo '<span class="dashicons dashicons-no-alt"></span>';
+                            echo '</button>';
+                            echo '</li>';
+                        } else if (isset($menu_by_id[$item_id])) {
+                            // This is a regular menu item that exists in the current menu
+                            $menu_item = $menu_by_id[$item_id];
+                            echo '<li class="cpt-menu-order-item" data-menu-id="' . esc_attr($item_id) . '" data-id="' . esc_attr($item_id) . '">';
+                            echo '<span class="dashicons dashicons-menu"></span>';
+                            echo '<span class="menu-title">' . wp_strip_all_tags($menu_item[0]) . '</span>';
+                            echo '</li>';
+                            
+                            // Remove from the map so we know we've rendered it
+                            unset($menu_by_id[$item_id]);
+                        }
+                    }
+                }
+                
+                // Add any remaining menu items that weren't in the saved order
+                foreach ($menu_by_id as $id => $menu_item) {
+                    echo '<li class="cpt-menu-order-item" data-menu-id="' . esc_attr($id) . '" data-id="' . esc_attr($id) . '">';
                     echo '<span class="dashicons dashicons-menu"></span>';
-                    echo '<span class="menu-title">' . esc_html__('Spacer', 'craftedpath-toolkit') . '</span>';
-                    echo '<button type="button" class="cpt-remove-spacer" title="' . esc_attr__('Remove Spacer', 'craftedpath-toolkit') . '">';
-                    echo '<span class="dashicons dashicons-no-alt"></span>';
-                    echo '</button>';
+                    echo '<span class="menu-title">' . wp_strip_all_tags($menu_item[0]) . '</span>';
                     echo '</li>';
                 }
                 ?>
