@@ -1,4 +1,6 @@
 jQuery(document).ready(function ($) {
+    console.log('Admin Menu Order JS initialized');
+
     // Get the menu list element and save button
     const $menuList = $('.cpt-menu-order-list');
     const $saveBtn = $('#cpt-menu-order-save-btn');
@@ -6,24 +8,52 @@ jQuery(document).ready(function ($) {
     const $error = $('#menu_order_error');
     const $loading = $('#menu_order_loading');
 
+    console.log('Menu list found:', $menuList.length > 0);
+    console.log('Save button found:', $saveBtn.length > 0);
+
     // Initialize Sortable
     const sortable = new Sortable($menuList[0], {
         animation: 150,
         ghostClass: 'cpt-menu-order-placeholder',
-        onEnd: function () {
+        dataIdAttr: 'data-menu-id', // Use data-menu-id attribute for IDs
+        onEnd: function (evt) {
+            console.log('Sortable onEnd event fired');
+            console.log('New index:', evt.newIndex);
+            console.log('Old index:', evt.oldIndex);
             // Enable save button when order changes
             $saveBtn.prop('disabled', false);
         }
     });
 
+    console.log('Sortable initialized');
+
+    // Log initial menu items
+    const initialMenuItems = Array.from($menuList[0].children).map(item => {
+        return {
+            id: item.getAttribute('data-menu-id'),
+            text: item.querySelector('.menu-title').textContent.trim()
+        };
+    });
+    console.log('Initial menu items:', initialMenuItems);
+
     // Save menu order with improved error handling and user feedback
     $saveBtn.on('click', function (e) {
+        console.log('Save button clicked');
         e.preventDefault();
         const button = $(this);
         const originalText = button.val();
 
-        // Get menu order from Sortable
-        const menuOrder = sortable.toArray();
+        // Get menu order from sortable elements
+        const menuOrder = [];
+        Array.from($menuList[0].children).forEach(item => {
+            const id = item.getAttribute('data-menu-id');
+            const text = item.querySelector('.menu-title').textContent.trim();
+            menuOrder.push(id);
+            console.log(`Menu item: ${text} (${id})`);
+        });
+
+        // Log the menu order for debugging
+        console.log('Menu order to save:', menuOrder);
 
         // Hide any previous messages
         $status.hide();
@@ -33,6 +63,7 @@ jQuery(document).ready(function ($) {
         button.prop('disabled', true).val('Saving...');
 
         // Send AJAX request
+        console.log('Sending AJAX request to save menu order');
         $.ajax({
             url: cptAdminMenuOrder.ajaxurl,
             type: 'POST',
@@ -42,6 +73,7 @@ jQuery(document).ready(function ($) {
                 nonce: cptAdminMenuOrder.nonce
             },
             success: function (response) {
+                console.log('AJAX success response:', response);
                 if (response.success) {
                     // Show success message
                     $status.html('Menu order saved successfully!').show();
@@ -54,13 +86,15 @@ jQuery(document).ready(function ($) {
                 } else {
                     // Show error message with details if available
                     const errorMsg = response.data || 'Error saving menu order';
+                    console.error('Error from server:', errorMsg);
                     $error.html('Error: ' + errorMsg).show();
                     button.val(originalText).prop('disabled', false);
                 }
             },
             error: function (xhr, status, error) {
                 // Handle network or server errors
-                console.error('Ajax error:', status, error);
+                console.error('AJAX error:', status, error);
+                console.error('Response text:', xhr.responseText);
                 $error.html('Network Error: ' + error).show();
                 button.val(originalText).prop('disabled', false);
             }
@@ -79,12 +113,14 @@ jQuery(document).ready(function ($) {
 
     // Auto Sort with AI functionality
     $('#auto-sort-btn').on('click', function (e) {
+        console.log('Auto sort button clicked');
         e.preventDefault();
         const button = $(this);
         const originalText = button.html();
 
         // Confirm action
         if (!confirm('Would you like to automatically sort your menu items using AI? This will use the OpenAI API.')) {
+            console.log('Auto sort cancelled by user');
             return;
         }
 
@@ -98,6 +134,7 @@ jQuery(document).ready(function ($) {
         $saveBtn.prop('disabled', true);
 
         // Send AJAX request to the auto sort endpoint
+        console.log('Sending AJAX request for AI sorting');
         $.ajax({
             url: cptAdminMenuOrder.ajaxurl,
             type: 'POST',
@@ -106,6 +143,7 @@ jQuery(document).ready(function ($) {
                 nonce: cptAdminMenuOrder.nonce
             },
             success: function (response) {
+                console.log('AI sort AJAX success response:', response);
                 $loading.hide();
 
                 if (response.success && response.data && response.data.sorted_menu) {
@@ -123,6 +161,7 @@ jQuery(document).ready(function ($) {
                 } else {
                     // Show error message with details
                     const errorMsg = response.data || 'Error auto-sorting menu';
+                    console.error('Error from server:', errorMsg);
                     $error.html('Error: ' + errorMsg).show();
                 }
 
@@ -131,8 +170,9 @@ jQuery(document).ready(function ($) {
                 button.html(originalText);
             },
             error: function (xhr, status, error) {
+                console.error('AI sort AJAX error:', status, error);
+                console.error('Response text:', xhr.responseText);
                 $loading.hide();
-                console.error('Ajax error:', status, error);
                 $error.html('Network Error: ' + error).show();
                 button.prop('disabled', false);
                 button.html(originalText);
@@ -144,6 +184,8 @@ jQuery(document).ready(function ($) {
      * Reorder menu items based on the sorted array from AI
      */
     function reorderMenuItems(sortedMenu) {
+        console.log('Reordering with:', sortedMenu);
+
         // Create a map of items by ID for quick lookup
         const itemMap = {};
         const items = sortable.el.children;
@@ -151,22 +193,38 @@ jQuery(document).ready(function ($) {
         Array.from(items).forEach(item => {
             const id = item.getAttribute('data-menu-id');
             itemMap[id] = item;
+            console.log(`Mapping item: ${id}`);
         });
 
-        // Use the sortable API to reorder the items
-        sortable.sort(sortedMenu);
+        // Remove all existing items
+        console.log('Removing existing items');
+        while (sortable.el.firstChild) {
+            sortable.el.removeChild(sortable.el.firstChild);
+        }
 
-        // Add highlight effect to all items to show they've moved
-        Array.from(sortable.el.children).forEach(item => {
-            item.classList.add('cpt-menu-highlight');
-            setTimeout(() => {
-                item.classList.remove('cpt-menu-highlight');
-            }, 1500);
+        // Add items back in the sorted order
+        console.log('Adding items in sorted order');
+        sortedMenu.forEach(id => {
+            if (itemMap[id]) {
+                console.log(`Appending item: ${id}`);
+                sortable.el.appendChild(itemMap[id]);
+                // Add highlight effect
+                itemMap[id].classList.add('cpt-menu-highlight');
+                setTimeout(() => {
+                    itemMap[id].classList.remove('cpt-menu-highlight');
+                }, 1500);
+            } else {
+                console.warn(`Item not found for ID: ${id}`);
+            }
         });
+
+        // Log the final order
+        const finalOrder = Array.from(sortable.el.children).map(item => {
+            return item.getAttribute('data-menu-id');
+        });
+        console.log('Final order after reordering:', finalOrder);
+
+        // Make sure to trigger the save button to be enabled
+        $saveBtn.prop('disabled', false);
     }
-
-    // Initialize menu items with data-id attribute for Sortable
-    $('.cpt-menu-order-item').each(function () {
-        $(this).attr('data-id', $(this).data('menu-id'));
-    });
 });

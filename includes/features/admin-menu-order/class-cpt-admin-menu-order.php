@@ -24,15 +24,28 @@ class CPT_Admin_Menu_Order
         add_action('wp_ajax_save_admin_menu_order', array($this, 'save_admin_menu_order'));
         add_action('wp_ajax_auto_sort_menu', array($this, 'auto_sort_menu'));
         add_filter('menu_order', array($this, 'apply_custom_menu_order'), 99);
-        add_filter('custom_menu_order', '__return_true');
+        add_filter('custom_menu_order', array($this, 'enable_custom_menu_order'));
+
+        // Log when the class is initialized
+        error_log('CPT_Admin_Menu_Order class initialized');
+    }
+
+    /**
+     * Enable custom menu order
+     */
+    public function enable_custom_menu_order()
+    {
+        error_log('enable_custom_menu_order filter called');
+        return true;
     }
 
     public function enqueue_assets($hook)
     {
         // Debug the hook
-        error_log('Current hook: ' . $hook);
+        error_log('enqueue_assets called on hook: ' . $hook);
 
         if ($hook === 'craftedpath_page_cpt-admin-menu-order') {
+            error_log('Enqueueing Admin Menu Order assets');
             // Enqueue the main plugin admin CSS for consistent styling
             wp_enqueue_style(
                 'craftedpath-toolkit-admin',
@@ -75,6 +88,8 @@ class CPT_Admin_Menu_Order
                     'ajaxurl' => admin_url('admin-ajax.php')
                 )
             );
+
+            error_log('Admin Menu Order assets enqueued successfully');
         }
     }
 
@@ -115,6 +130,26 @@ class CPT_Admin_Menu_Order
     public function render_menu_order_content()
     {
         global $menu;
+
+        error_log('render_menu_order_content called');
+
+        if (!is_array($menu)) {
+            error_log('$menu is not an array');
+        } else {
+            $menu_items = array();
+            foreach ($menu as $index => $menu_item) {
+                if (!empty($menu_item[0])) {
+                    $menu_items[] = array(
+                        'index' => $index,
+                        'title' => wp_strip_all_tags($menu_item[0]),
+                        'id' => sanitize_title($menu_item[2]),
+                        'original_id' => $menu_item[2]
+                    );
+                }
+            }
+            error_log('Menu items to render: ' . wp_json_encode($menu_items));
+        }
+
         ?>
         <div class="cpt-menu-order-container">
             <p><?php esc_html_e('Drag and drop menu items to reorder them. Changes will take effect after you click Save Order.', 'craftedpath-toolkit'); ?>
@@ -132,7 +167,7 @@ class CPT_Admin_Menu_Order
                 foreach ($menu as $menu_item) {
                     if (!empty($menu_item[0])) {
                         $menu_id = sanitize_title($menu_item[2]);
-                        echo '<li class="cpt-menu-order-item" data-menu-id="' . esc_attr($menu_id) . '">';
+                        echo '<li class="cpt-menu-order-item" data-menu-id="' . esc_attr($menu_id) . '" data-id="' . esc_attr($menu_id) . '">';
                         echo '<span class="dashicons dashicons-menu"></span>';
                         echo '<span class="menu-title">' . wp_strip_all_tags($menu_item[0]) . '</span>';
                         echo '</li>';
@@ -160,6 +195,17 @@ class CPT_Admin_Menu_Order
                 </div>
                 <?php
             }
+
+            // Display current saved order for debugging
+            $saved_order = get_option('cpt_admin_menu_order', array());
+            if (!empty($saved_order) && defined('WP_DEBUG') && WP_DEBUG) {
+                ?>
+                <div class="cpt-debug-info" style="margin-top: 20px; padding: 10px; background: #f5f5f5; border: 1px solid #ccc;">
+                    <h3>Debug Info</h3>
+                    <p>Saved order: <?php echo esc_html(wp_json_encode($saved_order)); ?></p>
+                </div>
+                <?php
+            }
             ?>
         </div>
         <?php
@@ -167,14 +213,18 @@ class CPT_Admin_Menu_Order
 
     public function save_admin_menu_order()
     {
+        error_log('save_admin_menu_order AJAX handler called');
+
         // Check nonce
         if (!check_ajax_referer('cpt_admin_menu_order_nonce', 'nonce', false)) {
+            error_log('Nonce verification failed');
             wp_send_json_error('Security check failed. Please refresh the page and try again.');
             return;
         }
 
         // Check permissions
         if (!current_user_can('manage_options')) {
+            error_log('User does not have manage_options capability');
             wp_send_json_error('You do not have permission to modify menu order.');
             return;
         }
@@ -182,20 +232,33 @@ class CPT_Admin_Menu_Order
         // Get and sanitize the menu order
         $menu_order = isset($_POST['menu_order']) ? (array) $_POST['menu_order'] : array();
 
+        error_log('Raw menu_order from POST: ' . wp_json_encode($_POST['menu_order']));
+
         if (empty($menu_order)) {
+            error_log('menu_order is empty');
             wp_send_json_error('No menu items to save.');
             return;
         }
 
+        // Debug log for troubleshooting
+        error_log('Saving menu order: ' . wp_json_encode($menu_order));
+
         $menu_order = array_map('sanitize_text_field', $menu_order);
+        error_log('Sanitized menu order: ' . wp_json_encode($menu_order));
 
         // Save the menu order
-        update_option('cpt_admin_menu_order', $menu_order);
+        $result = update_option('cpt_admin_menu_order', $menu_order);
+        error_log('update_option result: ' . ($result ? 'true' : 'false'));
+
+        // Verify the option was saved
+        $saved_order = get_option('cpt_admin_menu_order');
+        error_log('Verification - get_option result: ' . wp_json_encode($saved_order));
 
         // Success response with menu data
         wp_send_json_success(array(
             'message' => __('Menu order saved successfully.', 'craftedpath-toolkit'),
-            'menu_order' => $menu_order
+            'menu_order' => $menu_order,
+            'option_updated' => $result
         ));
     }
 
@@ -203,30 +266,60 @@ class CPT_Admin_Menu_Order
     {
         global $menu;
 
+        error_log('apply_custom_menu_order filter called');
+
         $saved_order = get_option('cpt_admin_menu_order', array());
         if (empty($saved_order)) {
+            error_log('No saved menu order found');
             return $menu_order;
         }
 
-        // Create a mapping of menu slugs to their positions
-        $custom_order = array_flip($saved_order);
-
-        // Sort the menu items based on the saved order
-        usort($menu, function ($a, $b) use ($custom_order) {
-            if (empty($a[2]) || empty($b[2])) {
-                return 0;
+        // Debug log current menu items
+        $current_menu_items = array();
+        if (is_array($menu)) {
+            foreach ($menu as $index => $item) {
+                if (!empty($item[2])) {
+                    $current_menu_items[] = array(
+                        'index' => $index,
+                        'title' => isset($item[0]) ? wp_strip_all_tags($item[0]) : '',
+                        'slug' => sanitize_title($item[2]),
+                        'original' => $item[2]
+                    );
+                }
             }
+            error_log('Current menu items: ' . wp_json_encode($current_menu_items));
+        } else {
+            error_log('$menu is not an array, it is: ' . gettype($menu));
+            return $menu_order;
+        }
 
-            $a_slug = sanitize_title($a[2]);
-            $b_slug = sanitize_title($b[2]);
+        error_log('Saved menu order: ' . wp_json_encode($saved_order));
+        error_log('Original menu_order: ' . wp_json_encode($menu_order));
 
-            $a_pos = isset($custom_order[$a_slug]) ? $custom_order[$a_slug] : 999;
-            $b_pos = isset($custom_order[$b_slug]) ? $custom_order[$b_slug] : 999;
+        // Create a new sorted menu_order array based on the saved order
+        $new_menu_order = array();
 
-            return $a_pos - $b_pos;
-        });
+        // First add all items from saved order (if they exist in current menu)
+        foreach ($saved_order as $slug) {
+            foreach ($menu as $index => $item) {
+                if (!empty($item[2]) && sanitize_title($item[2]) === $slug) {
+                    $new_menu_order[] = $item[2]; // Use original unsanitized value
+                    break;
+                }
+            }
+        }
 
-        return $menu_order;
+        // Add any remaining items that weren't in the saved order
+        foreach ($menu_order as $item) {
+            $slug = sanitize_title($item);
+            if (!in_array($slug, array_map('sanitize_title', $new_menu_order)) && !in_array($item, $new_menu_order)) {
+                $new_menu_order[] = $item;
+            }
+        }
+
+        error_log('New menu_order: ' . wp_json_encode($new_menu_order));
+
+        return $new_menu_order;
     }
 
     /**
