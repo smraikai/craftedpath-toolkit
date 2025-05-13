@@ -1,0 +1,64 @@
+/**
+ * Admin Menu Order CSS
+ */
+
+.sortable-menu-list {
+    margin: 20px 0;
+    padding: 0;
+    list-style: none;
+}
+
+.menu-order-item {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    margin-bottom: 8px;
+    padding: 12px;
+    border-radius: 6px;
+    transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+    cursor: move;
+}
+
+.menu-order-item:hover {
+    background-color: var(--gray-50);
+    border-color: var(--gray-300);
+}
+
+.menu-order-item-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.menu-order-handle {
+    color: var(--gray-400);
+    font-size: 20px;
+    transition: color 0.2s ease;
+}
+
+.menu-order-item:hover .menu-order-handle {
+    color: var(--gray-600);
+}
+
+.menu-order-title {
+    font-size: 14px;
+    color: var(--gray-700);
+    flex-grow: 1;
+}
+
+/* Drag and drop states */
+.menu-order-ghost {
+    opacity: 0.5;
+    background: #f0f7ff;
+    border: 1px dashed var(--primary);
+}
+
+.menu-order-chosen {
+    background-color: #f8fafc;
+    border-color: var(--primary);
+}
+
+.menu-order-drag {
+    opacity: 0.8;
+    background-color: var(--white);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}

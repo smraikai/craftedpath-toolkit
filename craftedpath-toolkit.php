@@ -17,6 +17,11 @@ if (!defined('WPINC')) {
     die;
 }
 
+// Ensure WordPress core is loaded
+if (!function_exists('add_action')) {
+    return;
+}
+
 // Define constants
 define('CPT_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('CPT_PLUGIN_URL', plugin_dir_url(__FILE__));
@@ -52,6 +57,7 @@ final class CraftedPath_Toolkit
         require_once CPT_PLUGIN_DIR . 'includes/features/admin-refresh-ui/class-admin-refresh-ui.php';
         // Include the Admin Quick Search feature
         require_once CPT_PLUGIN_DIR . 'includes/features/admin-quick-search/class-cpt-admin-quick-search.php';
+        require_once CPT_PLUGIN_DIR . 'includes/features/admin-menu-order/class-cpt-admin-menu-order.php';
 
         require_once CPT_PLUGIN_DIR . 'includes/admin/class-settings-manager.php';
         require_once CPT_PLUGIN_DIR . 'includes/admin/settings-page.php';
@@ -93,6 +99,9 @@ final class CraftedPath_Toolkit
         CPT_AI_Alt_Text::instance();
         CPT_Admin_Refresh_UI::instance();
         CPT_Admin_Quick_Search::instance();
+        if (class_exists('CPT_Admin_Menu_Order')) {
+            CPT_Admin_Menu_Order::instance();
+        }
 
         // Initialize settings manager
         $this->settings_manager = CPT_Settings_Manager::instance();

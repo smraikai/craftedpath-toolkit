@@ -5,9 +5,12 @@
  * @package CraftedPath_Toolkit
  */
 
-// If this file is called directly, abort.
-if (!defined('WPINC')) {
-    die;
+// Exit if accessed directly.
+defined('ABSPATH') || exit;
+
+// Ensure WordPress core is loaded
+if (!function_exists('add_action')) {
+    return;
 }
 
 /**
@@ -122,6 +125,13 @@ class CPT_Settings_Manager
                 'name' => 'Admin Refresh UI',
                 'description' => 'Applies experimental styling refresh to the WP Admin area.',
                 'class' => 'CPT_Admin_Refresh_UI',
+                'default' => false,
+                'section' => 'UI Enhancements'
+            ),
+            'admin_menu_order' => array(
+                'name' => 'Admin Menu Order',
+                'description' => 'Customize the order of items in the WordPress admin menu.',
+                'class' => 'CPT_Admin_Menu_Order',
                 'default' => false,
                 'section' => 'UI Enhancements'
             ),
@@ -257,6 +267,18 @@ class CPT_Settings_Manager
 
         // Add "Content" Top-Level menu if any CPT is active and Meta Box exists
         $this->add_content_parent_menu();
+
+        // Add Admin Menu Order submenu if feature is enabled
+        if ($this->is_feature_enabled('admin_menu_order')) {
+            add_submenu_page(
+                'craftedpath-toolkit',
+                'Admin Menu Order',
+                'Menu Order',
+                'manage_options',
+                'cpt-admin-menu-order',
+                array(CPT_Admin_Menu_Order::instance(), 'render_menu_order_page')
+            );
+        }
 
         // Add General Toolkit Settings Submenu (OpenAI API Key, etc.) LAST
         add_submenu_page(
