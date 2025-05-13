@@ -15,7 +15,7 @@
     margin: 0;
     background: #f8f9fa;
     border-bottom: 1px solid #e2e4e7;
-    cursor: move;
+    cursor: grab;
     display: flex;
     align-items: center;
     transition: all 0.2s ease;
@@ -30,17 +30,40 @@
     background: #f0f0f1;
 }
 
-.cpt-menu-order-item.ui-sortable-helper {
+/* When actively dragging */
+.cpt-menu-order-item:active {
+    cursor: grabbing;
+}
+
+/* SortableJS specific classes */
+.cpt-menu-order-placeholder {
+    border: 2px dashed #b4b9be;
+    background: #f7f7f7;
+    height: 45px;
+    margin-bottom: 0;
+}
+
+.sortable-ghost {
     background: #fff;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     border: 1px solid #007cba;
     border-radius: 4px;
+    opacity: 0.8;
+}
+
+.sortable-chosen {
+    background-color: #f0f6fc;
+    border-color: #72aee6;
+}
+
+.sortable-drag {
+    opacity: 0.9;
 }
 
 .cpt-menu-order-item .dashicons {
     margin-right: 10px;
     color: #646970;
-    cursor: move;
+    cursor: grab;
 }
 
 .cpt-menu-order-item .menu-title {
@@ -67,13 +90,6 @@
     background-color: #dc3232;
     border-color: #dc3232;
     color: #fff;
-}
-
-.cpt-menu-order-placeholder {
-    border: 2px dashed #b4b9be;
-    background: #f7f7f7;
-    height: 45px;
-    margin-bottom: 0;
 }
 
 /* Status & Error messages - match styles from other features */

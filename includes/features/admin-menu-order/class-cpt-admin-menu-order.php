@@ -41,22 +41,27 @@ class CPT_Admin_Menu_Order
                 CPT_VERSION
             );
 
-            // Enqueue jQuery UI Sortable and its dependencies
-            wp_enqueue_style('wp-jquery-ui-dialog'); // This includes basic jQuery UI styles
-            wp_enqueue_script('jquery-ui-sortable');
+            // Enqueue Sortable.js instead of jQuery UI Sortable
+            wp_enqueue_script(
+                'sortablejs',
+                CPT_PLUGIN_URL . 'assets/js/vendor/Sortable.min.js',
+                array('jquery'),
+                '1.15.6',
+                true
+            );
 
             // Enqueue our custom styles and scripts
             wp_enqueue_style(
                 'cpt-admin-menu-order',
                 CPT_PLUGIN_URL . 'includes/features/admin-menu-order/css/admin-menu-order.css',
-                array('dashicons', 'wp-jquery-ui-dialog', 'craftedpath-toolkit-admin'),
+                array('dashicons', 'craftedpath-toolkit-admin'),
                 CPT_VERSION
             );
 
             wp_enqueue_script(
                 'cpt-admin-menu-order',
                 CPT_PLUGIN_URL . 'includes/features/admin-menu-order/js/admin-menu-order.js',
-                array('jquery', 'jquery-ui-sortable'),
+                array('jquery', 'sortablejs'),
                 CPT_VERSION,
                 true
             );
