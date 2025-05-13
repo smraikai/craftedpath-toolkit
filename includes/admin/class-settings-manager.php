@@ -5,12 +5,9 @@
  * @package CraftedPath_Toolkit
  */
 
-// Exit if accessed directly.
-defined('ABSPATH') || exit;
-
-// Ensure WordPress core is loaded
-if (!function_exists('add_action')) {
-    return;
+// If this file is called directly, abort.
+if (!defined('WPINC')) {
+    die;
 }
 
 /**
@@ -114,6 +111,13 @@ class CPT_Settings_Manager
                 'section' => 'AI Tools'
             ),
             // Section: UI Enhancements
+            'admin_menu_order' => array(
+                'name' => 'Admin Menu Order',
+                'description' => 'Allows reordering of admin menu items.',
+                'class' => 'CPT_Admin_Menu_Order',
+                'default' => true,
+                'section' => 'UI Enhancements'
+            ),
             'admin_quick_search' => array(
                 'name' => 'Admin Quick Search',
                 'description' => 'Adds a quick search bar (Cmd/Ctrl+K) to find and navigate admin menu items.',
@@ -125,13 +129,6 @@ class CPT_Settings_Manager
                 'name' => 'Admin Refresh UI',
                 'description' => 'Applies experimental styling refresh to the WP Admin area.',
                 'class' => 'CPT_Admin_Refresh_UI',
-                'default' => false,
-                'section' => 'UI Enhancements'
-            ),
-            'admin_menu_order' => array(
-                'name' => 'Admin Menu Order',
-                'description' => 'Customize the order of items in the WordPress admin menu.',
-                'class' => 'CPT_Admin_Menu_Order',
                 'default' => false,
                 'section' => 'UI Enhancements'
             ),
@@ -217,6 +214,18 @@ class CPT_Settings_Manager
             array($this, 'render_settings_page') // Callback
         );
 
+        // Add Admin Menu Order Submenu
+        if ($this->is_feature_enabled('admin_menu_order') && class_exists('CPT_Admin_Menu_Order')) {
+            add_submenu_page(
+                'craftedpath-toolkit',          // Parent slug
+                __('Admin Menu Order', 'craftedpath-toolkit'),
+                __('Menu Order', 'craftedpath-toolkit'),
+                'manage_options',
+                'cpt-admin-menu-order',     // Menu slug
+                array(CPT_Admin_Menu_Order::instance(), 'render_admin_menu_order_page')
+            );
+        }
+
         // Add SEO Settings Submenu
         if ($this->is_feature_enabled('seo_tools')) {
             add_submenu_page(
@@ -267,18 +276,6 @@ class CPT_Settings_Manager
 
         // Add "Content" Top-Level menu if any CPT is active and Meta Box exists
         $this->add_content_parent_menu();
-
-        // Add Admin Menu Order submenu if feature is enabled
-        if ($this->is_feature_enabled('admin_menu_order')) {
-            add_submenu_page(
-                'craftedpath-toolkit',
-                'Admin Menu Order',
-                'Menu Order',
-                'manage_options',
-                'cpt-admin-menu-order',
-                array(CPT_Admin_Menu_Order::instance(), 'render_menu_order_page')
-            );
-        }
 
         // Add General Toolkit Settings Submenu (OpenAI API Key, etc.) LAST
         add_submenu_page(

@@ -6,7 +6,7 @@
  */
 
 // If this file is called directly, abort.
-if (!defined('WPINC')) {
+if (! defined('WPINC')) {
     die;
 }
 
@@ -20,7 +20,7 @@ function cptk_render_header_card()
     <div class="craftedpath-header-card">
         <div class="craftedpath-header-content">
             <div class="craftedpath-logo">
-                <img src="https://craftedpath.co/wp-content/uploads/2025/02/logo.webp" alt="CraftedPath Logo">
+                <img src="https://craftedpath.co/wp-content/uploads/2025/05/logo.webp" alt="CraftedPath Logo">
             </div>
             <div class="craftedpath-version">v<?php echo esc_html(CPT_VERSION); ?></div>
         </div>
@@ -46,9 +46,9 @@ function cptk_render_card($title, $icon, $content_callback, $footer_content = ''
                 // Check if $icon looks like an HTML tag (SVG or <i>), otherwise assume class name
                 if (is_string($icon) && strpos(trim($icon), '<') === 0) {
                     echo $icon; // Output raw HTML/SVG
-                } elseif (!empty($icon)) {
+                } elseif (! empty($icon)) {
                     // Fallback for class names (e.g., Dashicons)
-                    echo '<span class="' . esc_attr($icon) . '"></span>';
+                    echo '<span class="'.esc_attr($icon).'"></span>';
                 }
                 ?>
                 <?php echo esc_html($title); ?>
@@ -71,7 +71,7 @@ function cptk_render_card($title, $icon, $content_callback, $footer_content = ''
             }
             ?>
         </div>
-        <?php if (!empty($footer_content)): ?>
+        <?php if (! empty($footer_content)) : ?>
             <div class="craftedpath-card-footer">
                 <?php echo $footer_content; // Already prepared HTML, no need for esc_html ?>
             </div>
@@ -94,7 +94,7 @@ function cptk_create_toast_trigger($message = 'Settings saved.', $type = 'succes
         'cpt_toast_trigger',      // Unique setting slug for our trigger
         'cpt_features_saved',     // Unique error code
         $message,                 // Message (will be used by JS but not displayed in the notice)
-        'cpt-toast-notice ' . $type  // Custom CSS class type
+        'cpt-toast-notice '.$type  // Custom CSS class type
     );
 
     // Output a hidden container for the notice
@@ -107,8 +107,8 @@ function cptk_create_toast_trigger($message = 'Settings saved.', $type = 'succes
     echo '<script>
     jQuery(function($) {
         if (typeof window.showCPTToast === "function") {
-            console.log("Inline trigger calling showCPTToast with: ' . esc_js($message) . '");
-            window.showCPTToast("' . esc_js($message) . '", "' . esc_js($type) . '");
+            console.log("Inline trigger calling showCPTToast with: '.esc_js($message).'");
+            window.showCPTToast("'.esc_js($message).'", "'.esc_js($type).'");
         } else {
             console.error("Inline trigger: showCPTToast function not available");
         }

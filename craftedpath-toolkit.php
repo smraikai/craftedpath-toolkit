@@ -17,11 +17,6 @@ if (!defined('WPINC')) {
     die;
 }
 
-// Ensure WordPress core is loaded
-if (!function_exists('add_action')) {
-    return;
-}
-
 // Define constants
 define('CPT_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('CPT_PLUGIN_URL', plugin_dir_url(__FILE__));
@@ -57,6 +52,7 @@ final class CraftedPath_Toolkit
         require_once CPT_PLUGIN_DIR . 'includes/features/admin-refresh-ui/class-admin-refresh-ui.php';
         // Include the Admin Quick Search feature
         require_once CPT_PLUGIN_DIR . 'includes/features/admin-quick-search/class-cpt-admin-quick-search.php';
+        // Include the Admin Menu Order feature
         require_once CPT_PLUGIN_DIR . 'includes/features/admin-menu-order/class-cpt-admin-menu-order.php';
 
         require_once CPT_PLUGIN_DIR . 'includes/admin/class-settings-manager.php';
@@ -85,13 +81,6 @@ final class CraftedPath_Toolkit
         add_action('init', array($this, 'register_blocks'));
         add_action('wp_enqueue_scripts', array($this, 'enqueue_frontend_assets'));
 
-        // Initialize SEO hooks moved to load_features()
-        /*
-        if (file_exists(CPT_PLUGIN_DIR . 'includes/seo.php') && function_exists('\CraftedPath\Toolkit\SEO\setup')) {
-            \CraftedPath\Toolkit\SEO\setup();
-        }
-        */
-
         // Initialize other features by ensuring their instance is created.
         // Hooks are generally set in their constructors or methods called by constructors.
         CPT_AI_Page_Generator::instance();
@@ -99,9 +88,6 @@ final class CraftedPath_Toolkit
         CPT_AI_Alt_Text::instance();
         CPT_Admin_Refresh_UI::instance();
         CPT_Admin_Quick_Search::instance();
-        if (class_exists('CPT_Admin_Menu_Order')) {
-            CPT_Admin_Menu_Order::instance();
-        }
 
         // Initialize settings manager
         $this->settings_manager = CPT_Settings_Manager::instance();
@@ -269,6 +255,16 @@ final class CraftedPath_Toolkit
                 CPT_AI_Alt_Text::instance();
             } else {
                 error_log("CraftedPath Toolkit Error: CPT_AI_Alt_Text class not found.");
+            }
+        }
+
+        // Load Admin Menu Order
+        if ($settings_manager->is_feature_enabled('admin_menu_order')) {
+            require_once CPT_PLUGIN_DIR . 'includes/features/admin-menu-order/class-cpt-admin-menu-order.php';
+            if (class_exists('CPT_Admin_Menu_Order')) {
+                CPT_Admin_Menu_Order::instance();
+            } else {
+                error_log("CraftedPath Toolkit Error: CPT_Admin_Menu_Order class not found after include attempt.");
             }
         }
 
