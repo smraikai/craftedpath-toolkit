@@ -586,14 +586,6 @@ class CPT_Admin_Menu_Order
         // Start with general instructions
         $prompt = "You are a WordPress expert helping organize the admin menu for better user experience.\n\n";
 
-        // Add context about WordPress admin organization
-        $prompt .= "WordPress admin menus typically follow these principles:\n";
-        $prompt .= "1. Dashboard should be first\n";
-        $prompt .= "2. Content-related items (Posts, Pages, Media) come next\n";
-        $prompt .= "3. Design/appearance items (Themes, Customizer) follow content\n";
-        $prompt .= "4. Functionality items (Plugins, Users, Tools) come next\n";
-        $prompt .= "5. System/settings items usually come last\n";
-        $prompt .= "6. Logical separators should be placed between different functional groups\n\n";
 
         // Add potential categories if we found any
         if (!empty($categories)) {

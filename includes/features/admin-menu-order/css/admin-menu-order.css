@@ -248,3 +248,18 @@
     background-color: #f0f0f1;
     border-color: #8c8f94;
 }
+
+/** Styles for Admin Separator **/
+#adminmenu div.separator {
+    border-radius: 10px;
+}
+
+#adminmenu li.wp-menu-separator {
+    margin: 10px 0;
+}
+
+
+.wp-menu-separator {
+    display: block;
+    align-content: center;
+}
