@@ -81,21 +81,10 @@ final class CraftedPath_Toolkit
         add_action('init', array($this, 'register_blocks'));
         add_action('wp_enqueue_scripts', array($this, 'enqueue_frontend_assets'));
 
-        // Initialize other features by ensuring their instance is created.
-        // Hooks are generally set in their constructors or methods called by constructors.
-        CPT_AI_Page_Generator::instance();
-        CPT_AI_Menu_Generator::instance();
-        CPT_AI_Alt_Text::instance();
-        CPT_Admin_Refresh_UI::instance();
-        CPT_Admin_Quick_Search::instance();
-
         // Initialize settings manager
         $this->settings_manager = CPT_Settings_Manager::instance();
         // add_action( 'admin_menu', array( $this->settings_manager, 'add_settings_page' ) ); // Already done in class constructor
         // add_action( 'admin_init', array( $this->settings_manager, 'register_settings' ) ); // Already done in class constructor
-
-        // Initialize Bricks Colors Page
-        // CPT_Bricks_Colors_Page::instance()->init();
 
         // Initialize Bricks Colors Feature
         if ($this->settings_manager && $this->settings_manager->is_feature_enabled('bricks_colors')) {

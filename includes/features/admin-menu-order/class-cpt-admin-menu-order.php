@@ -44,7 +44,8 @@ class CPT_Admin_Menu_Order
         // Debug the hook
         error_log('enqueue_assets called on hook: ' . $hook);
 
-        if ($hook === 'craftedpath_page_cpt-admin-menu-order') {
+        // Check for all possible hook names for our admin page
+        if ($hook === 'craftedpath_page_cpt-admin-menu-order' || $hook === 'craftedpath-toolkit_page_cpt-admin-menu-order') {
             error_log('Enqueueing Admin Menu Order assets');
             // Enqueue the main plugin admin CSS for consistent styling
             wp_enqueue_style(
