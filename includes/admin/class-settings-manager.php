@@ -132,6 +132,13 @@ class CPT_Settings_Manager
                 'default' => false,
                 'section' => 'UI Enhancements'
             ),
+            'disable_comments' => array(
+                'name' => 'Disable Comments',
+                'description' => 'Completely disables comments functionality across the entire site.',
+                'class' => 'CPT_Disable_Comments',
+                'default' => false,
+                'section' => 'UI Enhancements'
+            ),
             // Section: Wireframe Mode
             'wireframe_mode' => array(
                 'name' => 'Wireframe Mode (Global)',

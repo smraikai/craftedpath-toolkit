@@ -1,0 +1,25 @@
+/* Disable Comments CSS */
+
+/* Hide comment-related UI elements */
+.comments-area,
+#comments,
+#respond,
+.comment-respond,
+.comment-form,
+.comment-reply-link,
+.comment-reply-title {
+    display: none !important;
+}
+
+/* Hide related admin info */
+.comment-count,
+.wp-admin-bar-comments {
+    display: none !important;
+}
+
+/* Style the admin notice */
+.disable-comments-notice {
+    background-color: #f0f8ff;
+    border-left: 4px solid #00a0d2;
+    padding: 5px 12px;
+}

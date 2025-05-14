@@ -54,6 +54,8 @@ final class CraftedPath_Toolkit
         require_once CPT_PLUGIN_DIR . 'includes/features/admin-quick-search/class-cpt-admin-quick-search.php';
         // Include the Admin Menu Order feature
         require_once CPT_PLUGIN_DIR . 'includes/features/admin-menu-order/class-cpt-admin-menu-order.php';
+        // Include the Disable Comments feature
+        require_once CPT_PLUGIN_DIR . 'includes/features/disable-comments/class-cpt-disable-comments.php';
 
         require_once CPT_PLUGIN_DIR . 'includes/admin/class-settings-manager.php';
         require_once CPT_PLUGIN_DIR . 'includes/admin/settings-page.php';
@@ -272,6 +274,15 @@ final class CraftedPath_Toolkit
                 CPT_Admin_Refresh_UI::instance();
             } else {
                 error_log("CraftedPath Toolkit Error: CPT_Admin_Refresh_UI class not found.");
+            }
+        }
+
+        // Load Disable Comments
+        if ($settings_manager->is_feature_enabled('disable_comments')) {
+            if (class_exists('CPT_Disable_Comments')) {
+                CPT_Disable_Comments::instance();
+            } else {
+                error_log("CraftedPath Toolkit Error: CPT_Disable_Comments class not found.");
             }
         }
 
