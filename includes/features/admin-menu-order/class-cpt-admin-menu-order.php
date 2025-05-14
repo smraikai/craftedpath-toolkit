@@ -241,19 +241,6 @@ class CPT_Admin_Menu_Order
                 }
                 ?>
             </ul>
-
-            <?php
-            // Display current saved order for debugging
-            $saved_order = get_option('cpt_admin_menu_order', array());
-            if (!empty($saved_order) && defined('WP_DEBUG') && WP_DEBUG) {
-                ?>
-                <div class="cpt-debug-info" style="margin-top: 20px; padding: 10px; background: #f5f5f5; border: 1px solid #ccc;">
-                    <h3>Debug Info</h3>
-                    <p>Saved order: <?php echo esc_html(wp_json_encode($saved_order)); ?></p>
-                </div>
-                <?php
-            }
-            ?>
         </div>
         <?php
     }
