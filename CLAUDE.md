@@ -1,0 +1,1 @@
+- Before making changes (upon first request) read the latest plugin-details md file in the root directory. Always let the user know you've done this.
