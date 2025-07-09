@@ -20,7 +20,7 @@ function cptk_render_header_card()
     <div class="craftedpath-header-card">
         <div class="craftedpath-header-content">
             <div class="craftedpath-logo">
-                <img src="https://craftedpath.co/wp-content/uploads/2025/05/logo.webp" alt="CraftedPath Logo">
+                <img src="https://craftedpath.co/wp-content/uploads/sites/6/2025/07/logo_new.webp" alt="CraftedPath Logo">
             </div>
             <div class="craftedpath-version">v<?php echo esc_html(CPT_VERSION); ?></div>
         </div>
